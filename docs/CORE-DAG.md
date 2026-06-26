@@ -96,6 +96,13 @@ cross-cutting (ver vocabulário).
 A mecânica (Seção 2) é idêntica nos dois; só a quantidade de nós muda. Largura ≠ profundidade
 (a fronteira 1-hop limita a profundidade mesmo num escopo amplo).
 
+**Desempate (quando a description tem sinais dos dois):** classifique pelo `entry_point`, NÃO
+pela description. Se o `entry_point` é um substantivo de região ("CRM", "Faturamento") → DOMÍNIO,
+mesmo que a description cite ações concretas (elas são *exemplos* do que a região faz). Se o
+`entry_point` nomeia uma tela ou ação única ("card da oportunidade", "exportar relatório") →
+INTENT. Regra: o `entry_point` decide a largura; a description só enriquece o conteúdo. Dois
+geradores lendo o mesmo `entry_point` devem chegar à mesma largura.
+
 **D2 — Vizinhos de saída: derive do domínio.**
 Identifique para quais outros domínios o entry_point aponta (os domínios vizinhos que ele
 consome). Esses são os destinos das arestas de saída (1 hop). Variam por projeto e por domínio —
@@ -149,7 +156,9 @@ direção consumidor→provedor. Não invente aresta de volta; o backward sai po
   - tipo: [rótulo descoberto do stack do projeto — ex. em web: superfície-UI, função-API,
            estado-cliente, função-biblioteca, disco; em CLI: comando, flag; em lib: função-pública, módulo]
   - path: [arquivo ou endpoint no código]
-  - shape: [campos/props principais visíveis no fonte]
+  - shape: [a "forma" do nó visível no fonte — para função-API: params de entrada e campos da
+            resposta; para superfície-UI: props principais; para função: assinatura (args→retorno).
+            É o contrato observável do nó, não sua implementação interna.]
   - confiança: lido no código | não encontrado
 
 ## Arestas (consumidor → provedor, sempre nessa direção)
@@ -180,9 +189,13 @@ direção consumidor→provedor. Não invente aresta de volta; o backward sai po
 
 ### FRONTEIRAS — sempre incluir
 
+> O gerador substitui `{next_stage}` pelo valor da instância (D3). Por padrão é "Descoberta
+> da API (etapa 2)". Se `next_stage` for outro, use-o nas duas primeiras linhas para manter
+> coerência — quem confirma o runtime é sempre a próxima etapa, seja ela qual for.
+
 ```
-- NÃO execute endpoints ao vivo — a Descoberta da API (etapa 2) faz isso
-- NÃO meça custo de runtime — só infira o que o código revela; o resto é gap p/ etapa 2
+- NÃO execute endpoints ao vivo — quem verifica ao vivo é {next_stage}
+- NÃO meça custo de runtime — só infira o que o código revela; o resto é gap p/ {next_stage}
 - NÃO crie aresta provedor→consumidor — o grafo é acíclico; backward é travessia (A3)
 - NÃO expanda o interior dos vizinhos além de 1 hop — outro DAG cobre aquele domínio
 - NÃO crie arquivos ou código — a Implementação (etapa 6) faz isso
@@ -196,6 +209,16 @@ direção consumidor→provedor. Não invente aresta de volta; o backward sai po
 
 > Esta é a regra que mais falha na prática. Um agente vê uma imperfeição no código e a lista
 > como gap. **Gap não é "achei um problema". Gap é "falta info para a PRÓXIMA etapa".**
+
+**Dois tipos de gap — não confunda:**
+- **Gap de pré-condição do briefing** — algo que falta para o *gerador* produzir o briefing
+  (ex.: `entry_point` ou `project_root` ausente). Só o GERADOR declara, via bloqueio (Estado
+  da instância). O executor nunca lida com isto.
+- **Gap do DAG** — algo que o *executor* não consegue mapear lendo o código e que a próxima
+  etapa precisa. Só o EXECUTOR descobre, durante a execução, e lista na seção Gaps. O gerador
+  não conhece estes gaps de antemão (não lê código) — ele apenas instrui o executor a aplicar C1.
+
+O teste C1 abaixo é para **gaps do DAG** (descobertos pelo executor).
 
 **C1 — Teste de gap (direcional, consumer-driven):**
 Antes de listar qualquer gap, responda: *"A próxima etapa não consegue completar sua tarefa
@@ -220,17 +243,21 @@ de quem consome o DAG.
 
 ```
 [ ] SEÇÃO 1: o enum de confiança usado bate com a capacidade do executor?
-[ ] A1: nós são superfícies/funções (nenhuma entidade de dados como nó)?
+[ ] A1: nós são unidades consumíveis (nenhuma entidade de dados como nó)?
 [ ] A2: toda aresta é consumidor→provedor (nenhuma aresta de volta)?
 [ ] A3: backward está na seção calculada, não como aresta?
 [ ] A4: parou em 1 hop para fora; vizinhos não foram expandidos por dentro?
 [ ] D1: a largura do escopo reflete o entry_point (intent estreito vs domínio amplo)?
 [ ] B1: custos 🟢🟡🔴 inferidos do código; runtime virou gap a-confirmar?
 [ ] B2: funções puras com custo n/a (sem custo inventado)?
-[ ] C1: TODO gap passou no teste direcional? Nenhuma dívida técnica/UX/perf na lista?
+[ ] C1: o briefing instrui o executor a aplicar o teste direcional (gaps do DAG)?
 [ ] As 4 partes presentes e na ordem? FORMATO com schema completo?
-[ ] Gap P0 presente? → declarar antes do OBJETIVO com ação e responsável
+[ ] Gap de PRÉ-CONDIÇÃO (entry_point/project_root ausente)? → emitir bloqueio em vez do briefing
 ```
+
+> Nota: o gerador NÃO declara "gaps do DAG" — esses só surgem na execução. O gerador só
+> verifica gaps de pré-condição (Estado da instância). O teste C1 vai DENTRO do briefing,
+> como instrução ao executor.
 
 ---
 
@@ -243,10 +270,10 @@ de quem consome o DAG.
 | `next_stage` | quem consome o DAG — calibra o teste de gap (D3) |
 | `project_root` | caminho do projeto para o executor ler |
 
-`entry_point` ou `project_root` ausentes → emita bloqueio antes do briefing:
+`entry_point` ou `project_root` ausentes → emita bloqueio antes do briefing (gap de pré-condição):
 
 ```
 ## ⚠️ BLOQUEIO
-Gap P0: [campo ausente]
+Gap de pré-condição: [campo ausente]
 Ação: [quem fornece]
 ```
