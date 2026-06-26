@@ -26,5 +26,13 @@ benchmarks/          ← scripts de validação isolados
 ## Estado atual
 
 A máquina é faseada (D019): construída etapa por etapa, um CORE por etapa.
-Em desenvolvimento: **etapa 1 — DAG (Mapa de Correlações)**, executor `Explore`.
-Ver `docs/CORE-DAG.md` e o histórico de calibração em `docs/DECISOES.md`.
+Em desenvolvimento: **etapa 1 — DAG**, executor `Explore`.
+
+A etapa 1 está sendo revista pelo método **bottom-up** (briefing perfeito → destilar o
+racional → reescrever o CORE-DAG). Fundação já decidida em validação (ver `docs/ABERTO.md`
+A008): DAG acíclico por construção (nó = superfície/função, aresta consumidor→provedor),
+backward calculado, custo de aresta híbrido, largura ditada pela demanda real.
+
+- Artefato-âncora (briefing perfeito, caso CRM): `docs/_WIP-briefing-dag-perfeito.md`
+- CORE-DAG vigente (v2.0, a ser reescrito pela fundação nova): `docs/CORE-DAG.md`
+- Calibração histórica: `docs/DECISOES.md` (D001…D019)

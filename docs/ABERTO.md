@@ -65,3 +65,36 @@
 **Questão:** A SPEC-PHASE-GATE-ENFORCER propõe adicionar 4 verbos ao dag.mjs existente. Mas o pipeline agora é mais rico (10 etapas, briefings, critérios de aceitação). O dag.mjs ainda é o lugar certo, ou precisa de um arquivo separado?
 **Impacto:** Alto — afeta toda a arquitetura da implementação.
 **Próximo passo:** Decidir antes de começar a implementação.
+
+---
+
+## A008 — Fundação do DAG (etapa 1): decidida em validação, não cristalizada
+
+**Status:** fundação estável, aguardando validação contra demanda real (D016)
+**Contexto:** Revisão da etapa 1 (DAG) pelo método bottom-up — escrever o briefing perfeito
+primeiro, destilar o racional, e só então reescrever o CORE-DAG. Cruzou-se a base interna
+(`relations/`, metodologia `research/0001`, contrato F0) com pesquisa externa sobre DAG e
+impact analysis. Artefato-âncora: `docs/_WIP-briefing-dag-perfeito.md` (caso CRM).
+
+**Fundação decidida (mecânica do grafo — vira CORE-DAG quando validada):**
+- Nó = superfície/função que a feature/domínio consome (NÃO entidade de dados — gera ciclos)
+- Aresta = "depende de", direção única consumidor→provedor → **DAG acíclico por construção**
+- Backward (blast radius) = grafo reverso **calculado** por travessia, não aresta armazenada
+- Fronteira = 1 hop armazenado, closure transitiva sob demanda
+- Custo de aresta = **híbrido**: Explore infere o que o código revela (`inferido`); o que é
+  runtime vira gap `a confirmar pela Descoberta` (etapa 2). Respeita D019 (Explore não toca rede).
+- Executor = Explore (lê código) — D019 preservada
+- **Largura do escopo vem da DEMANDA REAL (`entry_point`), não do CORE.** Intent estreito
+  ("card da oportunidade") vs. domínio amplo ("CRM") — a mecânica é a mesma; o gerador lê
+  o entry_point, não inventa a largura.
+
+**Por que ainda não é D0XX formal:** fiel ao D016 ("testar antes de registrar"). A fundação
+só vira decisão registrada quando o CORE-DAG derivado dela gerar um briefing perfeito contra
+uma demanda real.
+
+**Resolve a contradição central da base:** metodologia-fonte (`0001`) e contrato (F0) faziam
+o mapa ao vivo; redesenho (PIPELINE+CORE+D019) deu ao Explore que não toca rede. A divisão
+estática/runtime (estrutura→Explore, custo-runtime→etapa 2) dissolve o conflito.
+
+**Próximo passo:** ou destilar o CORE-DAG agora a partir do briefing v2, ou aguardar uma
+demanda real para construir+validar o CORE-DAG contra ela. Decisão do operador humano.
