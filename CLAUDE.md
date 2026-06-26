@@ -51,6 +51,45 @@ O agente que entra numa etapa sabe exatamente: o que deve fazer, o que deve prod
 
 ---
 
+## Metodologias que usamos (princípios de trabalho)
+
+Estas regras governam COMO construímos o pipeline. Valem para qualquer etapa.
+
+### M1 — Dinâmico é a preferência em TODOS os cenários
+
+Sempre que houver escolha entre **fixar** um valor no CORE e **descobri-lo** em runtime a
+partir do contexto, escolha descobrir. O CORE ensina o *critério*; o contexto fornece os
+*dados*. Listas fechadas, taxonomias rígidas e constantes embutidas são o último recurso,
+não o primeiro.
+
+- **Por quê:** valor fixo trava o CORE num cenário (um stack, um projeto, um domínio). Critério
+  + descoberta generaliza para qualquer cenário sem reescrever o CORE.
+- **Exemplo real (CORE-DAG v3):** os tipos de nó NÃO são uma lista fixa (`função-API |
+  estado-browser`, que assumiria projeto web). O CORE ensina o critério ("unidade consumida
+  numa direção") e o executor descobre os rótulos do stack que está lendo — web, CLI ou lib.
+- **Teste:** se trocar de projeto/stack/domínio exige editar o CORE, há algo fixo que deveria
+  ser dinâmico.
+
+### M2 — Bottom-up: briefing perfeito primeiro, depois destilar o CORE
+
+Não escrevemos o CORE top-down (regras inventadas). Escrevemos o **briefing perfeito** de um
+caso concreto, **destilamos o racional** (por que cada parte é boa), e só então o racional vira
+o CORE. O CORE é evidência destilada, não hipótese. (Aplicação direta do D016.)
+
+### M3 — Separar invariante (vai pro CORE) de variável (lido da demanda)
+
+Em cada destilação, classifique cada elemento: é **mecânica** (invariante → regra do CORE) ou
+é **leitura da demanda** (varia → o gerador extrai do contexto/`entry_point`)? Analogia:
+o CORE é a gramática (estável); a demanda é o programa (varia). Não se muda a gramática por programa.
+
+### M4 — Testar antes de cristalizar (D016)
+
+Nenhuma fundação vira decisão registrada em `DECISOES.md` antes de ser validada contra um caso
+real (idealmente um 2º, diferente do que a originou). Até lá, vive em `ABERTO.md` ou em WIPs.
+Honestidade epistêmica: "parece genérico" ≠ "é genérico" até rodar fora do caso de origem.
+
+---
+
 ## Padrão de Briefing: CORE + Gerador
 
 ### O problema que o CORE resolve
