@@ -1,0 +1,77 @@
+{
+  "gaps": [
+    {
+      "id": "GAP-001",
+      "descricao": "commands/run quebra 100%: CommandRunSection envia args como objeto {[name]:string} (ravi('commands/run',{name,args:values}) onde values vem de ArgsForm.onRun(values: Record<string,string>)), mas a API exige args como ARRAY de strings posicionais. Enviar objeto retorna ValidationError 'expected array, received object'. Nenhuma execucao de comando funciona hoje.",
+      "prioridade": "P0",
+      "evidencia": "Descoberta commands/run: 'args ARRAY de strings posicionais (NAO objeto). {pergunta:x} => ValidationError expected array, received object'. Codigo: command-run-section.tsx:31 'args: values' e args-form.tsx:22 onRun(values: Record<string,string>)."
+    },
+    {
+      "id": "GAP-002",
+      "descricao": "Modelo mental errado de commands/run: a aba trata 'Executar' como disparo de execucao com efeito e renderiza um result polimorfico (string|object via JsonView). A API NAO executa o agente — apenas RENDERIZA o prompt e devolve {prompt, metadata:{renderedPromptSha256}, positionalArguments} (sempre objeto, nunca string). A UI mostra 'result' cru mas nunca exibe o campo 'prompt', entao mesmo corrigindo o formato dos args o usuario nao ve o resultado util (prompt renderizado). O label 'Executar'/'rodá-lo' comunica semantica falsa.",
+      "prioridade": "P0",
+      "evidencia": "Descoberta commands/run bordas: 'commands/run NAO executa/dispara o agente — RENDERIZA o prompt... data NAO e polimorfico string|object como o DAG inferia — e sempre o objeto de render'. Codigo: args-form.tsx:98-104 trata result string|object; args-form.tsx:87 botao 'Executar'; commands-tab.tsx:159 texto 'rodá-lo'."
+    },
+    {
+      "id": "GAP-003",
+      "descricao": "Mapeamento posicional ausente: mesmo trocando args para array, falta a regra de ordenacao. args posicional deve seguir a ordem de command.arguments[] (ex. ['pergunta']). ArgsForm guarda valores num map keyed por nome e nao preserva/garante a ordem do array arguments[]. Sem essa ponte nome->posicao, valores podem ir para a posicao errada quando ha >1 argumento.",
+      "prioridade": "P1",
+      "evidencia": "Descoberta commands/run: 'args e lista posicional mapeada para command.arguments'. commands/list/show: arguments e array de strings (nomes). Codigo: args-form.tsx:46 values como Record sem indice posicional."
+    },
+    {
+      "id": "GAP-004",
+      "descricao": "commands/list paginacao nao consumida: a aba chama ravi('commands/list',{agent:id}) sem limit/offset e usa apenas a primeira pagina (default limit=50). Para agentes com >50 comandos globais a lista fica truncada silenciosamente (hasMore/nextOffset ignorados). Adicionalmente, se algum dia o codigo enviar limit/offset como number quebra com ValidationError — devem ser STRING.",
+      "prioridade": "P1",
+      "evidencia": "Descoberta commands/list: 'limit/offset DEVEM ser enviados como STRING (number => ValidationError). Default limit=50. hasMore/nextOffset indicam continuacao'. Codigo: commands-tab.tsx:78 ravi('commands/list',{agent:id}) sem paginacao."
+    },
+    {
+      "id": "GAP-005",
+      "descricao": "Endpoint /api/agent/workspace (FS local do Next, distinto da API RAVI) nao foi validado ao vivo — o proxy RAVI nao cobre rotas /api/agent/*. A aba depende dele para a lista de comandos 'deste agente' (editaveis) e para o botao 'Novo comando'. Shape {commands[]} e comportamento sob cwd inexistente/sem permissao FS sao inferidos do codigo, nao confirmados.",
+      "prioridade": "P1",
+      "evidencia": "Descoberta /api/agent/workspace: confianca 'inferido do código', evidencia_ao_vivo null, 'Nao confirmado ao vivo (proxy RAVI nao cobre rotas /api/agent/*)'. Codigo: commands-tab.tsx:31-40 listAgentCommands."
+    },
+    {
+      "id": "GAP-006",
+      "descricao": "Fonte de arguments para o form de execucao indefinida: commands/list ja entrega arguments[] e argumentHint (coexistem), mas a aba so usa commands/list para a LISTAGEM; nao esta claro de onde CommandRunSection recebe args/argumentHint. commands/show retorna o body completo + frontmatter (com 'argument-hint' em kebab vs 'argumentHint' camel no nivel command). Falta decidir/confirmar o fluxo que alimenta os campos do ArgsForm antes do design.",
+      "prioridade": "P2",
+      "evidencia": "Descoberta commands/show bordas: 'frontmatter normaliza argument-hint (kebab) enquanto o nivel command usa argumentHint (camel). arguments e argumentHint coexistem (G006)'. Codigo: command-run-section.tsx recebe args/argumentHint por props mas a origem nao aparece na cadeia da aba."
+    },
+    {
+      "id": "GAP-007",
+      "descricao": "Tratamento de erro de validacao da RAVI nao mapeado na UI: a API retorna ValidationError estruturado (unrecognized_keys, expected string/array) mas ravi() colapsa em {error} simples e ArgsForm exibe error.error ?? 'Falhou'. Erros de contrato (que sao a causa do GAP-001) virariam um 'Falhou' generico sem pista do campo. Nao bloqueia, mas mascara a causa raiz.",
+      "prioridade": "P2",
+      "evidencia": "Descoberta (multiplos): ValidationError com mensagens especificas. Codigo: ravi.ts:26-33 monta ApiError{error,detail}; command-run-section.tsx:41 error.error ?? 'Falhou' descarta detail."
+    }
+  ],
+  "complexidade": "média",
+  "justificativa_complexidade": "O esqueleto da aba (listagem, editor FS, merge global+agente, cwd via agents/show) ja existe e funciona; os contratos das 4 rotas RAVI estao confirmados ao vivo. A media vem de duas correcoes de contrato com impacto direto no comportamento (args objeto->array posicional e a re-semantica de commands/run de 'executar' para 'renderizar prompt'), que mudam fluxo e copy da UI, mais a paginacao de commands/list e a validacao nao-confirmada do endpoint local /api/agent/workspace. Nenhum gap exige nova infra ou capacidade inexistente — sao alinhamentos a contratos ja descobertos.",
+  "pronto_para_reuso": [
+    "CommandsTab — listagem com merge this-agent (FS) + global (RAVI), ordenacao, estado loading/failed/empty distinguido (regra 7), e auto-source do cwd via agents/show (.agent.cwd) ja corrigido.",
+    "CommandEditor + fileOp — view/edit/history/delete de comando do workspace via POST /api/agent/file, com commit git; reaproveitavel integralmente.",
+    "asRows (ravi.ts) — coercao deterministica de envelope de lista com precedencia items>commands; cobre o shape real de commands/list (items[] e commands[] duplicados).",
+    "agent-fs.ts (listCommands/readAgentFile/writeAgentFile/deleteAgentFile/fileHistory/fileVersionContent) — camada FS do workspace com validacao de path.",
+    "Cliente ravi() + proxy /api/ravi/[...path] + raviCall — transporte server-side com Bearer; contrato confirmado para list/show/run/agents-show.",
+    "ArgsForm — UI de campos+Run+resultado (precisa apenas de ajuste de output e de mapeamento posicional, nao de reescrita)."
+  ],
+  "no_gos": [
+    "Implementar execucao real do agente a partir da aba — commands/run apenas renderiza prompt; disparar o agente seria outra capacidade/endpoint fora do escopo desta feature.",
+    "Editar comandos globais — sao read-only por design (editable:false; FS fora do workspace do agente).",
+    "Criar nova UI de paginacao infinita/scroll para comandos globais — fora do escopo; no maximo aumentar limit ou paginar minimamente.",
+    "Refatorar o sistema de envelope asRows/ROW_KEYS alem do necessario para esta aba.",
+    "Tratar limites de tamanho do body do comando no servidor — textarea do editor nao tem teto, mas isso e do dominio do /api/agent/file, nao desta feature."
+  ],
+  "incertezas_tecnicas": [
+    {
+      "incerteza": "Origem e formato dos args/argumentHint que alimentam CommandRunSection/ArgsForm na pratica (vem de commands/list, de commands/show, ou do frontmatter?), e como reconciliar argument-hint kebab vs argumentHint camel.",
+      "spike": "Spike curto: tracar a cadeia que monta a secao 'Executar' e confirmar qual payload alimenta args/argumentHint; decidir fonte canonica antes do Design."
+    },
+    {
+      "incerteza": "Comportamento de /api/agent/workspace sob cwd inexistente, sem .claude/commands, ou sem permissao FS — nao confirmado ao vivo (proxy RAVI nao cobre /api/agent/*).",
+      "spike": "Spike: chamar /api/agent/workspace localmente com cwd valido, vazio e invalido; registrar shape de sucesso e de erro para a aba distinguir falha de vazio real."
+    },
+    {
+      "incerteza": "Como apresentar o resultado de commands/run agora que sabemos ser um prompt renderizado (campo 'prompt' + metadata) e nao uma execucao — qual e o valor de UX (copiar prompt? preview? sha?).",
+      "spike": "Spike de produto/UX: definir o que a aba mostra apos render (prompt, sha256, args posicionais) e ajustar copy de 'Executar'."
+    }
+  ]
+}

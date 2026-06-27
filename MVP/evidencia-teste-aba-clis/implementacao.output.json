@@ -1,0 +1,71 @@
+{
+  "feature": "aba-clis",
+  "etapa": "implementacao",
+  "resumo": "Plano de implementacao acionavel da aba CLIs do ravi-console, derivado do mapa de dependencias (U1->U5) e ancorado nos gaps/criterios reais e no codigo confirmado. Nao constroi nada novo: corrige contratos confirmados ao vivo. Nucleo P0 = U1 (args objeto->array posicional) + U2 (commands/run renderiza prompt, nao executa). Caminhos reais confirmados: command-run-section.tsx vive em src/components/ui/ (NAO em agent/); args-form.tsx em src/components/ui/; commands-tab.tsx em src/components/agent/; ravi.ts em src/lib/. A ponte nome->posicao precisa nascer no CommandRunSection porque so ele conhece a ordem canonica de command.arguments[] (args prop); ArgsForm atualmente devolve um Record<string,string> sem indice (args-form.tsx:22,46).",
+  "arquivos_alterados": [
+    {
+      "arquivo": "src/components/ui/command-run-section.tsx",
+      "mudanca": "U1 (P0): na mutationFn (linhas 26-33), parar de enviar 'args: values' (objeto). Converter o Record<string,string> recebido do ArgsForm em ARRAY de strings posicional, montado estritamente na ordem de 'args' (prop = command.arguments[]). Implementacao: normalizar cada item de 'args' para nome via 'typeof a === string ? a : a.name', mapear para values[nome] ?? '' preservando a ordem do array; quando nao ha args estruturados mas ha argumentHint (fallback de ArgsForm que usa a chave 'args'), enviar [values.args ?? '']; quando nao ha nenhum, enviar []. Resultado: ravi('commands/run', { name, ...(agentId?{agent:agentId}:{}), args: positional }) com args SEMPRE array. NUNCA derivar a ordem de Object.keys(values).",
+      "ancora": "GAP-001, GAP-003, CA-04, CA-05, ADR-002, R1, R3",
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/components/ui/args-form.tsx",
+      "mudanca": "U1/U3 (P0/P1): manter a coleta interna como Record<string,string> (estado de UI, conforme ADR-002) mas garantir que a ORDEM canonica seja a de 'args' (a renderizacao em fields ja itera normalized=args na ordem do array — preservar isso; nao reordenar por Object.keys). O contrato onRun(values: Record<string,string>) (linha 22) permanece — a conversao posicional acontece no CommandRunSection que detem a prop 'args'. Nenhuma mudanca de assinatura aqui para U1; a garantia de ordem ja e satisfeita porque CommandRunSection le a mesma prop 'args' para ordenar. Opcional defensivo: documentar via comentario que 'values' nao carrega ordem e a fonte de ordem e command.arguments[].",
+      "ancora": "GAP-003, CA-05, ADR-002, R3",
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/components/ui/args-form.tsx",
+      "mudanca": "U2 (P0): re-semantica render-nao-executa. (a) Botao (linha 87): trocar copy 'Executar' por 'Renderizar prompt' e o icone Play por algo neutro (ex. FileText/Sparkles) ou manter Play renomeando so o texto. (b) Texto sem-args (linhas 54-56): trocar 'Clique em Executar para roda-lo.' por 'Clique em Renderizar prompt para compilar o prompt.'. (c) Area de resultado (linhas 95-106): parar de tratar result como string|object polimorfico via JsonView. A resposta de commands/run e SEMPRE o objeto { prompt, metadata:{ renderedPromptSha256 }, positionalArguments }. Exibir explicitamente: data.prompt num <pre> legivel/copiavel (com botao copiar), metadata.renderedPromptSha256 em fonte mono como 'sha256: ...', e positionalArguments como a lista dos args enviados. Tratar result como tipo Render { prompt:string; metadata?:{renderedPromptSha256?:string}; positionalArguments?:string[] } em vez de unknown. Manter um fallback defensivo (JsonView) so se result nao tiver o campo prompt.",
+      "ancora": "GAP-002, CA-06, CA-07, ADR-001, R2",
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/components/agent/commands-tab.tsx",
+      "mudanca": "U2 (copy): nao existe a string literal 'roda-lo' nem 'rodá-lo' neste arquivo na versao atual (a copy de linha ~159 e 'Carregando…' e o texto vazio de linha 165 e 'Nenhum comando para este agente.'). A copy de execucao falsa vive em args-form.tsx (corrigida acima). Aqui apenas alinhar, se desejado, o texto introdutorio (linhas 140-144) para nao prometer execucao — ja diz apenas 'Slash commands do agente'; nenhuma mudanca obrigatoria de copy de execucao. Mudanca efetiva de commands-tab fica em U3/U4.",
+      "ancora": "GAP-002, CA-07, ADR-001",
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/components/agent/commands-tab.tsx",
+      "mudanca": "U3 (P1): paginacao de commands/list com limit/offset STRING. Na globalQ.queryFn (linha 78) trocar ravi('commands/list',{agent:id}) por ravi('commands/list',{ agent:id, limit:'50', offset:'0' }) — strings, nunca number (number => ValidationError). Consumir pagination.hasMore/nextOffset do envelope: como o transporte ravi() devolve json.data e asRows extrai a lista, ler pagination do objeto data antes do asRows (ex. globalQ.data.pagination) para, quando hasMore, carregar a proxima pagina com offset=nextOffset (string) e concatenar — paginacao minima (loop sequencial ou botao 'carregar mais'), SEM scroll infinito (no-go). Aceitavel para o MVP: enviar limit alto fixo como string e sinalizar hasMore; o essencial do criterio e (i) strings e (ii) nao truncar silenciosamente em 50.",
+      "ancora": "GAP-004, CA-12, ADR-004, R5",
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/components/agent/commands-tab.tsx",
+      "mudanca": "U4 (P1): distinguir loading / erro_de_carga / lista_vazia. A logica de 'failed' (linhas 125-135) ja distingue erro de vazio via agentSourceUsable/globalSourceUsable — preservar. Reforcar: (a) cwd ausente (agents/show sem .agent.cwd) deve ser tratado como erro de PRE-CONDICAO (estado erro_de_carga com retry), nao como zero comandos: hoje cwd '' apenas desabilita agentQ e o botao; adicionar deteccao 'configQ concluiu mas cwd vazio' -> mensagem de erro distinta (CA-02/CA-03). (b) Texto vazio (linha 165) 'Nenhum comando para este agente.' ja e o estado lista_vazia explicito — manter; garantir que so aparece quando NENHUMA fonte falhou e rows.length===0 (ja garantido por !loading && !failed && !rows.length). (c) Botao retry no estado failed (linhas 160-163): adicionar acao que chama agentQ.refetch()/globalQ.refetch()/configQ.refetch() em vez de so texto 'Tente novamente.'.",
+      "ancora": "GAP-005, CA-02, CA-03, R4",
+      "confianca": "inferido",
+      "nota": "GAP-005: shape/erro de /api/agent/workspace nao confirmado ao vivo (proxy RAVI nao cobre /api/agent/*). Manter retry:false em agentQ (ja existe, linha 71) e tratar agentQ.isError como fonte indisponivel, nunca como vazio."
+    },
+    {
+      "arquivo": "src/lib/ravi.ts",
+      "mudanca": "U5 (P2): ravi() JA preserva o detail estruturado no ApiError (linhas 26-33: { error, detail, status }) — o ValidationError nao e colapsado no transporte. Nenhuma mudanca necessaria aqui alem de, opcionalmente, tipar detail melhor. O colapso para 'Falhou' acontece no consumidor (command-run-section.tsx:41). Marcar este arquivo como JA-CONFORME para CA-09/R6 e concentrar a correcao no consumidor.",
+      "ancora": "GAP-007, CA-09, R6",
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/components/ui/command-run-section.tsx",
+      "mudanca": "U5 (P2): parar de colapsar o erro em 'Falhou' (linha 41). Em vez de error.error ?? 'Falhou', extrair tambem run.error.detail (ApiError.detail) e compor uma mensagem que preserve campo/causa do ValidationError (ex. unrecognized_keys, expected array/string). Passar a ArgsForm uma string de erro enriquecida (ou estender o prop error para aceitar o objeto e renderizar campo+causa). Logar o detail completo via console.error para diagnostico. Isso desmascara exatamente a regressao do GAP-001 (args objeto) caso reapareca.",
+      "ancora": "GAP-007, CA-09, R6",
+      "confianca": "confirmado"
+    }
+  ],
+  "golden_path_test": {
+    "id": "GP-render-arch",
+    "given": "Um agente id='main' com agents/show retornando data.agent.cwd preenchido; um comando #arch com command.arguments=['pergunta']; o usuario preencheu o campo 'pergunta'='teste' na secao Renderizar prompt.",
+    "when": "O usuario clica em 'Renderizar prompt' (botao antes rotulado 'Executar').",
+    "then": "CommandRunSection converte { pergunta: 'teste' } no ARRAY posicional ['teste'] na ordem de command.arguments[] e chama ravi('commands/run', { name:'arch', agent:'main', args:['teste'] }) — args ARRAY, nunca objeto. A API responde { prompt, metadata:{ renderedPromptSha256 }, positionalArguments:['teste'] }. A UI EXIBE data.prompt num bloco legivel/copiavel, mostra o sha256 e os positionalArguments, sem ValidationError e sem fingir execucao do agente.",
+    "verifica": ["GAP-001", "GAP-002", "GAP-003", "CA-04", "CA-05", "CA-06", "CA-07"]
+  },
+  "riscos_de_regressao": [
+    "ArgsForm e usado tambem por app-run-section.tsx (mesmo diretorio src/components/ui/). Se a re-semantica de 'result' for hardcoded para o shape {prompt,...} de commands/run, pode quebrar o app-run que pode esperar outro shape. Mitigacao: manter fallback JsonView quando result nao tiver campo 'prompt', preservando o consumidor app-run.",
+    "A conversao posicional depende de 'args' (prop) refletir command.arguments[] na ordem real. GAP-006/spike#1: a origem de args/argumentHint que alimenta CommandRunSection nao esta 100% tracada na cadeia da aba (commands/list vs commands/show vs frontmatter, argument-hint kebab vs argumentHint camel). Se a fonte entregar ordem diferente, o mapeamento posicional erra silenciosamente. Mitigacao: confirmar fonte canonica (commands/list entrega arguments[]) antes de aplicar U1.",
+    "U3 paginacao: ler pagination depende do envelope de commands/list expor pagination ANTES do asRows; como ravi() retorna json.data e asRows so extrai a lista, e preciso acessar data.pagination diretamente. Risco de assumir um shape de pagination nao confirmado ao vivo para >50 itens (so #arch existe nesta instalacao). Mitigacao: paginacao defensiva — se pagination ausente, comportar como pagina unica (sem regressao).",
+    "U4: tratar cwd ausente como erro de pre-condicao pode transformar agentes legitimamente sem .claude/commands locais (mas com globais) em estado de erro. Mitigacao: cwd ausente = erro SO quando tambem nao ha fonte global usavel; se globalQ respondeu, mostrar lista/vazio real (logica failed atual ja faz isso — nao endurecer demais).",
+    "command-run-section.tsx esta em src/components/ui/, nao em src/components/agent/ como o briefing/mapa citam. Aplicar a edicao no caminho real (ui/) evita patch em arquivo inexistente.",
+    "U5 ao enriquecer a mensagem de erro com detail: o shape de ApiError.detail e 'unknown' — renderizar sem narrow pode mostrar [object Object]. Mitigacao: serializar detail com seguranca (JSON.stringify ou extracao de campos conhecidos do ValidationError)."
+  ]
+}

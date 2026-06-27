@@ -1,0 +1,65 @@
+{
+  "endpoints_confirmados": [
+    {
+      "endpoint": "POST /api/ravi/commands/list",
+      "params": {
+        "agent": "string opcional (id do agente, ex. \"main\"); default = agente principal",
+        "limit": "string opcional (NAO number) — ex. \"50\"; default 50",
+        "offset": "string opcional (NAO number) — ex. \"0\"; default 0"
+      },
+      "shape_resposta": "{ data: { total:number, pagination:{limit:number, offset:number, returned:number, total:number, hasMore:boolean, nextOffset:number|null, nextCommand:string|null}, agent:{id, cwd}, locations:{agent, global}, items:[Command], commands:[Command], issues:[] } }. Command = {id, token, title, description, argumentHint, arguments:string[], disabled:boolean, scope:'global'|'agent', path, relativePath, shadowedBy:null, shadows:[], issues:[]}",
+      "limites": "Paginacao confirmada: limit/offset existem mas DEVEM ser enviados como STRING (number => ValidationError). Default limit=50. hasMore/nextOffset indicam continuacao. Timeout nao determinado.",
+      "bordas": "items[] e commands[] sao DUPLICADOS (mesmo conteudo) — frontend pode usar qualquer um, mas o DAG inferia {items|rows|data|commands}; o real e items E commands. 'arguments' e array de strings (nomes dos params). 'argumentHint' e string e COEXISTE com 'arguments' (G006 resolvido: NAO sao mutuamente exclusivos). agent.cwd vem no payload aqui tambem.",
+      "confianca": "confirmado ao vivo",
+      "evidencia_ao_vivo": "Chamado com {} e com {limit:'1',offset:'0'}. Retornou total:1, 1 comando 'arch' (token '#arch'), com arguments:['pergunta'] e argumentHint:'<pergunta arquitetural>' juntos. agent={id:'main',cwd:'/home/ravi/ravi/main'}. Enviar limit/offset como number deu ValidationError 'expected string'."
+    },
+    {
+      "endpoint": "POST /api/ravi/commands/show",
+      "params": {
+        "name": "string OBRIGATORIO (id/nome do comando, ex. \"arch\"). O param 'command' e REJEITADO com ValidationError unrecognized_keys.",
+        "agent": "string opcional (id do agente)"
+      },
+      "shape_resposta": "{ data: { agent:{id, cwd}, command:{ ...mesmos campos do item de list..., body:string (markdown completo do comando), frontmatter:{title, description, 'argument-hint':string, arguments:string[]} } } }",
+      "limites": "Sem paginacao. Timeout nao determinado. body retorna o markdown inteiro do comando (tamanho ilimitado observado).",
+      "bordas": "G001 resolvido: param correto e 'name' (NAO 'command'). Faltar 'name' => ValidationError 'expected string, received undefined'. command.body traz o markdown bruto; frontmatter normaliza 'argument-hint' (kebab) enquanto o nivel command usa 'argumentHint' (camel). arguments e argumentHint coexistem (G006).",
+      "confianca": "confirmado ao vivo",
+      "evidencia_ao_vivo": "Chamado {name:'arch'} retornou command com body (protocolo MODO ARQUITETURAL) + frontmatter {title, description, 'argument-hint', arguments:['pergunta']}. {command:'arch'} => ValidationError unrecognized_keys 'command'. {} => ValidationError 'name expected string'."
+    },
+    {
+      "endpoint": "POST /api/ravi/commands/run",
+      "params": {
+        "name": "string OBRIGATORIO (id do comando). Faltar => ValidationError.",
+        "args": "ARRAY de strings posicionais (NAO objeto). {pergunta:'x'} => ValidationError 'expected array, received object'. Use ['valor1','valor2'].",
+        "agent": "string opcional (id do agente) — confirma que agent e parametro aceito (G004 resolvido: aceito)"
+      },
+      "shape_resposta": "{ data: { agent:{id, cwd}, command:{...campos do comando...}, metadata:{id, scope, sourcePath, originalText, arguments:string, renderedPromptSha256}, positionalArguments:string[], prompt:string } }",
+      "limites": "Sem paginacao. args e lista posicional mapeada para command.arguments. Tamanho do prompt limitado pelo body do comando (nao determinado teto).",
+      "bordas": "DESCOBERTA CRITICA: commands/run NAO executa/dispara o agente — ele RENDERIZA o prompt do comando e devolve em 'prompt' + 'metadata.renderedPromptSha256' + 'positionalArguments'. Nao tem efeito destrutivo observado (chamado ao vivo com 'arch' sem alterar estado). 'args' deve ser ARRAY (corrige inferencia do DAG que assumia {[name]:string}). data NAO e polimorfico string|object como o DAG inferia — e sempre o objeto de render acima.",
+      "confianca": "confirmado ao vivo",
+      "evidencia_ao_vivo": "Chamado {name:'arch'} e {name:'arch',args:['teste']}: retornou metadata.renderedPromptSha256, positionalArguments:['teste'], prompt com '#arch teste' renderizado. {} => ValidationError 'name'. {args:{...}} => ValidationError 'expected array, received object'. Nenhum efeito colateral (apenas render)."
+    },
+    {
+      "endpoint": "POST /api/ravi/agents/show",
+      "params": {
+        "id": "string OBRIGATORIO (id do agente, ex. \"main\")"
+      },
+      "shape_resposta": "{ data: { agent:{id, cwd, name, model, provider, debounceMs, groupDebounceMs, heartbeat:{enabled, intervalMs}, specMode, defaults:{effort}, isDefault, effectiveProvider, tags:[]}, permissionsCommand:string } }",
+      "limites": "Sem paginacao. Timeout nao determinado.",
+      "bordas": "G002 resolvido: agents/show RETORNA {data:{agent:{cwd}}} com cwd presente (ex. '/home/ravi/ravi/main'). cwd nao e aninhado em data.agent.agent — e data.agent.cwd diretamente. CommandsTab depende de cwd; confirmado que vem populado para agente valido. permissionsCommand vem como string de CLI sugerida.",
+      "confianca": "confirmado ao vivo",
+      "evidencia_ao_vivo": "Chamado {id:'main'} retornou agent={id:'main', cwd:'/home/ravi/ravi/main', name:'Ravi', model:'claude-opus-4-8[1m]', provider:'claude', ...} e permissionsCommand:'ravi permissions list --subject agent:main'."
+    },
+    {
+      "endpoint": "POST /api/agent/workspace",
+      "params": {
+        "cwd": "string (diretorio do workspace do agente)",
+        "action": "'commands' opcional (le .claude/commands via listCommands)"
+      },
+      "shape_resposta": "{ commands[], skills?, settings? } — commands derivados de listCommands(cwd) lendo .claude/commands/*.md (FS local do Next, nao a API RAVI)",
+      "limites": "nao determinado (endpoint local nao exposto pelo proxy RAVI; nao testado ao vivo aqui)",
+      "bordas": "Este endpoint e do app Next (FS do workspace), distinto da API RAVI. Le markdown com frontmatter YAML opcional {title, description}; nome validado [a-zA-Z0-9._-]. Nao confirmado ao vivo nesta sessao (proxy RAVI nao cobre rotas /api/agent/*).",
+      "confianca": "inferido do código",
+      "evidencia_ao_vivo": null
+    }
+  ]
+}

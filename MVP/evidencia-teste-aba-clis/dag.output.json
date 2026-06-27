@@ -1,0 +1,379 @@
+﻿{
+    "nos":  [
+                {
+                    "tipo":  "superfície-UI",
+                    "path":  "src/components/agent/commands-tab.tsx",
+                    "nome":  "CommandsTab",
+                    "shape":  "interface CommandRow {name, token, title, description, scope, editable}; props {id, cwd?}; renderiza lista de comandos, novo, detalhes com CommandEditor",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "superfície-UI",
+                    "path":  "src/components/agent/command-editor.tsx",
+                    "nome":  "CommandEditor",
+                    "shape":  "props {cwd, name, isNew, onBack}; view markdown + edit textarea + history + delete",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "componente-UI",
+                    "path":  "src/components/ui/args-form.tsx",
+                    "nome":  "ArgsForm",
+                    "shape":  "interface CommandArg {name, description?, required?, type?}; props {args?, argumentHint?, onRun, running?, result?, error?}; renderiza campos + botão Run + resultado",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "componente-UI",
+                    "path":  "src/components/ui/command-run-section.tsx",
+                    "nome":  "CommandRunSection",
+                    "shape":  "props {name, agentId?, args?, argumentHint?}; wrapper stateful do ArgsForm; chamada commands/run",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "superfície-UI",
+                    "path":  "src/components/agent/agent-panel.tsx",
+                    "nome":  "AgentPanel",
+                    "shape":  "renderiza tabs; section===\u0027commands\u0027 chama CommandsTab(id)",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-API",
+                    "path":  "src/app/api/agent/workspace/route.ts",
+                    "nome":  "POST /api/agent/workspace",
+                    "shape":  "body {cwd, action?: \u0027commands\u0027} → {commands[], skills?, settings?}",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-API",
+                    "path":  "src/app/api/agent/file/route.ts",
+                    "nome":  "POST /api/agent/file",
+                    "shape":  "body {action, cwd, command?, file?, content?, commit?, message?} → read|write|delete|history|version",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "proxy-API",
+                    "path":  "src/app/api/ravi/[...path]/route.ts",
+                    "nome":  "POST /api/ravi/[...path]",
+                    "shape":  "genérico; raviCall(endpoint, body) → {data}",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/agent-fs.ts",
+                    "nome":  "listCommands",
+                    "shape":  "(cwd) → Promise\u003cCommandFsInfo[]\u003e; le .claude/commands/*.md",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/components/agent/command-editor.tsx:18-27",
+                    "nome":  "fileOp",
+                    "shape":  "(body) → Promise\u003cresponse\u003e; POST /api/agent/file",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/ravi.ts",
+                    "nome":  "ravi",
+                    "shape":  "\u003cT\u003e(path, body, init?) → Promise\u003cT\u003e; POST /api/ravi/{path}",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/ravi-server.ts",
+                    "nome":  "raviCall",
+                    "shape":  "\u003cT\u003e(path, body, opts) → Promise\u003cT\u003e; POST {RAVI_API_URL}/api/v1/{path} Bearer",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/agent-fs.ts",
+                    "nome":  "readAgentFile",
+                    "shape":  "(cwd, file) → Promise\u003cstring\u003e; le arquivo com validacao path",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/agent-fs.ts",
+                    "nome":  "writeAgentFile",
+                    "shape":  "(cwd, file, content, author?, message?) → Promise\u003cWriteResult\u003e; escreve + commit git",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/agent-fs.ts",
+                    "nome":  "deleteAgentFile",
+                    "shape":  "(cwd, file, author?, message?) → Promise\u003cWriteResult\u003e; deleta + commit git",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/agent-fs.ts",
+                    "nome":  "fileHistory",
+                    "shape":  "(cwd, file) → Promise\u003cHistoryEntry[]\u003e; git log --follow",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "função-biblioteca",
+                    "path":  "src/lib/agent-fs.ts",
+                    "nome":  "fileVersionContent",
+                    "shape":  "(cwd, file, commit) → Promise\u003cstring\u003e; git show",
+                    "confianca":  "lido no código"
+                },
+                {
+                    "tipo":  "endpoint-externo",
+                    "path":  "RAVI_API_URL/api/v1/commands/list",
+                    "nome":  "RAVI commands/list",
+                    "shape":  "body {agent?} → {items|rows|data|commands[]} com {id, name, token, title, description, scope, argumentHint, arguments[]}",
+                    "confianca":  "não encontrado"
+                },
+                {
+                    "tipo":  "endpoint-externo",
+                    "path":  "RAVI_API_URL/api/v1/commands/show",
+                    "nome":  "RAVI commands/show",
+                    "shape":  "body {name, agent?} → {data: {id, name, token, title, description, body, argumentHint, arguments[]}}",
+                    "confianca":  "não encontrado"
+                },
+                {
+                    "tipo":  "endpoint-externo",
+                    "path":  "RAVI_API_URL/api/v1/commands/run",
+                    "nome":  "RAVI commands/run",
+                    "shape":  "body {name, agent?, args: {[name]: string}} → {data: string|object}",
+                    "confianca":  "não encontrado"
+                },
+                {
+                    "tipo":  "endpoint-externo",
+                    "path":  "RAVI_API_URL/api/v1/agents/show",
+                    "nome":  "RAVI agents/show",
+                    "shape":  "body {id} → {data: {agent: {id, cwd, ...}, permissionsCommand?}}",
+                    "confianca":  "não encontrado"
+                },
+                {
+                    "tipo":  "recurso-disco",
+                    "path":  "{cwd}/.claude/commands/*.md",
+                    "nome":  "workspace fs (.claude/commands)",
+                    "shape":  "arquivo markdown; nome validado [a-zA-Z0-9._-]; YAML frontmatter opcional {title, description}",
+                    "confianca":  "lido no código"
+                }
+            ],
+    "arestas":  [
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "CommandsTab",
+                        "tipo":  "consome",
+                        "de":  "AgentPanel"
+                    },
+                    {
+                        "custo_reverso":  "🟢",
+                        "confianca":  "lido no código",
+                        "para":  "POST /api/agent/workspace",
+                        "tipo":  "depende",
+                        "de":  "CommandsTab"
+                    },
+                    {
+                        "custo_reverso":  "🟡",
+                        "confianca":  "lido no código",
+                        "para":  "ravi",
+                        "tipo":  "depende",
+                        "de":  "CommandsTab"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "CommandEditor",
+                        "tipo":  "consome",
+                        "de":  "CommandsTab"
+                    },
+                    {
+                        "custo_reverso":  "🟢",
+                        "confianca":  "lido no código",
+                        "para":  "fileOp",
+                        "tipo":  "depende",
+                        "de":  "CommandEditor"
+                    },
+                    {
+                        "custo_reverso":  "🟢",
+                        "confianca":  "lido no código",
+                        "para":  "POST /api/agent/file",
+                        "tipo":  "depende",
+                        "de":  "fileOp"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "listCommands",
+                        "tipo":  "depende",
+                        "de":  "POST /api/agent/workspace"
+                    },
+                    {
+                        "custo_reverso":  "🟢",
+                        "confianca":  "lido no código",
+                        "para":  "workspace fs (.claude/commands)",
+                        "tipo":  "depende",
+                        "de":  "listCommands"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "readAgentFile",
+                        "tipo":  "depende",
+                        "de":  "POST /api/agent/file"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "writeAgentFile",
+                        "tipo":  "depende",
+                        "de":  "POST /api/agent/file"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "deleteAgentFile",
+                        "tipo":  "depende",
+                        "de":  "POST /api/agent/file"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "fileHistory",
+                        "tipo":  "depende",
+                        "de":  "POST /api/agent/file"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "fileVersionContent",
+                        "tipo":  "depende",
+                        "de":  "POST /api/agent/file"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "workspace fs (.claude/commands)",
+                        "tipo":  "depende",
+                        "de":  "writeAgentFile"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "workspace fs (.claude/commands)",
+                        "tipo":  "depende",
+                        "de":  "deleteAgentFile"
+                    },
+                    {
+                        "custo_reverso":  "🟡",
+                        "confianca":  "lido no código",
+                        "para":  "workspace fs (.claude/commands)",
+                        "tipo":  "depende",
+                        "de":  "fileHistory"
+                    },
+                    {
+                        "custo_reverso":  "🟡",
+                        "confianca":  "lido no código",
+                        "para":  "ravi",
+                        "tipo":  "depende",
+                        "de":  "CommandRunSection"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "ArgsForm",
+                        "tipo":  "consome",
+                        "de":  "CommandRunSection"
+                    },
+                    {
+                        "custo_reverso":  "🟢",
+                        "confianca":  "lido no código",
+                        "para":  "POST /api/ravi/[...path]",
+                        "tipo":  "depende",
+                        "de":  "ravi"
+                    },
+                    {
+                        "custo_reverso":  "n/a",
+                        "confianca":  "lido no código",
+                        "para":  "raviCall",
+                        "tipo":  "depende",
+                        "de":  "POST /api/ravi/[...path]"
+                    },
+                    {
+                        "custo_reverso":  "🟡",
+                        "confianca":  "lido no código",
+                        "para":  "RAVI commands/list",
+                        "tipo":  "depende",
+                        "de":  "raviCall"
+                    },
+                    {
+                        "custo_reverso":  "🟡",
+                        "confianca":  "lido no código",
+                        "para":  "RAVI commands/show",
+                        "tipo":  "depende",
+                        "de":  "raviCall"
+                    },
+                    {
+                        "custo_reverso":  "🔴",
+                        "confianca":  "lido no código",
+                        "para":  "RAVI commands/run",
+                        "tipo":  "depende",
+                        "de":  "raviCall"
+                    },
+                    {
+                        "custo_reverso":  "🟢",
+                        "confianca":  "lido no código",
+                        "para":  "RAVI agents/show",
+                        "tipo":  "depende",
+                        "de":  "raviCall"
+                    },
+                    {
+                        "custo_reverso":  "🟡",
+                        "confianca":  "lido no código",
+                        "para":  "RAVI commands/list",
+                        "tipo":  "depende",
+                        "de":  "CommandsTab"
+                    },
+                    {
+                        "custo_reverso":  "🟢",
+                        "confianca":  "lido no código",
+                        "para":  "RAVI agents/show",
+                        "tipo":  "depende",
+                        "de":  "CommandsTab"
+                    }
+                ],
+    "gaps":  [
+                 {
+                     "prioridade":  "P0",
+                     "acao":  "Descoberta da API: verificar contrato exato de commands/list, commands/show, commands/run (shape de arguments, argumentHint)",
+                     "id":  "G001"
+                 },
+                 {
+                     "prioridade":  "P0",
+                     "acao":  "Descoberta da API: validar agents/show retorna {agent: {cwd}} — CommandsTab quebra silenciosamente sem cwd",
+                     "id":  "G002"
+                 },
+                 {
+                     "prioridade":  "P1",
+                     "acao":  "Descoberta da API: confirmar limite de tamanho do body do comando (textarea sem limite no editor)",
+                     "id":  "G003"
+                 },
+                 {
+                     "prioridade":  "P1",
+                     "acao":  "Descoberta da API: esclarecer se commands/run aceita agent como parametro (codigo passa quando agentId existe)",
+                     "id":  "G004"
+                 },
+                 {
+                     "prioridade":  "P1",
+                     "acao":  "Descoberta da API: validar contrato de history (fields commit, date, message; formato ISO)",
+                     "id":  "G005"
+                 },
+                 {
+                     "prioridade":  "P1",
+                     "acao":  "Descoberta da API: confirmar se argumentHint e arguments sao mutuamente exclusivos ou coexistem",
+                     "id":  "G006"
+                 },
+                 {
+                     "prioridade":  "P2",
+                     "acao":  "Descoberta da API: revisar shape de erro do fileOp — codigo assume json?.error sempre presente",
+                     "id":  "G007"
+                 }
+             ]
+}

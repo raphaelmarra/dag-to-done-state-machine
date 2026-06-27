@@ -1,0 +1,77 @@
+{
+  "feature": "aba-clis",
+  "etapa": "mapa_dependencias",
+  "resumo": "Plano de implementacao incremental da aba CLIs. A aba ja existe e funciona no esqueleto (listagem, editor FS, merge global+agente, cwd via agents/show). O trabalho e correcao de contratos confirmados ao vivo, nao construcao nova. Cinco unidades ancoradas em gaps/criterios reais; nucleo P0 e args objeto->array posicional + exibir prompt renderizado em vez de fingir execucao.",
+  "walking_skeleton": {
+    "necessario": false,
+    "justificativa": "A aba CLIs ja esta implementada e operante no esqueleto end-to-end (CommandsTab lista, CommandEditor edita/versiona, CommandRunSection chama commands/run, transporte ravi()/proxy/raviCall confirmado para list/show/run/agents-show). O gap.output classifica complexidade 'media' e lista pronto_para_reuso cobrindo todas as superficies. Portanto NAO se cria skeleton novo: o caminho ja existe; o trabalho e correcao incremental de contratos (args array posicional, semantica render-nao-executa, paginacao string, detail de erro). O 'esqueleto andante' equivalente aqui e U1+U2: fazer commands/run voltar a funcionar ponta-a-ponta (enviar array, exibir prompt) ANTES de refinamentos (U3 paginacao, U4 estados, U5 erro)."
+  },
+  "unidades": [
+    {
+      "id": "U1",
+      "nome": "args como array posicional + mapeamento por command.arguments[]",
+      "arquivos": [
+        "src/components/ui/command-run-section.tsx",
+        "src/components/ui/args-form.tsx"
+      ],
+      "objetivo": "Converter o Record<nome,valor> coletado pelo ArgsForm em um ARRAY de strings posicionais montado estritamente na ordem de command.arguments[], e enviar ravi('commands/run',{name, agent?, args:[...]}) com args ARRAY (nunca objeto). ArgsForm passa a expor/garantir a ordem dos campos por command.arguments[]; CommandRunSection faz a ponte nome->posicao. Resolve a quebra 100% das renderizacoes.",
+      "ancora": ["GAP-001", "GAP-003", "CA-04", "CA-05", "ADR-002", "R1", "R3"],
+      "depende_de": []
+    },
+    {
+      "id": "U2",
+      "nome": "Re-semantica render-nao-executa: exibir prompt renderizado + copy",
+      "arquivos": [
+        "src/components/ui/args-form.tsx",
+        "src/components/agent/commands-tab.tsx"
+      ],
+      "objetivo": "Tratar a resposta de commands/run como render de prompt (objeto fixo {prompt, metadata.renderedPromptSha256, positionalArguments}), nao como result polimorfico string|object. ArgsForm exibe data.prompt de forma legivel/copiavel + sha256 + positionalArguments (substitui o trato result string|object em args-form.tsx:98-104) e renomeia o botao 'Executar' (args-form.tsx:87). commands-tab.tsx troca a copy 'roda-lo' (linha 159) por 'Renderizar prompt'. Resolve resultado util invisivel e promessa falsa de execucao.",
+      "ancora": ["GAP-002", "CA-06", "CA-07", "CA-08", "ADR-001", "R2"],
+      "depende_de": ["U1"]
+    },
+    {
+      "id": "U3",
+      "nome": "Paginacao de commands/list com limit/offset STRING",
+      "arquivos": [
+        "src/components/agent/commands-tab.tsx"
+      ],
+      "objetivo": "Enviar limit/offset SEMPRE como string em ravi('commands/list',...) (commands-tab.tsx:78) e consumir pagination.hasMore/nextOffset para nao truncar silenciosamente em 50 comandos globais. Paginacao minima (sem scroll infinito). Number => ValidationError.",
+      "ancora": ["GAP-004", "CA-12", "ADR-004", "R5"],
+      "depende_de": []
+    },
+    {
+      "id": "U4",
+      "nome": "Distinguir estados loading / erro_de_carga / lista_vazia",
+      "arquivos": [
+        "src/components/agent/commands-tab.tsx"
+      ],
+      "objetivo": "Garantir os tres estados distintos no carregamento: cwd ausente em agents/show ou falha de /api/agent/workspace tratada como erro de pre-condicao (estado erro_de_carga com retry), zero comandos sem erro como lista_vazia explicita ('Nenhum comando encontrado'), e loading sem spinner infinito nem lista quebrada. Cobre a incerteza de /api/agent/workspace nao confirmado ao vivo.",
+      "ancora": ["GAP-005", "CA-02", "CA-03", "R4"],
+      "depende_de": ["U3"]
+    },
+    {
+      "id": "U5",
+      "nome": "Preservar detail estruturado do ValidationError na UI/log",
+      "arquivos": [
+        "src/lib/ravi.ts",
+        "src/components/ui/command-run-section.tsx"
+      ],
+      "objetivo": "Parar de colapsar o ValidationError estruturado da RAVI em 'Falhou' generico. ravi.ts (linhas 26-33) preserva detail no ApiError; CommandRunSection (linha 41) exibe/loga campo e causa (unrecognized_keys, expected string/array) em vez de error.error ?? 'Falhou'. Desmascara erros de contrato como o do GAP-001.",
+      "ancora": ["GAP-007", "CA-09", "R6"],
+      "depende_de": ["U1"]
+    }
+  ],
+  "ordem": ["U1", "U2", "U3", "U4", "U5"],
+  "paralelizavel": [
+    {
+      "grupo": ["U1", "U3"],
+      "justificativa": "Arquivos disjuntos: U1 toca command-run-section.tsx + args-form.tsx; U3 toca apenas commands-tab.tsx. Sem colisao. Ambas sem dependencias previas."
+    }
+  ],
+  "notas_paralelismo": "U2 NAO paraleliza com U1 (ambas tocam args-form.tsx) nem com U3/U4 (todas tocam commands-tab.tsx). U3 e U4 NAO paralelizam entre si (ambas commands-tab.tsx) e U4 depende de U3 por ordem no mesmo arquivo. U5 NAO paraleliza com U1 (U5 depende de U1 e toca command-run-section.tsx). Unica janela segura de paralelismo: U1 || U3.",
+  "ancoragem_no_gos": [
+    "Nenhuma unidade implementa execucao real do agente (no-go): U2 apenas exibe o prompt renderizado.",
+    "Nenhuma unidade edita comandos globais (no-go): edicao permanece restrita a escopo agent (ADR-003/CA-10/CA-11), ja coberto pelo reuso de CommandEditor/fileOp, sem unidade nova.",
+    "U3 faz paginacao minima, nao scroll infinito (no-go)."
+  ]
+}

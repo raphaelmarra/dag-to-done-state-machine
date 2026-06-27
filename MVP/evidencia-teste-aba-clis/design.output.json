@@ -1,0 +1,202 @@
+{
+  "feature": "aba-clis",
+  "etapa": "design",
+  "resumo": "Design do comportamento correto da aba CLIs do painel do agente, ancorado nos contratos RAVI confirmados ao vivo. Tres correcoes de comportamento dominam o design: (1) commands/run recebe args como ARRAY posicional, nao objeto; (2) commands/run NAO executa o agente — ele RENDERIZA o prompt, entao a UI deve EXIBIR o prompt renderizado (campo 'prompt') e o sha256, e a copy 'Executar' deve mudar para 'Renderizar prompt'; (3) o mapeamento nome->posicao deve seguir a ordem de command.arguments[].",
+  "three_amigos": [
+    {
+      "comportamento": "Listar comandos do agente",
+      "por_que": "O usuario precisa ver quais comandos existem para o agente (locais editaveis do workspace via FS + globais read-only via RAVI commands/list) antes de inspecionar, editar ou renderizar.",
+      "como": "CommandsTab busca cwd via agents/show (data.agent.cwd), le comandos locais via POST /api/agent/workspace {cwd, action:'commands'} e globais via ravi('commands/list',{agent:id}); funde e ordena. Distingue loading / erro de carga / lista vazia real.",
+      "como_saber": "Criterio CA-01, CA-02, CA-03."
+    },
+    {
+      "comportamento": "Renderizar o prompt de um comando (antigo 'Executar')",
+      "por_que": "commands/run nao dispara o agente — ele compila o prompt final do comando com os argumentos posicionais. O valor de UX e mostrar/copiar esse prompt renderizado e seu sha256, nao um resultado de execucao.",
+      "como": "ArgsForm coleta valores por nome, CommandRunSection converte para ARRAY posicional na ordem de command.arguments[] e chama ravi('commands/run',{name, agent?, args:[...]}). A resposta data.prompt + data.metadata.renderedPromptSha256 + data.positionalArguments e exibida.",
+      "como_saber": "Criterio CA-04, CA-05, CA-06, CA-07, CA-09."
+    },
+    {
+      "comportamento": "Editar/criar/excluir comando local do workspace",
+      "por_que": "Comandos do proprio agente vivem em {cwd}/.claude/commands/*.md e devem ser editaveis com versionamento git; globais sao read-only.",
+      "como": "CommandEditor usa fileOp -> POST /api/agent/file (read|write|delete|history|version) com commit git. Botao de editar so aparece para escopo do agente (editable=true).",
+      "como_saber": "Criterio CA-10, CA-11."
+    }
+  ],
+  "criterios_aceitacao": [
+    {
+      "id": "CA-01",
+      "given": "Um agente valido (ex. id='main') cujo agents/show retorna data.agent.cwd preenchido",
+      "when": "A aba CLIs e aberta",
+      "then": "CommandsTab usa data.agent.cwd (acesso direto, NAO data.agent.agent.cwd), carrega comandos locais e globais e renderiza a lista com nome, token, title e scope; comandos de escopo 'agent' aparecem como editaveis e 'global' como read-only."
+    },
+    {
+      "id": "CA-02",
+      "given": "agents/show retorna sem cwd ou /api/agent/workspace e commands/list retornam zero comandos sem erro",
+      "when": "A aba termina o carregamento",
+      "then": "A UI exibe estado VAZIO explicito ('Nenhum comando encontrado'), distinto do estado de erro, e NAO um spinner infinito nem uma lista quebrada."
+    },
+    {
+      "id": "CA-03",
+      "given": "commands/list ou agents/show falham (rede, 4xx/5xx ou ValidationError)",
+      "when": "O carregamento da aba termina em erro",
+      "then": "A UI exibe estado de ERRO distinto do vazio, com mensagem e acao de tentar novamente; o detalhe estruturado do ValidationError (campo/causa) e exibido ou logado, nao colapsado em 'Falhou' generico."
+    },
+    {
+      "id": "CA-04",
+      "given": "Um comando com command.arguments=['pergunta'] e o usuario preencheu 'pergunta'='teste'",
+      "when": "O usuario aciona Renderizar prompt",
+      "then": "A requisicao enviada e ravi('commands/run',{name:'arch', args:['teste']}) — args como ARRAY de strings posicionais, NUNCA objeto {pergunta:'teste'}."
+    },
+    {
+      "id": "CA-05",
+      "given": "Um comando com command.arguments=['a','b','c'] e o usuario preencheu os tres campos",
+      "when": "O usuario aciona Renderizar prompt",
+      "then": "O array args e montado na ORDEM de command.arguments[] ([valorA, valorB, valorC]), de modo que cada valor caia na posicao correta independentemente da ordem de digitacao."
+    },
+    {
+      "id": "CA-06",
+      "given": "commands/run retorna com sucesso {data:{prompt, metadata:{renderedPromptSha256}, positionalArguments}}",
+      "when": "A resposta chega na UI",
+      "then": "A aba EXIBE o campo data.prompt (prompt renderizado) de forma legivel/copiavel e mostra metadata.renderedPromptSha256 e positionalArguments; NAO trata data como string|object polimorfico nem deixa o resultado util (prompt) invisivel."
+    },
+    {
+      "id": "CA-07",
+      "given": "A semantica real de commands/run e renderizar prompt, nao executar o agente",
+      "when": "A aba e renderizada",
+      "then": "O rotulo do botao e a copy auxiliar dizem 'Renderizar prompt' (ou equivalente), NAO 'Executar'/'rodá-lo', evitando a promessa falsa de execucao com efeito colateral."
+    },
+    {
+      "id": "CA-08",
+      "given": "O usuario aciona Renderizar prompt e a chamada esta em andamento",
+      "when": "Enquanto a resposta nao retorna",
+      "then": "O botao fica desabilitado/loading (running=true) e nenhuma segunda submissao e enviada ate a primeira concluir."
+    },
+    {
+      "id": "CA-09",
+      "given": "commands/run retorna ValidationError (ex. 'name' ausente, ou args como objeto por regressao)",
+      "when": "A resposta de erro chega",
+      "then": "A UI exibe a mensagem de erro preservando o detail estruturado (campo e causa) em vez de descartar detail e mostrar apenas 'Falhou'."
+    },
+    {
+      "id": "CA-10",
+      "given": "Um comando de escopo 'agent' (editable) selecionado",
+      "when": "O usuario edita o body e salva",
+      "then": "fileOp envia POST /api/agent/file action='write' com o cwd do agente e o arquivo correto em {cwd}/.claude/commands/<nome>.md, gerando commit git; apos sucesso a lista/historico refletem a versao nova."
+    },
+    {
+      "id": "CA-11",
+      "given": "Um comando de escopo 'global' selecionado",
+      "when": "O usuario visualiza o comando",
+      "then": "As acoes de editar/excluir ficam indisponiveis (read-only), pois o arquivo esta fora do workspace do agente."
+    },
+    {
+      "id": "CA-12",
+      "given": "commands/list informa pagination.hasMore=true (mais de 50 comandos globais)",
+      "when": "A aba carrega a lista",
+      "then": "limit/offset sao enviados como STRING (number => ValidationError) e a aba carrega/sinaliza as paginas adicionais (ex. nextOffset) em vez de truncar silenciosamente em 50."
+    }
+  ],
+  "riscos_premortem": [
+    {
+      "id": "R1",
+      "risco": "args enviado como objeto {nome:valor} (como o codigo atual faz em command-run-section.tsx) — a API exige ARRAY posicional e retorna ValidationError 'expected array, received object', quebrando 100% das renderizacoes de comando.",
+      "mitigacao": "CommandRunSection converte o Record<nome,valor> do ArgsForm em array posicional na ordem de command.arguments[] antes de chamar commands/run. Teste de contrato fixa o shape array. CA-04/CA-05 verificam."
+    },
+    {
+      "id": "R2",
+      "risco": "Modelo mental falso: usuario clica 'Executar' esperando disparar o agente, mas commands/run so renderiza o prompt; pior, a UI nem exibe o campo 'prompt'. Resultado: a aba parece nao fazer nada ou parece ter executado algo que nao executou.",
+      "mitigacao": "Renomear acao para 'Renderizar prompt', exibir data.prompt + sha256 + positionalArguments e remover qualquer copy que prometa execucao. CA-06/CA-07 verificam. ADR-001 registra a decisao."
+    },
+    {
+      "id": "R3",
+      "risco": "Mapeamento nome->posicao incorreto quando ha >1 argumento: ArgsForm guarda valores num map sem indice, entao valores podem ir para posicoes trocadas, gerando prompt renderizado errado de forma silenciosa (sem erro).",
+      "mitigacao": "Montar o array seguindo estritamente a ordem de command.arguments[]; nunca derivar ordem de Object.keys. CA-05 verifica com 3 argumentos. Spike incertezas_tecnicas#1 confirma a fonte canonica de arguments (commands/list ja entrega arguments[] + argumentHint coexistindo)."
+    },
+    {
+      "id": "R4",
+      "risco": "Estado de erro confundido com vazio: agents/show sem cwd ou /api/agent/workspace nao confirmado ao vivo (proxy RAVI nao cobre /api/agent/*) pode falhar e a aba mostrar 'lista vazia' enganosa, escondendo a causa real.",
+      "mitigacao": "Distinguir tres estados (loading / erro / vazio real) com base no resultado de cada fonte; tratar cwd ausente como erro de pre-condicao, nao como zero comandos. CA-02/CA-03 verificam. Spike incertezas_tecnicas#2 valida /api/agent/workspace."
+    },
+    {
+      "id": "R5",
+      "risco": "Lista truncada em 50: commands/list pagina por default limit=50; agentes com muitos comandos globais perdem itens silenciosamente. Se algum dia limit/offset forem enviados como number, quebra com ValidationError.",
+      "mitigacao": "Sempre enviar limit/offset como STRING e consumir pagination.hasMore/nextOffset. CA-12 verifica. No-go: nao construir scroll infinito completo — paginacao minima basta."
+    },
+    {
+      "id": "R6",
+      "risco": "Erro de contrato mascarado: ravi() colapsa ValidationError estruturado em {error} e a UI mostra 'Falhou', escondendo a causa raiz (foi exatamente o que ocultou o bug do args objeto).",
+      "mitigacao": "Preservar e exibir/logar o campo detail (unrecognized_keys, expected string/array, campo afetado) no tratamento de erro do ArgsForm/CommandRunSection. CA-09 verifica."
+    }
+  ],
+  "estados": [
+    {
+      "estado": "loading",
+      "descricao": "Carregando cwd (agents/show) e comandos (workspace local + commands/list).",
+      "usuario_pode": "Aguardar; nenhuma acao de edicao/render disponivel."
+    },
+    {
+      "estado": "erro_de_carga",
+      "descricao": "Falha em agents/show, /api/agent/workspace ou commands/list (rede/4xx/5xx/ValidationError).",
+      "usuario_pode": "Ver mensagem de erro com detalhe estruturado e tentar novamente. Distinto de vazio."
+    },
+    {
+      "estado": "lista_vazia",
+      "descricao": "Carga concluida com zero comandos (nenhum local e nenhum global).",
+      "usuario_pode": "Ver 'Nenhum comando encontrado' e criar 'Novo comando' (local do workspace)."
+    },
+    {
+      "estado": "lista_carregada",
+      "descricao": "Comandos exibidos com escopo agent (editavel) e global (read-only).",
+      "usuario_pode": "Selecionar comando para detalhe, criar novo, abrir secao Renderizar prompt."
+    },
+    {
+      "estado": "detalhe_comando",
+      "descricao": "Detalhe de um comando com body/markdown, argumentos e secao de render.",
+      "usuario_pode": "Ver body; se escopo agent: editar/excluir/historico; preencher args e renderizar prompt."
+    },
+    {
+      "estado": "renderizando",
+      "descricao": "Chamada commands/run em andamento (running=true).",
+      "usuario_pode": "Aguardar; botao desabilitado; sem reenvio."
+    },
+    {
+      "estado": "prompt_renderizado",
+      "descricao": "Sucesso de commands/run: prompt renderizado + sha256 + positionalArguments.",
+      "usuario_pode": "Ler/copiar o prompt, conferir sha256 e os argumentos posicionais; renderizar de novo com outros valores."
+    },
+    {
+      "estado": "erro_render",
+      "descricao": "commands/run retornou erro (ValidationError ou outro).",
+      "usuario_pode": "Ver erro com detail (campo/causa); corrigir valores e tentar novamente."
+    },
+    {
+      "estado": "editando",
+      "descricao": "CommandEditor em modo edicao (apenas escopo agent).",
+      "usuario_pode": "Editar body, salvar (write+commit), excluir, ver historico/versao, voltar."
+    }
+  ],
+  "adrs": [
+    {
+      "id": "ADR-001",
+      "decisao": "A aba CLIs trata commands/run como 'renderizar prompt', nao como 'executar comando'. Exibe data.prompt, metadata.renderedPromptSha256 e positionalArguments; a copy do botao deixa de ser 'Executar'.",
+      "motivo": "Descoberta ao vivo: commands/run nao dispara o agente nem tem efeito colateral — apenas compila o prompt. Manter o rotulo 'Executar' criava promessa falsa e o resultado util (prompt) ficava invisivel. Disparar o agente de verdade seria outra capacidade fora do escopo (no-go)."
+    },
+    {
+      "id": "ADR-002",
+      "decisao": "args para commands/run e sempre um ARRAY de strings posicionais, montado na ordem de command.arguments[]; o Record por nome do ArgsForm e apenas estado interno de UI.",
+      "motivo": "API confirmada ao vivo: objeto => ValidationError 'expected array, received object'. A ordem posicional vem de command.arguments[], unica fonte confiavel para mapear nome->posicao."
+    },
+    {
+      "id": "ADR-003",
+      "decisao": "Comandos globais sao read-only; somente comandos de escopo 'agent' (em {cwd}/.claude/commands) sao editaveis/excluiveis via /api/agent/file.",
+      "motivo": "Globais vivem fora do workspace do agente; edita-los esta fora do escopo (no-go) e seria escrita em local errado. editable/scope diferenciam na UI."
+    },
+    {
+      "id": "ADR-004",
+      "decisao": "limit/offset de commands/list sao sempre enviados como STRING e a aba consome pagination.hasMore/nextOffset; sem scroll infinito completo.",
+      "motivo": "Confirmado ao vivo: number => ValidationError. Truncar em 50 esconde comandos. Paginacao minima resolve sem expandir escopo."
+    }
+  ],
+  "gaps_resolvidos_referencia": ["G001 name vs command", "G002 cwd direto em data.agent.cwd", "G004 agent aceito em run", "G006 arguments e argumentHint coexistem", "GAP-001 args array", "GAP-002 render nao executa", "GAP-003 mapeamento posicional", "GAP-004 paginacao string", "GAP-007 detail de erro"],
+  "spikes_pendentes_referencia": ["incertezas_tecnicas#1 fonte canonica de arguments/argumentHint", "incertezas_tecnicas#2 /api/agent/workspace sob cwd invalido/vazio (proxy nao cobre /api/agent/*)"]
+}

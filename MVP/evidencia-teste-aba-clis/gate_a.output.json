@@ -1,0 +1,140 @@
+{
+  "feature": "aba-clis",
+  "etapa": "gate_a",
+  "veredito": "REPROVA",
+  "resumo": "Os dois P0 (GAP-001 args array e GAP-002 render-nao-executa) estao bem cobertos por design, criterios e plano. Porem a lente MUTACAO esta parcialmente descoberta: a exclusao de comando (delete = mutacao destrutiva) nao tem criterio de confirmacao nem de reversibilidade, e concorrencia de edicao nao e tratada em nenhuma etapa. Na lente LISTA, a ORDENACAO e mencionada ('funde e ordena') mas nunca especificada como criterio testavel, e o shadowing (shadows/shadowedBy do contrato) nao tem regra. Esses buracos sao exatamente o tipo de coisa que um revisor exigiria antes de mergear uma aba que escreve no FS do workspace.",
+  "lentes_cobertas": [
+    {
+      "lente": "LISTA / estado vazio",
+      "onde": "design CA-02; estado 'lista_vazia'; risco R4; implementacao U4(b)",
+      "nota": "Bem coberto: vazio real distinto de erro, com 'Nenhum comando encontrado' e guarda !loading && !failed && !rows.length."
+    },
+    {
+      "lente": "LISTA / estado de erro",
+      "onde": "design CA-03; estado 'erro_de_carga'; riscos R4 e R6; implementacao U4 e U5",
+      "nota": "Coberto e com retry (U4c) e preservacao do detail estruturado do ValidationError (U5)."
+    },
+    {
+      "lente": "LISTA / paginacao e volume",
+      "onde": "design CA-12; risco R5; ADR-004; implementacao U3; descoberta commands/list (limit/offset STRING, hasMore/nextOffset)",
+      "nota": "Coberto: limit/offset como STRING e consumo de pagination.hasMore/nextOffset. Risco de regressao reconhecido (pagination so testavel com 1 comando ao vivo)."
+    },
+    {
+      "lente": "MUTACAO / confirmacao de comando perigoso (run)",
+      "onde": "design ADR-001, R2, CA-07; descoberta commands/run ('Nenhum efeito colateral, apenas render')",
+      "nota": "Coberto por ELIMINACAO do perigo: commands/run nao executa o agente, so renderiza prompt. Confirmacao de execucao deixa de ser necessaria — decisao correta e bem ancorada na descoberta ao vivo."
+    },
+    {
+      "lente": "MUTACAO / validacao de input (args do run)",
+      "onde": "design CA-04, CA-05, ADR-002, R1, R3; gap GAP-001/GAP-003; implementacao U1/U2",
+      "nota": "Coberto para o input do render: array posicional na ordem de command.arguments[]."
+    },
+    {
+      "lente": "MUTACAO / edge de escrita (write em .claude/commands)",
+      "onde": "design CA-10, ADR-003; estado 'editando'; risco R4; implementacao U4 nota (GAP-005)",
+      "nota": "PARCIAL — write feliz coberto e read-only de global coberto (CA-11). Mas o comportamento de escrita sob cwd invalido/sem permissao FS continua nao confirmado (GAP-005) e sem criterio proprio. Listado tambem em descobertas."
+    },
+    {
+      "lente": "MUTACAO / reversibilidade (write)",
+      "onde": "design CA-10 ('apos sucesso a lista/historico refletem a versao nova'); estado 'editando' (ver historico/versao); reuso fileHistory/fileVersionContent",
+      "nota": "PARCIAL — historico/versionamento git existe como capacidade, mas nao ha criterio testavel de RESTAURAR uma versao anterior nem de reverter um delete. Listado tambem em descobertas."
+    }
+  ],
+  "lentes_descobertas": [
+    {
+      "lente": "LISTA / ordenacao",
+      "motivo": "O design diz 'funde e ordena' (three_amigos comportamento 1) mas NENHUM criterio define a chave/regra de ordenacao nem o que acontece no shadowing. O contrato de commands/list traz shadowedBy e shadows[] (descoberta, Command shape), indicando que um comando local pode sombrear um global de mesmo nome — a aba funde 'agent (FS) + global (RAVI)' sem regra explicita de precedencia/dedupe. Risco de duplicata visivel ou de ordem nao-deterministica.",
+      "exigencia_revisor": "Adicionar criterio CA explicito: chave de ordenacao (ex. scope agent antes de global, depois alfabetico por token) e regra de dedupe/shadowing usando shadowedBy/shadows. Tornar testavel."
+    },
+    {
+      "lente": "MUTACAO / confirmacao de comando perigoso (DELETE)",
+      "motivo": "A acao destrutiva real desta aba NAO e o run (que so renderiza), e o DELETE de comando local (fileOp action='delete', CA-10 cita delete e estado 'editando' lista 'excluir'). NAO existe criterio exigindo dialogo de confirmacao antes de excluir um arquivo do workspace com commit git. Excluir sem confirmacao e exatamente a lente MUTACAO/confirmacao aplicada ao caso perigoso real.",
+      "exigencia_revisor": "Criterio: excluir comando exige confirmacao explicita do usuario antes de chamar /api/agent/file action='delete'."
+    },
+    {
+      "lente": "MUTACAO / concorrencia",
+      "motivo": "Nenhum criterio, risco do pre-mortem, ADR ou item de plano trata edicao concorrente: dois editores no mesmo {cwd}/.claude/commands/<nome>.md, ou save sobre uma versao ja alterada por outro processo (lost update). CA-08 cobre apenas duplo-submit do RENDER (read-only), nao a escrita. A aba escreve via git commit, entao um overwrite cego de versao stale e plausivel.",
+      "exigencia_revisor": "Decidir e registrar (ADR) a estrategia: last-write-wins assumido explicitamente, ou deteccao via versao/hash antes do write. No minimo declarar como no-go consciente com motivo."
+    },
+    {
+      "lente": "MUTACAO / validacao de input no CRIAR/EDITAR comando",
+      "motivo": "A descoberta diz que /api/agent/workspace valida nome [a-zA-Z0-9._-], mas nao ha criterio validando o nome do 'Novo comando' nem o body vazio na UI antes do write. A validacao fica so no servidor (inferido, GAP-005), e o no_go 'nao tratar limite de tamanho do body' empurra para fora sem cobrir o caso de nome invalido/colisao na criacao.",
+      "exigencia_revisor": "Criterio: nome de novo comando validado client-side (regex/colisao) com mensagem clara antes do write; body vazio tratado."
+    }
+  ],
+  "issues": [
+    {
+      "id": "ISSUE-01",
+      "severidade": "alta",
+      "lente": "MUTACAO / confirmacao",
+      "localizacao": "design.output.json criterios_aceitacao (falta CA de delete) e estado 'editando'",
+      "descricao": "Exclusao de comando local nao tem criterio de confirmacao. Delete dispara commit git destrutivo sem gate de confirmacao especificado. Um revisor bloquearia merge de escrita destrutiva sem confirmacao.",
+      "acao": "Adicionar criterio: 'Dado um comando agent selecionado, quando o usuario aciona Excluir, entao a UI exige confirmacao explicita antes de chamar fileOp delete'."
+    },
+    {
+      "id": "ISSUE-02",
+      "severidade": "alta",
+      "lente": "MUTACAO / concorrencia",
+      "localizacao": "design.output.json riscos_premortem (ausente) e adrs (ausente); implementacao U-edit (nao planejado)",
+      "descricao": "Concorrencia de edicao/escrita nao endereçada em nenhuma etapa. Lost update silencioso ao salvar sobre versao stale de {cwd}/.claude/commands/<nome>.md.",
+      "acao": "Registrar ADR com estrategia (last-write-wins explicito vs check de versao) ou no-go consciente; idealmente um criterio de teste."
+    },
+    {
+      "id": "ISSUE-03",
+      "severidade": "media",
+      "lente": "LISTA / ordenacao + shadowing",
+      "localizacao": "design.output.json three_amigos[0] ('funde e ordena') sem CA correspondente; descoberta Command.shadowedBy/shadows ignorados",
+      "descricao": "Regra de ordenacao e de dedupe/shadowing entre comando local e global de mesmo nome nao especificada nem testavel. O contrato expoe shadowedBy/shadows que o design nao consome.",
+      "acao": "Criar CA de ordenacao deterministica e regra de precedencia usando shadowedBy/shadows."
+    },
+    {
+      "id": "ISSUE-04",
+      "severidade": "media",
+      "lente": "MUTACAO / edge de escrita",
+      "localizacao": "gap.output.json GAP-005 (P1, inferido) e implementacao U4 confianca 'inferido'",
+      "descricao": "Toda a fonte agent (FS via /api/agent/workspace) — leitura E escrita — depende de endpoint NAO confirmado ao vivo (proxy RAVI nao cobre /api/agent/*). O design ancora 4 spikes/incertezas nisso mas o plano avanca tratando como 'inferido' sem spike concluido. Mergear leitura/escrita FS sobre contrato nao verificado e risco aberto.",
+      "acao": "Concluir o spike incertezas_tecnicas#2 (cwd valido/vazio/invalido) ANTES de mergear U4; sem isso, estado erro vs vazio e o write edge ficam adivinhados."
+    },
+    {
+      "id": "ISSUE-05",
+      "severidade": "media",
+      "lente": "coerencia / criterio nao-testavel",
+      "localizacao": "design.output.json CA-12 e implementacao U3",
+      "descricao": "CA-12 exige comportamento de paginacao para >50 comandos, mas a instalacao tem apenas 1 comando ('arch') ao vivo. O criterio nao e verificavel no ambiente real; o proprio plano (riscos_de_regressao) admite que o shape de pagination para >50 nao foi confirmado. Criterio testavel apenas em teoria.",
+      "acao": "Marcar CA-12 como verificavel via teste de contrato mockado (nao e2e) e documentar a limitacao, ou seedar >50 comandos para validar de fato."
+    },
+    {
+      "id": "ISSUE-06",
+      "severidade": "media",
+      "lente": "MUTACAO / validacao de input (criar)",
+      "localizacao": "design.output.json (sem CA de criacao) vs estado 'lista_vazia' (usuario_pode 'criar Novo comando') e descoberta /api/agent/workspace (nome [a-zA-Z0-9._-])",
+      "descricao": "O fluxo 'Novo comando' aparece em estados e na UX, mas nao ha criterio cobrindo validacao de nome (regex/colisao com existente) nem body vazio antes do write. A validacao so existe no servidor inferido.",
+      "acao": "Adicionar CA de criacao com validacao client-side de nome e tratamento de colisao."
+    },
+    {
+      "id": "ISSUE-07",
+      "severidade": "baixa",
+      "lente": "MUTACAO / reversibilidade",
+      "localizacao": "design.output.json CA-10 (cita historico) e estado 'editando' (ver historico/versao)",
+      "descricao": "Historico/versao git e citado como capacidade, mas nao ha criterio testavel de RESTAURAR uma versao anterior nem de desfazer um delete. Reversibilidade fica implicita.",
+      "acao": "Se restaurar versao faz parte do escopo, criar CA; se nao, registrar como no-go explicito."
+    },
+    {
+      "id": "ISSUE-08",
+      "severidade": "baixa",
+      "lente": "coerencia / contrato",
+      "localizacao": "gap.output.json GAP-006 (P2, spike#1 pendente) e implementacao riscos_de_regressao#2",
+      "descricao": "A ordem posicional de U1 depende de 'args' (prop) refletir command.arguments[] na ordem real, mas a origem canonica de args/argumentHint (commands/list vs commands/show vs frontmatter; argument-hint kebab vs argumentHint camel) ainda e spike pendente. Se a fonte entregar ordem diferente, o mapeamento posicional erra SILENCIOSAMENTE — e o proprio R3 admite erro sem erro visivel.",
+      "acao": "Resolver spike#1 (fonte canonica) antes de aplicar U1; o teste CA-05 com 3 args so vale se a fonte de ordem estiver fixada."
+    }
+  ],
+  "p0_coberto": true,
+  "p0_nota": "GAP-001 (args objeto->array) e GAP-002 (render nao executa) estao integralmente resolvidos pelo plano (U1/U2), com golden path GP-render-arch verificando GAP-001/002/003 e CA-04..07. Esses dois P0 nao bloqueiam. O REPROVA vem das lentes MUTACAO (delete sem confirmacao, concorrencia) e LISTA (ordenacao/shadowing) descobertas, mais o risco de contrato nao confirmado (ISSUE-04/08).",
+  "exigencias_antes_de_mergear": [
+    "Adicionar criterio de confirmacao para DELETE de comando (ISSUE-01).",
+    "Registrar ADR de concorrencia/lost-update na edicao (ISSUE-02).",
+    "Especificar ordenacao e regra de shadowing (ISSUE-03).",
+    "Concluir spike de /api/agent/workspace e spike de fonte canonica de arguments antes de aplicar U4/U1 (ISSUE-04, ISSUE-08).",
+    "Cobrir validacao de criacao de comando (ISSUE-06)."
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "feature": "aba-clis",
+  "entry_point": "aba CLIs",
+  "description": "Aba de CLIs do painel do agente: lista comandos, ve detalhes, edita e executa. Deps com FS do workspace e SDK de comandos.",
+  "project_root": "C:/Users/gouve/Desktop/ravi-console",
+  "etapaAtual": "gate_a",
+  "concluidas": [
+    "dag",
+    "descoberta",
+    "gap",
+    "design",
+    "mapa_dependencias",
+    "implementacao"
+  ],
+  "historico": [
+    {
+      "evento": "init",
+      "etapa": "dag",
+      "em": "2026-06-27T00:33:10.175Z"
+    },
+    {
+      "evento": "aprovado",
+      "etapa": "dag",
+      "em": "2026-06-27T00:38:01.242Z"
+    },
+    {
+      "evento": "avancou",
+      "etapa": "descoberta",
+      "em": "2026-06-27T00:38:01.243Z"
+    },
+    {
+      "evento": "aprovado",
+      "etapa": "descoberta",
+      "em": "2026-06-27T00:40:26.347Z"
+    },
+    {
+      "evento": "avancou",
+      "etapa": "gap",
+      "em": "2026-06-27T00:40:26.348Z"
+    },
+    {
+      "evento": "aprovado",
+      "etapa": "gap",
+      "em": "2026-06-27T00:42:57.723Z"
+    },
+    {
+      "evento": "avancou",
+      "etapa": "design",
+      "em": "2026-06-27T00:42:57.724Z"
+    },
+    {
+      "evento": "aprovado",
+      "etapa": "design",
+      "em": "2026-06-27T00:44:50.164Z"
+    },
+    {
+      "evento": "avancou",
+      "etapa": "mapa_dependencias",
+      "em": "2026-06-27T00:44:50.165Z"
+    },
+    {
+      "evento": "aprovado",
+      "etapa": "mapa_dependencias",
+      "em": "2026-06-27T01:12:02.746Z"
+    },
+    {
+      "evento": "avancou",
+      "etapa": "implementacao",
+      "em": "2026-06-27T01:12:02.747Z"
+    },
+    {
+      "evento": "aprovado",
+      "etapa": "implementacao",
+      "em": "2026-06-27T01:14:19.003Z"
+    },
+    {
+      "evento": "avancou",
+      "etapa": "gate_a",
+      "em": "2026-06-27T01:14:19.004Z"
+    },
+    {
+      "evento": "bloqueado",
+      "etapa": "gate_a",
+      "detalhe": "critério de aceitação não satisfeito",
+      "em": "2026-06-27T01:16:17.374Z"
+    }
+  ]
+}

@@ -40,11 +40,19 @@ function garantirDir(p) {
 // Sentinela "estado corrompido": distinguível de "feature inexistente" (null).
 const ESTADO_CORROMPIDO = Symbol("estado-corrompido");
 
+// Lê JSON tolerando BOM UTF-8 (﻿). Editores/ferramentas no Windows (e agentes
+// escrevendo arquivos) frequentemente prefixam BOM, que JSON.parse recusa. O motor
+// precisa ser tolerante a isso para o handoff por arquivo funcionar de forma confiável.
+function lerJSON(path) {
+  const raw = readFileSync(path, "utf8").replace(/^﻿/, "");
+  return JSON.parse(raw);
+}
+
 function carregarEstado(feature) {
   const p = statePath(feature);
   if (!existsSync(p)) return null;
   try {
-    return JSON.parse(readFileSync(p, "utf8"));
+    return lerJSON(p);
   } catch {
     // P1-2: state.json corrompido nunca derruba o CLI com stack trace cru.
     return ESTADO_CORROMPIDO;
@@ -135,6 +143,17 @@ function cmdStatus(feature) {
 // o stdout só aponta para os caminhos. (RF-002)
 // ---------------------------------------------------------------------------
 
+// Resolve o CORE da etapa: se houver corePath, carrega o arquivo (CORE rico); senão usa
+// a string inline `core`. Permite COREs ricos em .md sem inchar o config.
+function resolverCore(etapa) {
+  if (etapa.corePath) {
+    const p = join(RAIZ, etapa.corePath);
+    if (existsSync(p)) return readFileSync(p, "utf8").replace(/^﻿/, "");
+    return `[CORE não encontrado em ${etapa.corePath}] ${etapa.core ?? ""}`;
+  }
+  return etapa.core ?? "(sem CORE definido)";
+}
+
 function montarBriefing(estado, etapa) {
   // Estado curado: só os campos que a etapa precisa (R5 do CORE). No MVP, os essenciais.
   return [
@@ -150,7 +169,7 @@ function montarBriefing(estado, etapa) {
     `- etapas concluídas: ${estado.concluidas.length ? estado.concluidas.join(", ") : "(nenhuma)"}`,
     ``,
     `## CORE / instrução desta etapa`,
-    etapa.core,
+    resolverCore(etapa),
     ``,
     `## Output esperado`,
     `Escreva o resultado desta etapa (JSON) no arquivo de output indicado.`,
@@ -219,10 +238,10 @@ function cmdAdvance(feature) {
     );
   }
 
-  // 2. Precisa ser JSON válido.
+  // 2. Precisa ser JSON válido (tolerante a BOM — ver lerJSON).
   let output;
   try {
-    output = JSON.parse(readFileSync(oPath, "utf8"));
+    output = lerJSON(oPath);
   } catch (e) {
     return erro(`output da etapa "${etapa.id}" não é JSON válido: ${e.message}`);
   }
