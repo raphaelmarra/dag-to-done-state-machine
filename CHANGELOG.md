@@ -5,6 +5,17 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Adicionado — MVP (Walking Skeleton) funcional
+- **`MVP/` — motor da state machine em Node puro, funcional e testado.** `dag.mjs` (verbos
+  init/next/advance/status), `pipeline.config.mjs` (13 etapas), e2e `node --test` **5/5 verde**.
+- **Motor genérico + porteiro intransigente** — validado parte por parte (subagentes) + auditoria
+  integrada. Bugs achados e corrigidos: contrato `aceita()` dos gates (e2e), colisão do sentinela
+  "done" (auditoria P0), escrita atômica de estado e load resiliente (P1).
+- **Handoff com subagente REAL provado** — Explore mapeou o CRM do ravi-console, escreveu no
+  caminho de convenção, o motor validou e avançou. Cumpre "cada etapa que delega deve funcionar".
+- **PRD do MVP:** `MVP/spec.md` (RF-001..007, gaps, spike) + `MVP/plan.md` (orquestração por subagentes).
+- Viabilidade validada contra a doc oficial da Anthropic (stdout 30KB, delegação ≤5 níveis, hooks reativos).
+
 ### Adicionado
 - **Governança do projeto** (pacote completo): `docs/INDEX.md` (índice navegável),
   `docs/SOURCES.md` (cross-reference do ravi-console), `docs/ROADMAP.md` (marcos motor+13 etapas

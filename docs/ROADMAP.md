@@ -31,13 +31,16 @@ Uma etapa é considerada "CORE pronto" quando:
 
 | Marco | Descrição | Status |
 |-------|-----------|--------|
-| M-0 Contrato motor↔CORE | Interface: o que o motor passa ao CORE, o que o CORE retorna, como valida | ⬜ não iniciado |
-| M-1 Esqueleto state machine | `dag.mjs` + `package.json`: ler estado, injetar CORE, gerar briefing | ⬜ não iniciado |
-| M-2 Validação de schema | Forçar JSON via tool_use, validar mecanicamente (ADR 0018) | ⬜ não iniciado |
-| M-3 Porteiro de fases | Guarda que bloqueia avanço sem critério; `tamper_hash` (ADR 0001) | ⬜ não iniciado |
-| M-4 Verbos do CLI | `dag next` / `verify` / `advance` / `check` | ⬜ não iniciado |
+| M-0 Contrato motor↔CORE | Interface: o motor imprime caminhos; output por convenção de arquivo `.dag/<f>/<etapa>.output.json` | ✅ MVP |
+| M-1 Esqueleto state machine | `MVP/dag.mjs` + `package.json`: lê estado, gera briefing em arquivo | ✅ MVP |
+| M-2 Validação de schema | `aceita(output)` por etapa, validação mecânica (ADR 0018) | 🟡 MVP (só presença; endurecer pós-MVP, GAP-04) |
+| M-3 Porteiro de fases | `advance` bloqueia output inválido e não deixa pular/regredir | ✅ MVP (validado + auditado) |
+| M-4 Verbos do CLI | `init` / `next` / `advance` / `status` | ✅ MVP (`verify`/`check` pós-MVP) |
 
-> Referência de implementação: `ravi-console/scripts/dag.mjs` (40K) — ver SOURCES.md.
+> MVP (Walking Skeleton) construído e validado em `MVP/`. e2e 5/5 verde. Handoff com
+> subagente real provado ponta-a-ponta (Explore mapeou o CRM → motor validou → avançou).
+> Conteúdo das etapas 2-13 ainda hardcoded (dívida deliberada). Spec/plan: `MVP/spec.md`, `MVP/plan.md`.
+> Referência futura: `ravi-console/scripts/dag.mjs` (40K) — ver SOURCES.md.
 
 ---
 

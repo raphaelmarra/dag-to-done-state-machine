@@ -1,0 +1,14 @@
+{
+  "name": "dag-to-done-mvp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MVP/Walking Skeleton da state machine DAG-to-Done. Motor genérico em Node puro; o LLM (Claude Code) é o operador externo. Dados/briefings hardcoded (dívida deliberada).",
+  "bin": {
+    "dag": "./dag.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "dag": "node dag.mjs"
+  },
+  "private": true
+}
