@@ -5,12 +5,35 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Fundação teórica do CORE (2026-06-27, sessão posterior)
+- **`docs/FLUXO-EXECUCAO.md`** (novo) — registra como a execução roda de fato: a state machine
+  é dona dos prompts; o agente principal consome o briefing e o **traduz** num prompt de
+  delegação próprio; o subagente executa. Explica por que a reescrita é feature (generalidade —
+  M1) e a tensão que abre.
+- **`docs/ABERTO.md` A009** — controle de fidelidade da delegação (a máquina não valida o que
+  foi delegado). Direções registradas; decisão adiada para quando destilarmos o CORE no motor.
+- **`docs/research/0006–0010`** (novos) — 5 pesquisas com fontes sobre construção de prompt:
+  técnicas com validação científica, meta-prompting, frameworks de inspiração, clareza-para-LLM
+  e redação humana clássica (com a divergência humano↔LLM).
+- **`docs/research/0011–0014`** (novos) — 4 pesquisas profundas sobre DAG, calibradas para
+  CONFRONTAR o CORE-DAG atual: acíclico vs cíclico (premissa), análise de impacto (fronteira
+  1-hop), modelagem arquitetural (granularidade de nó) e ferramentas reais.
+- **Achados que alimentam revisão futura do CORE-DAG (→ v4.0, a validar por M4):** forçar DAG é
+  sólido no domínio de consumo (Acyclic Dependencies Principle), mas A1/A2 *impõem* aciclicidade
+  sem verificá-la — recomendado tornar A2 falsificável + condensação (SCC) como rede de segurança;
+  fronteira "1 hop" (A4) é frágil (falso negativo de ripple) — recomendado profundidade dinâmica.
+- `docs/INDEX.md` atualizado com os 9 docs de pesquisa e o FLUXO-EXECUCAO.
+
+### Verificação de estado (2026-06-27, sessão posterior)
+- **Repo publicado** — `raphaelmarra/dag-to-done-state-machine` (privado), `origin` configurado,
+  `main` sincronizada. Bloqueio de publicação **resolvido** (usuário publicou pelo terminal). Nome
+  final ficou `dag-to-done-state-machine`, não `state-machine-in-nodejs`.
+- **Testes reverificados** — `cd MVP && node --test` → **5/5 verde**.
+- `ESTADO-ATUAL.md` e `ROADMAP.md` atualizados para refletir o repo publicado.
+- **Pendência remanescente:** compartilhar o repo com `filipexyz` (ainda só `raphaelmarra` consta).
+
 ### Handoff (2026-06-27)
-- `ESTADO-ATUAL.md` — ponto de entrada para a próxima sessão: onde paramos, o bloqueio de
-  publicação no GitHub (classificador de segurança — só o usuário consegue rodar), e os próximos passos.
-- **Pendência conhecida:** o repositório `state-machine-in-nodejs` (privado, conta raphaelmarra,
-  compartilhar com filipexyz) NÃO foi publicado — o classificador bloqueia toda tentativa do agente.
-  Comandos prontos para o usuário rodar estão no `ESTADO-ATUAL.md`.
+- `ESTADO-ATUAL.md` — ponto de entrada para a próxima sessão: onde paramos e os próximos passos.
 
 ### Adicionado — MVP (Walking Skeleton) funcional
 - **`MVP/` — motor da state machine em Node puro, funcional e testado.** `dag.mjs` (verbos

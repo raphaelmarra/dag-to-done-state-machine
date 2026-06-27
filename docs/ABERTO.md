@@ -98,3 +98,22 @@ estática/runtime (estrutura→Explore, custo-runtime→etapa 2) dissolve o conf
 
 **Próximo passo:** ou destilar o CORE-DAG agora a partir do briefing v2, ou aguardar uma
 demanda real para construir+validar o CORE-DAG contra ela. Decisão do operador humano.
+
+---
+
+## A009 — Controle de fidelidade da delegação (briefing → prompt do subagente)
+
+**Status:** em aberto
+**Questão:** O agente principal consome o briefing da máquina e redige um prompt PRÓPRIO para
+o subagente — não repassa o briefing palavra por palavra (ver `FLUXO-EXECUCAO.md`). A máquina
+não verifica o que foi delegado, qual subagente foi usado, nem o conteúdo do prompt — só o
+output final. A fidelidade "briefing → delegação" depende 100% do julgamento do agente principal.
+**Tensão:** essa folga é o que dá GENERALIDADE (um CORE genérico vira um prompt específico do
+projeto — o DAG do CLI ≠ DAG do CRM, M1). Tirá-la mata a generalidade. Mas ela também tira
+controle e reprodutibilidade.
+**Impacto:** Alto — define quanto a máquina realmente "controla" a execução vs. confia no agente.
+**Direções:** (a) briefing vira prompt literal do subagente — preserva controle, mata generalidade;
+(b) a máquina registra/valida o que foi delegado — preserva generalidade, adiciona controle.
+**Próximo passo:** não decidir agora. Reavaliar ao destilar o CORE-DAG real no motor — é quando
+a tensão fica concreta. Provável: manter (b) como caminho, mas só implementar se a falta de
+controle morder num caso real.

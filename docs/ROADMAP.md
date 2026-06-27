@@ -4,10 +4,10 @@
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
 > **Onde paramos (2026-06-27):** MVP funcional (e2e 5/5), teste real da aba CLIs rodado até o
-> Gate A (parou honestamente). Tudo commitado localmente. **Pendência fora do código:** publicar
-> o repo no GitHub está BLOQUEADO pelo classificador de segurança — só o usuário consegue rodar
-> (ver `ESTADO-ATUAL.md`). Próximo trabalho técnico: generalizar os COREs (hoje específicos da
-> aba CLIs) e plugar o CORE-DAG v3.0 no motor.
+> Gate A (parou honestamente). Repo **publicado** em `raphaelmarra/dag-to-done-state-machine`
+> (privado), `main` sincronizada com `origin`. Pendência fora do código: compartilhar com
+> `filipexyz` (ver `ESTADO-ATUAL.md`). Próximo trabalho técnico: generalizar os COREs (hoje
+> específicos da aba CLIs) e plugar o CORE-DAG v3.0 no motor.
 
 ---
 
