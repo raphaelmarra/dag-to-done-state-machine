@@ -5,6 +5,7 @@
 > 1 linha por documento. Classificado por [Diátaxis](https://diataxis.fr/). Manter via skill `manter-governanca`.
 
 ## Comece por aqui
+- [`../ESTADO-ATUAL.md`](../ESTADO-ATUAL.md) — **handoff: onde paramos, bloqueios e próximos passos. LEIA PRIMEIRO.**
 - [`../CLAUDE.md`](../CLAUDE.md) — papel do copiloto, regras de trabalho, ponteiro para este índice.
 - [`ROADMAP.md`](ROADMAP.md) — **estado real** do projeto: motor + 13 etapas, status e DoD. (onde estamos)
 - [`SOURCES.md`](SOURCES.md) — conhecimento em repos externos (ravi-console: DAG real, contrato, research).

@@ -5,6 +5,13 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Handoff (2026-06-27)
+- `ESTADO-ATUAL.md` — ponto de entrada para a próxima sessão: onde paramos, o bloqueio de
+  publicação no GitHub (classificador de segurança — só o usuário consegue rodar), e os próximos passos.
+- **Pendência conhecida:** o repositório `state-machine-in-nodejs` (privado, conta raphaelmarra,
+  compartilhar com filipexyz) NÃO foi publicado — o classificador bloqueia toda tentativa do agente.
+  Comandos prontos para o usuário rodar estão no `ESTADO-ATUAL.md`.
+
 ### Adicionado — MVP (Walking Skeleton) funcional
 - **`MVP/` — motor da state machine em Node puro, funcional e testado.** `dag.mjs` (verbos
   init/next/advance/status), `pipeline.config.mjs` (13 etapas), e2e `node --test` **5/5 verde**.

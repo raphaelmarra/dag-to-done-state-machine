@@ -3,6 +3,12 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
+> **Onde paramos (2026-06-27):** MVP funcional (e2e 5/5), teste real da aba CLIs rodado até o
+> Gate A (parou honestamente). Tudo commitado localmente. **Pendência fora do código:** publicar
+> o repo no GitHub está BLOQUEADO pelo classificador de segurança — só o usuário consegue rodar
+> (ver `ESTADO-ATUAL.md`). Próximo trabalho técnico: generalizar os COREs (hoje específicos da
+> aba CLIs) e plugar o CORE-DAG v3.0 no motor.
+
 ---
 
 ## Visão
