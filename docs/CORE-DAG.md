@@ -40,16 +40,15 @@ aresta é uma relação de **dependência de consumo** (o consumidor depende do 
 ## SEÇÃO 1 — CAPACIDADE DO EXECUTOR
 
 > Define o que o executor PODE saber. O enum de confiança espelha essa capacidade.
-> **Trocar de executor = editar só esta seção.**
+> **Trocar de executor = editar o objeto `executor` na config da etapa** (não esta seção — os
+> valores abaixo são injetados pelo motor a partir desse objeto).
 
-Executor: **Explore** — lê código, **não toca a rede**, não cria arquivos.
+Executor: **{executor_nome}** — {executor_capacidade}.
 
-Enum de confiança permitido (B3 — reflete o executor):
-- `lido no código` — a informação está explícita no fonte lido.
-- `inferido do código` — derivada de como o código usa algo, sem estar explícita.
-- `não encontrado` — buscou e não achou no código → vira gap obrigatório.
+Enum de confiança permitido (B3 — reflete o executor, injetado da config):
+{confianca_enum}
 
-Use exatamente estes três valores. (Valores como "confirmado ao vivo" pertencem à etapa de
+Use exatamente estes valores. (Valores como "confirmado ao vivo" pertencem à etapa de
 Descoberta, que toca a rede — não a este executor.)
 
 ---
@@ -184,13 +183,13 @@ Para cada aresta, aplique A2 (verifique o caminho de volta antes de afirmar dire
   - shape: [contrato observável: função-API → params e campos da resposta; superfície-UI → props;
             função → assinatura (args→retorno). Não a implementação interna.]
   - hub?: [sim, se fan-in/out alto — dispara A4 | não]
-  - confiança: lido no código | inferido do código | não encontrado
+  - confiança: {confianca_enum}
 
 ## Arestas (consumidor → provedor, sempre nessa direção — verificada por A2)
 - [consumidor] --[import/chamada/FK]--> [provedor]
   - tipo: consome | depende
   - custo-reverso: 🟢 cheap | 🟡 indireto | 🔴 scan | a-confirmar | n/a (pura)
-  - confiança: lido no código | inferido do código
+  - confiança: {confianca_enum_arestas}
 
 ## Blast radius (grafo reverso — calculado, com amplitude)
 - [nó]: consumido por [lista] — amplitude: BAIXA | MÉDIA | ALTA | CRÍTICA

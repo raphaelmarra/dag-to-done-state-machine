@@ -40,6 +40,17 @@ export const PIPELINE = [
     id: "dag",
     nome: "DAG — Mapa de correlações",
     agente: "Explore",
+    // Executor como DADO consultável (peça 2): capacidade + enum de confiança vivem aqui, não em
+    // prosa no CORE. O enum REFLETE a capacidade (peça 3): o Explore não toca a rede, então não tem
+    // valores de runtime ("confirmado ao vivo"). Trocar de executor = editar este objeto (M1).
+    executor: {
+      nome: "Explore",
+      capacidade: "lê código; não toca a rede; não cria arquivos",
+      // Fonte única do enum de confiança (injetado em TODO o CORE via placeholders). Arestas usam um
+      // subconjunto (não têm "não encontrado" — uma aresta ou foi lida ou inferida).
+      confianca_enum: ["lido no código", "inferido do código", "não encontrado"],
+      confianca_enum_arestas: ["lido no código", "inferido do código"],
+    },
     core: "[fallback] Construa o DAG de dependências de consumo do entry_point. Ver cores/CORE-DAG.md.",
     corePath: "cores/CORE-DAG.md",
     schema: ["nos", "arestas", "blast_radius", "fronteira", "gaps", "confianca"],

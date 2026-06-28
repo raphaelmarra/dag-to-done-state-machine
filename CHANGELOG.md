@@ -5,6 +5,17 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Etapa 1, Peças 2+3 — executor como dado + enum derivado (fonte única) (2026-06-28)
+- **Executor vira DADO consultável:** a etapa dag ganhou `executor: {nome, capacidade, confianca_enum,
+  confianca_enum_arestas}` em `v1/pipeline.config.mjs`. O enum de confiança deixa de ser prosa fixa.
+- **Fonte única real:** o motor injeta o executor no CORE via placeholders; CORE-DAG Seções 1 E 4 usam
+  os placeholders — o enum não está mais hardcoded em parte alguma da etapa 1. Trocar o executor na
+  config muda o briefing inteiro (M1).
+- **Anti-viés saturado (3 verificadores):** auditor-v2 achou um BLOCKER que o autor não viu (enum ainda
+  hardcoded na Seção 4 — corrigido); code-reviewer deu 4 ressalvas de borda (todas aplicadas); Explore
+  confirmou fonte única e mapeou dívida externa. Suíte v1 **19/19**.
+- **Dívida externa anotada** (fora da etapa 1): enum hardcoded em docs/CORE.md, benchmarks/, MVP.
+
 ### Etapa 1, Peça 1 — substituição de placeholders no motor (2026-06-28)
 - **Corrige o bug F1** (achado pela revisão cega): o motor entregava `{next_stage}` literal ao
   executor. Agora `cmdInit`/`cmdAdvance` populam `next_stage` derivado do pipeline (dinâmico, M1), e

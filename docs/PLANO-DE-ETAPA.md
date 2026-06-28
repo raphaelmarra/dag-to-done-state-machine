@@ -21,8 +21,11 @@ Decididas pelo operador em 2026-06-28. Valem para todo o piloto e a réplica fut
 3. **Autonomia total na execução** — escrever, testar, mudar config/motor, registrar e cristalizar
    ADR sem checkpoint humano. O operador revê pelo tracker e pelos commits, e manda desfazer se
    discordar.
-4. **Portão anti-viés (sempre) — COM limite reconhecido (F4).** Nenhuma peça fecha sem um
-   **verificador independente cego** (subagente sem o contexto da decisão) ratificar. MAS: o
+4. **Portão anti-viés (sempre) — MÚLTIPLOS verificadores, COM limite reconhecido (F4).** Nenhuma peça
+   fecha sem verificadores independentes cegos ratificarem. **Saturar com perspectivas diversas**
+   (decisão do operador): escolher os verificadores pela natureza da peça — `auditor-v2` (conformidade/
+   fonte-única), `code-reviewer` (lógica de código), `Explore` (varredura de duplicação), `backend-architect`
+   (design de contrato). Perspectivas diversas pegam o que uma redundante não pega. MAS: o
    verificador é o **mesmo modelo, mesmo repo** — ele reduz **erro de transmissão e omissão local**;
    NÃO neutraliza vieses *sistemáticos* do modelo (ex.: o próprio "dinâmico é melhor", sycophancy),
    que são **compartilhados** entre réu e juiz. Por isso, para peças de esforço **F** (que viram
@@ -100,8 +103,8 @@ CORE↔motor↔teste**, não só presença de campos no schema. (Corrige o viés
 | Ordem | Peça | Estado base (verificado) | Esforço | Status | Depende de |
 |-------|------|--------------------------|---------|--------|------------|
 | 1 | **Substituição de placeholders no motor (F1)** — `cmdInit`/`cmdAdvance` populam `next_stage` derivado do pipeline; `montarBriefing` substitui `{chave}` do estado, protegendo inline code | ✅ **PRONTA** | M | ✅ | — (motor) |
-| 2 | **Executor como dado consultável (1)** — capacidade vira propriedade da etapa, não texto solto | hardcoded no .md | M | ⬜ | — |
-| 3 | **Grau de certeza (2)** — enum derivado da propriedade do executor (peça 2) | hardcoded no .md | M | ⬜ | peça 2 |
+| 2 | **Executor como dado consultável (1)** — `executor: {nome, capacidade, confianca_enum}` na config; injetado no briefing | ✅ **PRONTA** | M | ✅ | — |
+| 3 | **Grau de certeza (2)** — enum derivado do executor, injetado em TODO o CORE (Seções 1 E 4 — fonte única) | ✅ **PRONTA** | M | ✅ | peça 2 |
 | 4 | **Schema como DADO ÚNICO (6)** — objeto/JSON fonte-de-verdade, injetado no briefing E no validador. **NÃO parsear markdown** (F3) | hardcoded, duplicado | F | ⬜ | peças 2,3 (enum entra na estrutura) |
 | 5 | **Critério de aceitação estrutural (7)** — valida a estrutura aninhada do schema (peça 4), não só presença | só presença | F | ⬜ | peça 4 (fundida — ver nota) |
 | 6 | **Bloqueio / early-exit no motor (10)** — pré-condição (entry_point/project_root) implementada no motor | só no CORE | M | ⬜ | — |
@@ -167,4 +170,21 @@ cega. Aí o sistema está provado e replicamos para a etapa 2.
   - ✅ GOVERNANÇA — sem ADR (correção de bug, não decisão de lei); CHANGELOG atualizado.
 - **Nuance de design registrada:** blocos ```` ``` ```` do CORE-DAG são TEMPLATES (preenchidos), não
   código literal — por isso a substituição ocorre dentro deles; só código inline (crase) é protegido.
-- **Commit:** (ver próximo commit desta sessão).
+- **Commit:** bcfa276.
+
+### ✅ Peças 2+3 — Executor como dado + enum derivado (fonte única) (2026-06-28)
+- **O que foi feito:** a etapa dag ganhou `executor: {nome, capacidade, confianca_enum, confianca_enum_arestas}`
+  na config (peça 2). O motor (`contextoDeSubstituicao`) injeta esses dados no CORE via placeholders
+  `{executor_nome}`/`{executor_capacidade}`/`{confianca_enum}`/`{confianca_enum_arestas}` (peça 3). O
+  CORE-DAG Seções 1 E 4 passaram a usar os placeholders — o enum **não está mais hardcoded em lugar nenhum** da etapa 1.
+- **Anti-viés (saturado — 3 verificadores):** auditor-v2 + code-reviewer + Explore.
+  - **auditor-v2 achou o BLOCKER:** eu tinha trocado só a Seção 1; o enum continuava hardcoded na
+    Seção 4 (Nós/Arestas). **Corrigido** — placeholders nas duas, com subconjunto p/ arestas.
+  - **code-reviewer:** 4 ressalvas (enum vazio degrada; faltam testes de borda) — **todas aplicadas**.
+  - **Explore:** confirmou fonte única na etapa 1 + mapeou dívida EXTERNA (ver abaixo).
+- **DoD:** ✅ dinâmica (trocar executor na config muda o briefing inteiro) · ✅ evidência (TDD RED→GREEN)
+  · ✅ teste (19/19; cobre fonte única, borda, regressão) · ✅ anti-viés (3 ângulos, convergiram) · ✅ governança.
+- **Dívida externa registrada (fora da etapa 1, NÃO corrigida agora):** o Explore achou enum hardcoded
+  em `docs/CORE.md` (3x), `benchmarks/*.mjs` (2 arquivos), `MVP/cores-aba-clis/descoberta.md`. São de
+  outras frentes (CORE genérico, benchmarks, MVP congelado) — anotar para quando essas frentes forem mexidas.
+- **Commit:** (próximo).

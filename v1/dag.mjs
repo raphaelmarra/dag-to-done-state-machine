@@ -182,9 +182,31 @@ function substituirPlaceholders(texto, estado) {
     .join("");
 }
 
+// Contexto de substituição = estado da instância + campos derivados da etapa (M1: o CORE pode
+// referenciar dados do executor por nome). Ex.: {confianca_enum} vem do executor declarado na config.
+function contextoDeSubstituicao(estado, etapa) {
+  // Campos do executor têm precedência sobre o estado (dado da etapa > instância). Colisão de chave
+  // é intencional: o dado da etapa vence. Hoje não há colisão (os nomes não existem no estado).
+  const ctx = { ...estado };
+  const fmtEnum = (lista) => lista.map((v) => `\`${v}\``).join(" | ");
+  if (etapa.executor) {
+    const ex = etapa.executor;
+    // Lista vazia = sem enum (placeholder fica cru, lacuna visível) — não degrada para "".
+    if (Array.isArray(ex.confianca_enum) && ex.confianca_enum.length > 0) {
+      ctx.confianca_enum = fmtEnum(ex.confianca_enum);
+    }
+    if (Array.isArray(ex.confianca_enum_arestas) && ex.confianca_enum_arestas.length > 0) {
+      ctx.confianca_enum_arestas = fmtEnum(ex.confianca_enum_arestas);
+    }
+    if (ex.nome) ctx.executor_nome = ex.nome;
+    if (ex.capacidade) ctx.executor_capacidade = ex.capacidade;
+  }
+  return ctx;
+}
+
 function montarBriefing(estado, etapa) {
   // Estado curado: só os campos que a etapa precisa (R5 do CORE). No MVP, os essenciais.
-  const coreResolvido = substituirPlaceholders(resolverCore(etapa), estado);
+  const coreResolvido = substituirPlaceholders(resolverCore(etapa), contextoDeSubstituicao(estado, etapa));
   return [
     `# Briefing — Etapa: ${etapa.nome}`,
     ``,
@@ -361,7 +383,7 @@ function main(argv) {
 }
 
 // Exporta para testes; roda se invocado direto.
-export { main, carregarEstado, salvarEstado, statePath, outputPath, briefingPath, featureDir, estaCompleto, ESTADO_CORROMPIDO };
+export { main, carregarEstado, salvarEstado, statePath, outputPath, briefingPath, featureDir, estaCompleto, ESTADO_CORROMPIDO, contextoDeSubstituicao, substituirPlaceholders };
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("dag.mjs")) {
   process.exit(main(process.argv.slice(2)));
