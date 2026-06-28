@@ -10,11 +10,39 @@ import { PIPELINE, PRIMEIRA_ETAPA } from "../pipeline.config.mjs";
 
 const FEATURE = "e2e-test";
 
-// Gera um output VÁLIDO para uma etapa: preenche cada campo do schema com ["item"]
-// por padrão, e aplica exceções de valor exato exigidas pela aceita() da config.
+// Gera um valor de campo que satisfaz uma forma do schemaEstrutural (peças 4+5).
+function valorParaForma(forma, etapa) {
+  if (forma.tipo === "lista-de-objetos") {
+    const item = {};
+    for (const [campo, regra] of Object.entries(forma.itemCampos || {})) {
+      const enumV = typeof regra.enum === "function" ? regra.enum(etapa) : regra.enum;
+      item[campo] = enumV && enumV.length ? enumV[0] : "x";
+    }
+    return [item];
+  }
+  if (forma.tipo === "objeto") {
+    const obj = {};
+    for (const [campo, regra] of Object.entries(forma.campos || {})) {
+      const enumV = typeof regra.enum === "function" ? regra.enum(etapa) : regra.enum;
+      obj[campo] = enumV && enumV.length ? enumV[0] : "x";
+    }
+    if (Object.keys(obj).length === 0) obj.x = 1; // objeto sem campos exigidos: não-vazio
+    return obj;
+  }
+  return ["item"];
+}
+
+// Gera um output VÁLIDO para uma etapa. Se a etapa tem schemaEstrutural, gera a forma rica a partir
+// dele (dinâmico); senão, preenche cada campo do schema com ["item"]. Aplica exceções de valor exato.
 function outputValido(etapa) {
   const out = {};
-  for (const campo of etapa.schema) out[campo] = ["item"];
+  if (etapa.schemaEstrutural) {
+    for (const [campo, forma] of Object.entries(etapa.schemaEstrutural)) {
+      out[campo] = valorParaForma(forma, etapa);
+    }
+  } else {
+    for (const campo of etapa.schema) out[campo] = ["item"];
+  }
 
   switch (etapa.id) {
     case "gate_a":

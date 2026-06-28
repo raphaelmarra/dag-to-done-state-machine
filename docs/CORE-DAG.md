@@ -175,21 +175,24 @@ Para cada aresta, aplique A2 (verifique o caminho de volta antes de afirmar dire
 ### Schema a injetar no briefing (listas aninhadas, nunca tabelas)
 
 ```
+> Nomes de campo JSON sem acento (chaves estáveis): `nome`, `tipo`, `path`, `shape`, `confianca`,
+> `hub`. O porteiro valida exatamente estes nomes.
+
 ## Nós
-- [nome]
+- nome: [identificador do nó]
   - tipo: [rótulo do nível Component nomeado pelo stack — ex. web: superfície-UI, função-API,
            componente-compartilhado, hook-estado, função-domínio, disco; CLI: comando, flag]
   - path: [arquivo ou endpoint no código]
   - shape: [contrato observável: função-API → params e campos da resposta; superfície-UI → props;
             função → assinatura (args→retorno). Não a implementação interna.]
-  - hub?: [sim, se fan-in/out alto — dispara A4 | não]
-  - confiança: {confianca_enum}
+  - hub: [sim, se fan-in/out alto — dispara A4 | não]
+  - confianca: {confianca_enum}
 
 ## Arestas (consumidor → provedor, sempre nessa direção — verificada por A2)
-- [consumidor] --[import/chamada/FK]--> [provedor]
+- consumidor: [nó]  / provedor: [nó]
   - tipo: consome | depende
   - custo-reverso: 🟢 cheap | 🟡 indireto | 🔴 scan | a-confirmar | n/a (pura)
-  - confiança: {confianca_enum_arestas}
+  - confianca: {confianca_enum_arestas}
 
 ## Blast radius (grafo reverso — calculado, com amplitude)
 - [nó]: consumido por [lista] — amplitude: BAIXA | MÉDIA | ALTA | CRÍTICA

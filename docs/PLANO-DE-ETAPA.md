@@ -105,8 +105,8 @@ CORE↔motor↔teste**, não só presença de campos no schema. (Corrige o viés
 | 1 | **Substituição de placeholders no motor (F1)** — `cmdInit`/`cmdAdvance` populam `next_stage` derivado do pipeline; `montarBriefing` substitui `{chave}` do estado, protegendo inline code | ✅ **PRONTA** | M | ✅ | — (motor) |
 | 2 | **Executor como dado consultável (1)** — `executor: {nome, capacidade, confianca_enum}` na config; injetado no briefing | ✅ **PRONTA** | M | ✅ | — |
 | 3 | **Grau de certeza (2)** — enum derivado do executor, injetado em TODO o CORE (Seções 1 E 4 — fonte única) | ✅ **PRONTA** | M | ✅ | peça 2 |
-| 4 | **Schema como DADO ÚNICO (6)** — objeto/JSON fonte-de-verdade, injetado no briefing E no validador. **NÃO parsear markdown** (F3) | hardcoded, duplicado | F | ⬜ | peças 2,3 (enum entra na estrutura) |
-| 5 | **Critério de aceitação estrutural (7)** — valida a estrutura aninhada do schema (peça 4), não só presença | só presença | F | ⬜ | peça 4 (fundida — ver nota) |
+| 4 | **Schema como DADO ÚNICO (6)** — objeto fonte-de-verdade. **1ª versão feita, mas revisão saturada achou 3 problemas (1 crítico)** — ver log | parcial | F | 🟡 **em progresso** | peças 2,3 |
+| 5 | **Critério de aceitação estrutural (7)** — valida estrutura aninhada. **Funciona p/ profundidade-2; falta recursão + correção de acento** | parcial | F | 🟡 **em progresso** | peça 4 (fundida) |
 | 6 | **Bloqueio / early-exit no motor (10)** — pré-condição (entry_point/project_root) implementada no motor | só no CORE | M | ⬜ | — |
 | 7 | **Estado curado por etapa (3)** — `montarBriefing(estado, etapa)` usa `etapa.estadoCurado`. **Mudança de MOTOR, blast radius nas 13 etapas** (F7) | hardcoded no motor | M-alto | ⬜ | peça 1 |
 | 8 | **Confirmar peças dinâmicas (5,8,9)** — profundidade/gaps/handoff já no CORE; verificar que o motor não as quebra | ok no CORE | T | ⬜ | peça 1 |
@@ -187,4 +187,27 @@ cega. Aí o sistema está provado e replicamos para a etapa 2.
 - **Dívida externa registrada (fora da etapa 1, NÃO corrigida agora):** o Explore achou enum hardcoded
   em `docs/CORE.md` (3x), `benchmarks/*.mjs` (2 arquivos), `MVP/cores-aba-clis/descoberta.md`. São de
   outras frentes (CORE genérico, benchmarks, MVP congelado) — anotar para quando essas frentes forem mexidas.
-- **Commit:** (próximo).
+- **Commit:** 6f6e11c.
+
+### 🟡 Peças 4+5 — schema dado único + validação estrutural (EM PROGRESSO, 2026-06-28)
+- **Feito (verde, 25/25):** validador estrutural declarativo `validarEstrutura` (genérico, lê
+  `schemaEstrutural` de qualquer etapa); a etapa dag valida estrutura aninhada (nós/arestas são
+  objetos com campos certos; confiança dentro do enum do executor — fonte única; amplitude/prioridade
+  em enums). O bug "`nos: 'string'` passava" está corrigido no nível de topo. O e2e gera output válido
+  derivando do próprio schema (dinâmico).
+- **Anti-viés saturado (3 verificadores) — achou problemas reais, AINDA NÃO TODOS RESOLVIDOS:**
+  - 🔴 **CRÍTICO (auditor-v2) — CORRIGIDO:** o CORE pedia `confiança` (com acento); o validador exige
+    `confianca` (sem). Em JS são chaves distintas → TODA execução real seria bloqueada. CORE alinhado
+    para nomes de campo sem acento (`nome`/`tipo`/`path`/`shape`/`hub`/`confianca`).
+  - 🔴 **ARQUITETURAL (backend-architect) — PENDENTE:** a gramática do schema é profundidade-2; o CORE
+    é profundidade-3 (`fronteira.expansoes`, `ciclos` são listas dentro de objeto). O validador cobre
+    ~60% do CORE e *parece* exaustivo. Precisa de gramática **recursiva**.
+  - 🔴 **DUPLICAÇÃO (backend-architect) — PENDENTE:** a Seção 4 do CORE (prosa) e o `schemaEstrutural`
+    (código) descrevem a mesma forma em 2 lugares e **já divergiram** (shape/hub/custo-reverso no CORE,
+    ausentes no schema). Direção certa: o schema deve **GERAR** a Seção 4, não coexistir.
+  - 🟡 **code-reviewer — PENDENTE:** campos de item só checam presença, não tipo (`nos_folha: "string"`
+    passa — mesma classe de bug um nível abaixo); `this` em `aceita` é frágil; faltam testes de borda.
+- **DECISÃO:** o crítico (acento) foi corrigido já. Os 2 arquiteturais (recursão + schema gera prosa)
+  são a "melhoria de maior impacto, 1 passo 3 ganhos" (backend-architect) e mudam o escopo da peça —
+  **ponto de checkpoint com o operador** antes de seguir, por serem decisão estrutural (não patch).
+- **Commit:** (próximo — estado verde + diagnóstico).
