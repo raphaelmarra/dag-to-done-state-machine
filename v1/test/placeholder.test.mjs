@@ -57,10 +57,10 @@ describe("Peça 1 — substituição de placeholders no briefing (F1)", () => {
     // Estado inicial: etapa dag, next_stage = descoberta. Após avançar (com output válido), a nova
     // etapa atual é 'descoberta' e next_stage deve apontar para a etapa seguinte a ela ('gap').
     const out = {
-      nos: [{ nome: "X", tipo: "f", path: "a.ts", shape: "s", confianca: "lido no código" }],
+      nos: [{ nome: "X", tipo: "f", path: "a.ts", shape: "s", hub: "não", confianca: "lido no código" }],
       arestas: [{ consumidor: "X", provedor: "Y", tipo: "consome", custo_reverso: "n/a", confianca: "lido no código" }],
       blast_radius: [{ no: "Y", consumido_por: ["X"], amplitude: "MÉDIA" }],
-      fronteira: { nos_folha: ["Y"], saidas_1hop: ["Z"] },
+      fronteira: { nos_folha: ["Y"], saidas_1hop: ["Z"], expansoes: [], candidatos_transitivos: [] },
       gaps: [{ id: "G1", prioridade: "P0", acao: "a" }],
       confianca: { lido: 1, inferido: 0, nao_encontrado: 0 },
     };

@@ -23,6 +23,7 @@ function valorParaForma(forma, etapa) {
     const obj = {};
     for (const [campo, regra] of Object.entries(forma.campos || {})) {
       if (regra.obrigatorio) obj[campo] = valorParaForma(regra, etapa);
+      else if (regra.presente) obj[campo] = regra.tipo === "lista-de-strings" ? [] : []; // presente: lista vazia ok
     }
     if (Object.keys(obj).length === 0) obj.x = 1; // objeto sem campos exigidos: não-vazio
     return obj;

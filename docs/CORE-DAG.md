@@ -192,8 +192,12 @@ Para cada aresta, aplique A2 (verifique o caminho de volta antes de afirmar dire
 > - **arestas** (consumidor→provedor, verificada por A2): `tipo` · `custo_reverso` · `confianca`.
 > - **blast_radius:** `no` · `consumido_por` (a vista reversa, A3) · `amplitude`.
 > - **fronteira:** `nos_folha` · `saidas_1hop` · `expansoes` (A4: vizinho+motivo) · `candidatos_transitivos`.
+>   `expansoes` e `candidatos_transitivos` são SEMPRE presentes — registre `[]` se não houver (A4:
+>   "nunca um silêncio"); omitir é inválido.
 > - **ciclos** (opcional, A5): super-nós de dependência mútua.
-> - **gaps** (passaram em C1): `id` · `prioridade` · `acao`. **confianca:** resumo lido/inferido/não-encontrado.
+> - **gaps** (passaram em C1): `id` · `prioridade` · `acao`. A seção é sempre presente, mas pode ser
+>   `[]` — C1 é filtro, não cota: um DAG com tudo confirmado tem ZERO gaps, e isso é válido.
+>   **confianca:** resumo lido/inferido/não-encontrado.
 
 ```
 {schema_prosa}

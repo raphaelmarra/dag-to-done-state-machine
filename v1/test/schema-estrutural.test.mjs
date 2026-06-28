@@ -16,10 +16,10 @@ function escrever(obj) { writeFileSync(outputPath(FEATURE, "dag"), JSON.stringif
 // Um output ESTRUTURALMENTE VÁLIDO da etapa dag (forma rica, como o CORE v4.0 pede).
 function outputValido() {
   return {
-    nos: [{ nome: "X", tipo: "função-API", path: "a.ts", shape: "args→ret", confianca: "lido no código" }],
+    nos: [{ nome: "X", tipo: "função-API", path: "a.ts", shape: "args→ret", hub: "não", confianca: "lido no código" }],
     arestas: [{ consumidor: "X", provedor: "Y", tipo: "consome", custo_reverso: "🟢 cheap", confianca: "lido no código" }],
     blast_radius: [{ no: "Y", consumido_por: ["X"], amplitude: "MÉDIA" }],
-    fronteira: { nos_folha: ["Y"], saidas_1hop: ["Z"] },
+    fronteira: { nos_folha: ["Y"], saidas_1hop: ["Z"], expansoes: [], candidatos_transitivos: [] },
     gaps: [{ id: "G1", prioridade: "P0", acao: "x" }],
     confianca: { lido: 1, inferido: 0, nao_encontrado: 0 },
   };
@@ -124,5 +124,53 @@ describe("Peças 4+5 — schema como dado único + validação estrutural", () =
     ruim.ciclos = [{ nos: "A->B", relacao: "x" }]; // nos deveria ser lista-de-strings
     escrever(ruim);
     assert.equal(main(["advance", FEATURE]), 1, "ciclos com nos errado deve REPROVAR");
+  });
+
+  // --- Paridade CORE↔porteiro (buracos achados ao revisitar a etapa 1 com a lente da etapa 2) ---
+
+  it("REPROVA nó sem 'hub' (o CORE lista hub com enum sim/não — deve ser exigido)", () => {
+    limpar();
+    assert.equal(main(["init", FEATURE, "--entry", "CRM", "--root", "/p"]), 0);
+    const ruim = outputValido();
+    delete ruim.nos[0].hub;
+    escrever(ruim);
+    assert.equal(main(["advance", FEATURE]), 1, "nó sem hub deve REPROVAR");
+  });
+
+  it("REPROVA fronteira sem 'expansoes' (A4: 'registre, nunca silencie')", () => {
+    limpar();
+    assert.equal(main(["init", FEATURE, "--entry", "CRM", "--root", "/p"]), 0);
+    const ruim = outputValido();
+    delete ruim.fronteira.expansoes;
+    escrever(ruim);
+    assert.equal(main(["advance", FEATURE]), 1, "fronteira sem expansoes deve REPROVAR");
+  });
+
+  it("REPROVA fronteira sem 'candidatos_transitivos' (A4: nunca um silêncio)", () => {
+    limpar();
+    assert.equal(main(["init", FEATURE, "--entry", "CRM", "--root", "/p"]), 0);
+    const ruim = outputValido();
+    delete ruim.fronteira.candidatos_transitivos;
+    escrever(ruim);
+    assert.equal(main(["advance", FEATURE]), 1, "fronteira sem candidatos_transitivos deve REPROVAR");
+  });
+
+  it("expansoes/candidatos_transitivos podem ser LISTA VAZIA (registrou que não há — não é silêncio)", () => {
+    limpar();
+    assert.equal(main(["init", FEATURE, "--entry", "CRM", "--root", "/p"]), 0);
+    const ok = outputValido();
+    ok.fronteira.expansoes = [];
+    ok.fronteira.candidatos_transitivos = [];
+    escrever(ok);
+    assert.equal(main(["advance", FEATURE]), 0, "listas vazias (registro explícito de 'nenhum') devem PASSAR");
+  });
+
+  it("ACEITA um DAG com ZERO gaps (gaps: []) — tudo confirmado é resultado válido (C1 é filtro, não cota)", () => {
+    limpar();
+    assert.equal(main(["init", FEATURE, "--entry", "CRM", "--root", "/p"]), 0);
+    const ok = outputValido();
+    ok.gaps = []; // zero gaps: o CORE permite (C1 pode resultar em nenhum)
+    escrever(ok);
+    assert.equal(main(["advance", FEATURE]), 0, "DAG sem gaps deve PASSAR (não forçar inventar gap)");
   });
 });

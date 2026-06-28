@@ -114,10 +114,10 @@ describe("Etapa 2 — Descoberta da API", () => {
     assert.equal(main(["init", FEATURE, "--entry", "X", "--root", "/p"]), 0);
     // output válido mínimo da etapa dag
     const dagOut = {
-      nos: [{ nome: "A", tipo: "f", path: "a", shape: "s", confianca: "lido no código" }],
+      nos: [{ nome: "A", tipo: "f", path: "a", shape: "s", hub: "não", confianca: "lido no código" }],
       arestas: [{ consumidor: "A", provedor: "B", tipo: "consome", custo_reverso: "n/a", confianca: "lido no código" }],
       blast_radius: [{ no: "B", consumido_por: ["A"], amplitude: "BAIXA" }],
-      fronteira: { nos_folha: ["B"], saidas_1hop: ["C"] },
+      fronteira: { nos_folha: ["B"], saidas_1hop: ["C"], expansoes: [], candidatos_transitivos: [] },
       gaps: [{ id: "G", prioridade: "P0", acao: "x" }],
       confianca: { lido: 1, inferido: 0, nao_encontrado: 0 },
     };

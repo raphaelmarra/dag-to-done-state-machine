@@ -24,10 +24,12 @@ describe("CORE-DAG v4.0 plugado no v1", () => {
   it("a etapa dag aponta para o CORE rico via corePath (não usa fallback inline)", () => {
     const dag = etapaPorId("dag");
     assert.equal(dag.corePath, "cores/CORE-DAG.md", "etapa dag deve ter corePath");
-    // schema reflete o v4.0
-    for (const campo of ["nos", "arestas", "blast_radius", "fronteira", "gaps", "confianca"]) {
+    // schema reflete o v4.0. 'gaps' saiu do array de presença de topo (zero gaps é válido) mas é
+    // exigido via schemaEstrutural com `presente: true`.
+    for (const campo of ["nos", "arestas", "blast_radius", "fronteira", "confianca"]) {
       assert.ok(dag.schema.includes(campo), `schema deve exigir '${campo}'`);
     }
+    assert.ok(dag.schemaEstrutural.gaps?.presente, "gaps exigido via schemaEstrutural (presente, pode ser vazio)");
   });
 
   it("o briefing gerado contém o conteúdo do CORE-DAG v4.0 (não o fallback curto)", () => {

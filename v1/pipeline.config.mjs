@@ -65,11 +65,13 @@ function resolverEnum(regra, etapa) {
 function validarForma(valor, forma, etapa, caminho, erros) {
   const ausente = valor === undefined || valor === null;
   if (ausente) {
-    if (forma.obrigatorio) erros.push(`${caminho}: campo obrigatório ausente`);
+    // `obrigatorio` (não-vazio) OU `presente` (a chave deve existir, mas pode ser lista vazia):
+    // ambos reprovam ausência. `presente` serve para "registre que não há, em vez de omitir" (A4).
+    if (forma.obrigatorio || forma.presente) erros.push(`${caminho}: campo obrigatório ausente`);
     return; // opcional ausente: ok
   }
   // Lista/objeto obrigatório porém VAZIO escapa se só checarmos null/undefined — fechar a assimetria
-  // topo↔aninhado (o topo já barra vazio via valorVazio; aqui replicamos para qualquer nível).
+  // topo↔aninhado. `presente` (sem `obrigatorio`) permite vazio: registrar [] ≠ omitir.
   if (forma.obrigatorio && valorVazio(valor)) {
     erros.push(`${caminho}: obrigatório porém vazio`);
     return;
@@ -113,6 +115,14 @@ function validarEstrutura(output, schemaEstrutural, etapa) {
   const erros = [];
   for (const [campo, forma] of Object.entries(schemaEstrutural)) {
     const v = output?.[campo];
+    const ausenteNoTopo = v === undefined || v === null;
+    // `presente`: a chave deve EXISTIR, mas pode ser lista vazia (registrar [] ≠ omitir). Então só
+    // reprova se ausente; se presente-mas-vazia, segue para validarForma (que aceita lista vazia).
+    if (forma.presente) {
+      if (ausenteNoTopo) { erros.push(`${campo}: campo obrigatório ausente`); continue; }
+      validarForma(v, forma, etapa, campo, erros);
+      continue;
+    }
     if (valorVazio(v)) {
       if (!forma.opcionalNoTopo) erros.push(`${campo}: ausente ou vazio`);
       continue; // campo opcional de topo ausente (ex.: ciclos, A5 provisória): ok
@@ -181,7 +191,9 @@ export const PIPELINE = [
     // Estado curado (peça 7): quais campos do estado entram no briefing DESTA etapa (R5 do CORE —
     // injetar só o necessário). Dado por etapa; etapas sem isto usam o default do motor.
     estadoCurado: ["entry_point", "description", "project_root", "next_stage", "concluidas"],
-    schema: ["nos", "arestas", "blast_radius", "fronteira", "gaps", "confianca"],
+    // 'gaps' NÃO entra na checagem de presença de topo (camposPresentes reprova []): zero gaps é
+    // válido. A seção é exigida via `presente: true` no schemaEstrutural (existe, mas pode ser vazia).
+    schema: ["nos", "arestas", "blast_radius", "fronteira", "confianca"],
     // Schema ESTRUTURAL (dado único, peças 4+5): descreve a forma de cada campo. O enum de confiança
     // é uma FUNÇÃO que lê o executor da etapa — fonte única (o mesmo enum do briefing valida o output).
     // Forma COMPLETA do output (profundidade-3, recursiva). Fonte única: valida E gera a Seção 4 do
@@ -192,7 +204,7 @@ export const PIPELINE = [
         tipo: { obrigatorio: true },
         path: { obrigatorio: true },
         shape: { obrigatorio: true },
-        hub: { enum: ["sim", "não"] },
+        hub: { obrigatorio: true, enum: ["sim", "não"] },
         confianca: { obrigatorio: true, enum: (e) => e.executor?.confianca_enum ?? [] },
       } },
       arestas: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
@@ -210,17 +222,21 @@ export const PIPELINE = [
       fronteira: { tipo: "objeto", campos: {
         nos_folha: { obrigatorio: true, tipo: "lista-de-strings" },
         saidas_1hop: { obrigatorio: true, tipo: "lista-de-strings" },
-        expansoes: { tipo: "lista-de-objetos", itemCampos: {
+        // `presente`: a chave DEVE existir (A4 — "registre, nunca silencie"), mas pode ser lista
+        // vazia (registrar explicitamente que não houve expansão ≠ omitir).
+        expansoes: { presente: true, tipo: "lista-de-objetos", itemCampos: {
           vizinho: { obrigatorio: true },
           motivo: { obrigatorio: true, enum: ["hub", "pass-through", "contrato"] },
         } },
-        candidatos_transitivos: { tipo: "lista-de-strings" },
+        candidatos_transitivos: { presente: true, tipo: "lista-de-strings" },
       } },
       ciclos: { opcionalNoTopo: true, tipo: "lista-de-objetos", itemCampos: {
         nos: { obrigatorio: true, tipo: "lista-de-strings" },
         relacao: { obrigatorio: true },
       } },
-      gaps: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+      // `presente` (não `minItens`): a seção gaps deve existir, mas ZERO gaps é resultado válido —
+      // C1 é um FILTRO (pode resultar em nenhum), não uma cota. Forçar inventar gap contraria o CORE.
+      gaps: { presente: true, tipo: "lista-de-objetos", itemCampos: {
         id: { obrigatorio: true },
         prioridade: { obrigatorio: true, enum: ["P0", "P1", "P2"] },
         acao: { obrigatorio: true },

@@ -176,3 +176,22 @@ absorver o caso comum ("campo obrigatório quando outro campo == valor") — que
 evidência da etapa 2 realmente é (obrigatoriedade condicional).
 **Próximo passo:** avaliar ao destilar a etapa 7 (Gate A) — quando o 2º caso de regra custom aparecer,
 implementar o `regrasExtras`. Até lá, o `aceita` custom por etapa serve.
+
+---
+
+## A013 — Paridade CORE↔porteiro na etapa 1: 4 buracos achados e FECHADOS
+
+**Status:** ✅ RESOLVIDA em 2026-06-28. Achada ao revisitar a etapa 1 com a lente nascida na etapa 2
+("paridade CORE↔porteiro" — todo campo prometido é exigido?). O operador perguntou se os erros da
+etapa 2 teriam diminuído a qualidade da etapa 1 — não houve regressão (mudança no motor foi 4 linhas
+aditivas), MAS a lente nova expôs 4 buracos que já existiam na etapa 1 (mesmo tipo F3 da etapa 2):
+- `nos.hub` era opcional (tem enum sim/não) → agora `obrigatorio`.
+- `fronteira.expansoes` e `candidatos_transitivos` eram omitíveis, mas o CORE (A4) diz "nunca um
+  silêncio" → agora `presente: true` (a chave deve existir; `[]` é válido = "registrei que não há").
+- `gaps` exigia ≥1 (`minItens`), mas C1 é filtro e zero gaps é resultado válido → agora `presente`
+  sem minItens (gaps:[] passa; ausente reprova).
+**Validação:** TDD (5 testes novos de paridade) + verificador cego confirmou as 4 fechadas, paridade
+bidirecional, sem nova divergência. Suíte 56/56. Novo flag genérico `presente` no validador (chave
+obrigatória mas vazio OK) — reusável pelas etapas 2–13.
+**Lição:** revisitar etapas antigas com lentes novas acha dívida real. A regra entrou no método
+(METODOLOGIA Fase 3, as 3 checagens). Vale reaplicar a lente de paridade a cada etapa nova destilada.

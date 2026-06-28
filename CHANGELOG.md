@@ -5,6 +5,19 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Etapa 1 reauditada com a lente da etapa 2 — 4 buracos de paridade fechados (2026-06-28)
+- **Pergunta do operador:** os erros achados na etapa 2 baixaram a qualidade da etapa 1? **Resposta:**
+  não houve regressão (a etapa 2 mudou o motor em 4 linhas aditivas; suíte sempre verde). MAS aplicar a
+  lente nova (paridade CORE↔porteiro) à etapa 1 expôs **4 buracos do mesmo tipo (F3)** que já existiam:
+  - `nos.hub` opcional → `obrigatorio` (tem enum sim/não).
+  - `fronteira.expansoes`/`candidatos_transitivos` omitíveis → `presente: true` (o CORE/A4 diz "nunca um
+    silêncio": a chave deve existir; `[]` é válido = registrar que não há).
+  - `gaps` exigia ≥1 → `presente` sem minItens: zero gaps é resultado VÁLIDO (C1 é filtro, não cota).
+- **Novo flag genérico `presente`** no validador (chave obrigatória, vazio OK) — reusável pelas etapas 2–13.
+- **Validação:** TDD (5 testes de paridade) + verificador cego confirmou as 4 fechadas, paridade
+  bidirecional, zero novo problema. CORE-DAG atualizado (executor sabe que `[]` é válido). Suíte **56/56**.
+- Registrado em ABERTO A013. **Lição:** revisitar etapas antigas com lentes novas acha dívida real.
+
 ### Refino do workflow — lições da etapa 2 (2026-06-28)
 Destila o "core" do que a etapa 2 ensinou para o método (sem novos arquivos — refina os existentes):
 - **`METODOLOGIA-CORE.md`:** Fase 3 ganhou a regra "ao-vivo passou ≠ pronto" (teste de campo valida o
