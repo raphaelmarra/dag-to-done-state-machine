@@ -175,6 +175,12 @@ export const PIPELINE = [
     },
     core: "[fallback] Construa o DAG de dependências de consumo do entry_point. Ver cores/CORE-DAG.md.",
     corePath: "cores/CORE-DAG.md",
+    // Pré-condições (peça 6): campos do estado que DEVEM existir para a etapa rodar. O motor verifica
+    // antes de gerar o briefing; se faltar, bloqueia (early-exit). Dado, não prosa no CORE.
+    precondicoes: ["entry_point", "project_root"],
+    // Estado curado (peça 7): quais campos do estado entram no briefing DESTA etapa (R5 do CORE —
+    // injetar só o necessário). Dado por etapa; etapas sem isto usam o default do motor.
+    estadoCurado: ["entry_point", "description", "project_root", "next_stage", "concluidas"],
     schema: ["nos", "arestas", "blast_radius", "fronteira", "gaps", "confianca"],
     // Schema ESTRUTURAL (dado único, peças 4+5): descreve a forma de cada campo. O enum de confiança
     // é uma FUNÇÃO que lê o executor da etapa — fonte única (o mesmo enum do briefing valida o output).

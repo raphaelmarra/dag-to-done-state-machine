@@ -5,6 +5,19 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### 🏁 ETAPA 1 (DAG) COMPLETA — piloto do sistema de plano de etapa (2026-06-28)
+- **Peça 6 — bloqueio no motor:** etapa declara `precondicoes`; o motor verifica em `cmdNext` e
+  bloqueia antes de gerar o briefing se faltar `entry_point`/`project_root`. (Antes só o CORE descrevia.)
+- **Peça 7 — estado curado por etapa (a arriscada):** `montarBriefing` usa `etapa.estadoCurado` com
+  default que preserva as 13 etapas. Zero regressão de fluxo (e2e verde).
+- **Peça 8 — confirmação:** testes travam profundidade dinâmica/gaps/handoff contra regressão.
+- **Marco:** todas as 8 peças aplicáveis da etapa 1 ✅. Executor, enum, schema e estado curado são
+  dados consultáveis; o porteiro valida estrutura; o motor bloqueia pré-condição; o schema gera o
+  contrato (fonte única). Suíte v1 **40/40**.
+- **O piloto provou o sistema** (PLANO-DE-ETAPA + anti-viés saturado). Em 8 peças, os verificadores
+  cegos acharam e fizeram corrigir bugs reais que o autor não viu: armadilha de regex, enum hardcoded
+  na Seção 4, descompasso de acento (quebraria toda execução), obrigatório-vazio aninhado.
+
 ### Etapa 1, Peças 4+5 COMPLETAS — schema recursivo que gera o contrato (2026-06-28)
 - **Schema estrutural RECURSIVO** (`validarForma` chama a si mesma) — valida profundidade-3
   (`fronteira.expansoes`, `ciclos`), tipos (`lista-de-strings`), obrigatoriedade em qualquer nível.

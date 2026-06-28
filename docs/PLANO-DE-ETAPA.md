@@ -107,9 +107,9 @@ CORE↔motor↔teste**, não só presença de campos no schema. (Corrige o viés
 | 3 | **Grau de certeza (2)** — enum derivado do executor, injetado em TODO o CORE (Seções 1 E 4 — fonte única) | ✅ **PRONTA** | M | ✅ | peça 2 |
 | 4 | **Schema como DADO ÚNICO (6)** — objeto fonte-de-verdade RECURSIVO que **gera a Seção 4 do CORE** (sem duplicação) | ✅ **PRONTA** | F | ✅ | peças 2,3 |
 | 5 | **Critério de aceitação estrutural (7)** — valida estrutura aninhada profundidade-3 (nós/arestas/fronteira/ciclos), tipos, enums | ✅ **PRONTA** | F | ✅ | peça 4 (fundida) |
-| 6 | **Bloqueio / early-exit no motor (10)** — pré-condição (entry_point/project_root) implementada no motor | só no CORE | M | ⬜ | — |
-| 7 | **Estado curado por etapa (3)** — `montarBriefing(estado, etapa)` usa `etapa.estadoCurado`. **Mudança de MOTOR, blast radius nas 13 etapas** (F7) | hardcoded no motor | M-alto | ⬜ | peça 1 |
-| 8 | **Confirmar peças dinâmicas (5,8,9)** — profundidade/gaps/handoff já no CORE; verificar que o motor não as quebra | ok no CORE | T | ⬜ | peça 1 |
+| 6 | **Bloqueio / early-exit no motor (10)** — etapa declara `precondicoes`; o motor bloqueia `next` antes do briefing | ✅ **PRONTA** | M | ✅ | — |
+| 7 | **Estado curado por etapa (3)** — `montarBriefing` usa `etapa.estadoCurado` (default preserva as 13 etapas) | ✅ **PRONTA** | M-alto | ✅ | peça 1 |
+| 8 | **Confirmar peças dinâmicas (5,8,9)** — profundidade/gaps/handoff travados por teste contra regressão | ✅ **PRONTA** | T | ✅ | peça 1 |
 
 **Notas de dependência (verificadas, não racionalizadas — corrige F2):**
 - **2→3:** o enum (3) *espelha* o executor; logo o executor-como-dado (2) vem antes. (Era o inverso no plano original.)
@@ -220,4 +220,36 @@ cega. Aí o sistema está provado e replicamos para a etapa 2.
     semânticas em bloco manual) → registrado em **ABERTO A011** (não bloqueante).
 - **DoD:** ✅ dinâmica (schema dado, gera e valida) · ✅ evidência (TDD; 29/29) · ✅ teste (cobre
   profundidade-3, tipos, opcional, vazio aninhado) · ✅ anti-viés (3+3 verificadores em 2 rodadas) · ✅ governança (A011).
-- **Commits:** 07525c7 (parcial) + (próximo, final).
+- **Commits:** 07525c7 (parcial) + 2ecc7a5 (final).
+
+### ✅ Peças 6, 7, 8 — bloqueio + estado curado + confirmação (2026-06-28) — ETAPA 1 COMPLETA
+- **Peça 6 (bloqueio no motor):** a etapa declara `precondicoes: ["entry_point","project_root"]`; o
+  motor verifica em `cmdNext` e bloqueia ANTES de gerar o briefing se faltar. Implementa no motor o
+  que o CORE só descrevia. Dinâmico (etapa declara, motor verifica).
+- **Peça 7 (estado curado por etapa) — a arriscada:** `montarBriefing` usa `etapa.estadoCurado` se
+  declarado, senão `ESTADO_CURADO_DEFAULT`. **Zero regressão de fluxo nas 13 etapas** (e2e verde).
+- **Peça 8 (confirmar):** testes travam profundidade dinâmica (A4), gaps direcionais (C1) e handoff
+  contra regressão. Sem mudança de código.
+- **Anti-viés (2 verificadores):** code-reviewer (com-ressalvas) + auditor-v2 (conforme). Ressalvas
+  aplicadas: teste do `estadoCurado` DIVERGENTE do default (o caminho central da peça 7, antes sem
+  cobertura); teste de bloqueio sem-precondicoes; CORE atualizado (o motor bloqueia, não o gerador).
+  Cosméticos aceitos e documentados (rótulo `concluidas`; `(vazio)` inalcançável em estado válido).
+- Suíte v1 **40/40**.
+
+---
+
+## 🏁 MARCO: ETAPA 1 (DAG) COMPLETA — 2026-06-28
+
+Todas as 8 peças aplicáveis ✅ pela Definition of Done. A etapa 1 deixou de depender de hardcode que
+viola M1: executor, enum de confiança, schema e estado curado são **dados consultáveis**; o critério
+de aceitação **valida estrutura** (não só presença); o motor **bloqueia pré-condição**; e o schema
+**gera o contrato** (fonte única). Cada peça passou por verificadores cegos saturados que acharam —
+e fizeram corrigir — bugs reais que o autor não viu sozinho (regex, enum na Seção 4, descompasso de
+acento, obrigatório-vazio aninhado). Suíte 40/40.
+
+**O piloto provou o sistema.** Próximo: replicar a rotina (PLANO-DE-ETAPA) para a etapa 2 (Descoberta
+da API) — reusando a metodologia, o gerador de prosa e o validador, agora que existem.
+
+**Dívidas registradas (não bloqueiam):** A010 (condensação de ciclo, provisória), A011 (descrições
+semânticas — fonte única de forma, não de significado), e a dívida externa de enum hardcoded fora da
+etapa 1 (docs/CORE.md, benchmarks, MVP).

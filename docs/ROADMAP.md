@@ -59,7 +59,7 @@ Uma etapa é considerada "CORE pronto" quando:
 
 | # | Etapa | Agente | CORE | Status |
 |---|-------|--------|------|--------|
-| 1 | DAG | Explore* | `CORE-DAG.md` v4.0 | ✅ cristalizado (ADR 0020/0021/0022); A5 condensação provisória (A010) |
+| 1 | DAG | Explore* | `CORE-DAG.md` v4.0 | ✅ CORE cristalizado + **etapa completa no v1** (8/8 peças, plugada no motor, 40/40 testes) |
 | 2 | Descoberta da API | fiscal | — | ⬜ não iniciado |
 | 3 | GAP | error-detective | — | ⬜ não iniciado |
 | 4 | Design | ui-ux-designer | — | ⬜ não iniciado |

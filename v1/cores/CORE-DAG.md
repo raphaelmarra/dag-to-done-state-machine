@@ -257,16 +257,14 @@ censura o fato — obriga a expressá-lo na direção de quem consome o DAG.
 |-------|-----|
 | `entry_point` | intent OU domínio — define largura (D1), vai no OBJETIVO/ESCOPO |
 | `description` | deriva as superfícies relevantes e os vizinhos de saída (D2) |
-| `next_stage` | quem consome o DAG — calibra o teste de gap (D3) |
+| `next_stage` | quem consome o DAG — calibra o teste de gap (D3); o motor o resolve do pipeline |
 | `project_root` | caminho do projeto para o executor ler |
+| `concluidas` | etapas já concluídas (contexto) |
 
-`entry_point` ou `project_root` ausentes → emita bloqueio antes do briefing (gap de pré-condição):
-
-```
-## ⚠️ BLOQUEIO
-Gap de pré-condição: [campo ausente]
-Ação: [quem fornece]
-```
+**Pré-condições (`entry_point`, `project_root`):** o **MOTOR** as verifica e bloqueia ANTES de gerar
+o briefing (declaradas em `precondicoes` na config da etapa). Se faltarem, o gerador nem é acionado —
+não há briefing a emitir. Esta nota é informativa para quem configura o pipeline, não uma instrução
+de runtime para o gerador.
 
 ---
 

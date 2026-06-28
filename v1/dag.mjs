@@ -208,8 +208,22 @@ function contextoDeSubstituicao(estado, etapa) {
   return ctx;
 }
 
+// Campos default do estado curado quando a etapa não declara `estadoCurado` (preserva o comportamento
+// histórico — nenhuma das 12 outras etapas regride).
+const ESTADO_CURADO_DEFAULT = ["entry_point", "description", "project_root", "next_stage", "concluidas"];
+
+// Formata um campo do estado curado para a linha do briefing (trata lista e vazio).
+function linhaEstadoCurado(estado, campo) {
+  const v = estado[campo];
+  if (campo === "concluidas") {
+    return `- concluidas: ${Array.isArray(v) && v.length ? v.join(", ") : "(nenhuma)"}`;
+  }
+  return `- ${campo}: ${v === undefined || v === null || v === "" ? "(vazio)" : v}`;
+}
+
 function montarBriefing(estado, etapa) {
-  // Estado curado: só os campos que a etapa precisa (R5 do CORE). No MVP, os essenciais.
+  // Estado curado POR ETAPA (peça 7): a etapa declara `estadoCurado`; senão usa o default.
+  const camposCurados = etapa.estadoCurado ?? ESTADO_CURADO_DEFAULT;
   const coreResolvido = substituirPlaceholders(resolverCore(etapa), contextoDeSubstituicao(estado, etapa));
   return [
     `# Briefing — Etapa: ${etapa.nome}`,
@@ -218,11 +232,7 @@ function montarBriefing(estado, etapa) {
     `> Gerado por: dag.mjs next`,
     ``,
     `## Estado curado da instância`,
-    `- entry_point: ${estado.entry_point}`,
-    `- description: ${estado.description || "(vazio)"}`,
-    `- project_root: ${estado.project_root || "(vazio)"}`,
-    `- next_stage: ${estado.next_stage || "(não definido)"}`,
-    `- etapas concluídas: ${estado.concluidas.length ? estado.concluidas.join(", ") : "(nenhuma)"}`,
+    ...camposCurados.map((campo) => linhaEstadoCurado(estado, campo)),
     ``,
     `## CORE / instrução desta etapa`,
     coreResolvido,
@@ -248,6 +258,20 @@ function cmdNext(feature) {
   const etapa = etapaPorId(estado.etapaAtual);
   if (!etapa) {
     return erro(`estado inconsistente: etapa "${estado.etapaAtual}" não existe no cartucho.`);
+  }
+
+  // PRÉ-CONDIÇÕES (peça 6): early-exit ANTES de gerar o briefing. A etapa declara os campos do estado
+  // que precisa; o motor verifica. Bloqueia (não gera briefing) se algum faltar — implementa no motor
+  // o que o CORE só descrevia.
+  const faltando = (etapa.precondicoes ?? []).filter((campo) => {
+    const v = estado[campo];
+    return v === undefined || v === null || v === "";
+  });
+  if (faltando.length) {
+    return erro(
+      `BLOQUEADO na etapa "${etapa.id}" — pré-condição ausente: ${faltando.join(", ")}.\n` +
+      `   forneça no init (ex.: --root, --entry) e rode 'next' de novo. Briefing não gerado.`
+    );
   }
 
   garantirDir(featureDir(feature));
@@ -387,7 +411,7 @@ function main(argv) {
 }
 
 // Exporta para testes; roda se invocado direto.
-export { main, carregarEstado, salvarEstado, statePath, outputPath, briefingPath, featureDir, estaCompleto, ESTADO_CORROMPIDO, contextoDeSubstituicao, substituirPlaceholders };
+export { main, carregarEstado, salvarEstado, statePath, outputPath, briefingPath, featureDir, estaCompleto, ESTADO_CORROMPIDO, contextoDeSubstituicao, substituirPlaceholders, montarBriefing };
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("dag.mjs")) {
   process.exit(main(process.argv.slice(2)));
