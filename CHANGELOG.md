@@ -5,6 +5,17 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Metodologia do CORE documentada + retrospectiva cética (2026-06-28)
+- **`docs/METODOLOGIA-CORE.md`** (novo) — o pipeline reutilizável para destilar o CORE de qualquer
+  etapa (pesquisa → Fase 0 vereditos → Fase 1 padrão-ouro cego+principal → Fase 2 escrever → Fase 3
+  testar com executor independente → Fase 4 cristalizar). A pesquisa de *forma* (0006–0010) não se
+  repete nas etapas 2–13; só a de *conteúdo* + as fases.
+- **`docs/_RETRO-metodologia-core.md`** (novo) — retrospectiva cética: a metodologia foi exercitada
+  **1x, pelo autor, com testes que o autor escolheu** → NÃO está validada. Registra 4 furos (n=1/réu
+  é juiz; cego não-independente; adversarial fácil demais; "passou" foi julgamento, não critério
+  mecânico) e o critério de promoção a "validada". Evita que o próximo agente herde otimismo.
+- INDEX atualizado (How-to + contagem de ADRs = 22).
+
 ### CORE-DAG v4.0 cristalizado (2026-06-28)
 - **`docs/CORE-DAG.md` → v4.0** (v3.0 arquivado em `CORE-DAG-v3.archive.md`). Evoluído pela rotina
   0→4 (escrever → revisar → testar → cristalizar) contra 2 casos reais (CRM amplo do ravi-console +

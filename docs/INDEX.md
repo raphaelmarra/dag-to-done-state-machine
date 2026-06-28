@@ -29,7 +29,7 @@
   - `0012-analise-de-impacto.md` — change impact analysis, blast radius, slicing. Confronta a fronteira "1 hop" (A4).
   - `0013-modelagem-dependencia-arquitetura.md` — C4, ADP, DDD bounded contexts. Confronta granularidade de nó e fronteira.
   - `0014-ferramentas-reais-dag.md` — Airflow/Nx/Bazel/madge: como tratam ciclo e impacto. O que imitar no CORE-DAG.
-- [`adr/`](adr/) — 19 ADRs (decisões de design, formato MADR, imutáveis). Índice em DECISOES.md.
+- [`adr/`](adr/) — 22 ADRs (decisões de design, formato MADR, imutáveis). Índice em DECISOES.md.
 
 ## Decision log (cronológico — o que foi decidido/aberto/descartado)
 - [`DECISOES.md`](DECISOES.md) — índice dos ADRs (decisões aceitas).
@@ -37,6 +37,8 @@
 - [`DESCARTADO.md`](DESCARTADO.md) — o que foi considerado e descartado, com motivo.
 
 ## How-to (como fazer)
+- [`METODOLOGIA-CORE.md`](METODOLOGIA-CORE.md) — **o pipeline para destilar o CORE de uma etapa** (da pesquisa ao refinamento, 5 fases). Reutilizável para as etapas 2–13. Validou-se obtendo o CORE-DAG v4.0.
+- [`_RETRO-metodologia-core.md`](_RETRO-metodologia-core.md) — retrospectiva cética: os 4 furos da metodologia (n=1, cego não-independente, adversarial fácil, juiz = autor). Leia antes de confiar.
 - Skill global `manter-governanca` (`~/.claude/skills/`) — como manter toda esta estrutura viva.
 
 ## Histórico / processo
