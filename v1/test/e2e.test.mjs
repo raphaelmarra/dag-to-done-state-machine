@@ -10,26 +10,27 @@ import { PIPELINE, PRIMEIRA_ETAPA } from "../pipeline.config.mjs";
 
 const FEATURE = "e2e-test";
 
-// Gera um valor de campo que satisfaz uma forma do schemaEstrutural (peças 4+5).
+// Gera um valor que satisfaz uma forma do schemaEstrutural — RECURSIVO (espelha o validador).
 function valorParaForma(forma, etapa) {
   if (forma.tipo === "lista-de-objetos") {
     const item = {};
     for (const [campo, regra] of Object.entries(forma.itemCampos || {})) {
-      const enumV = typeof regra.enum === "function" ? regra.enum(etapa) : regra.enum;
-      item[campo] = enumV && enumV.length ? enumV[0] : "x";
+      if (regra.obrigatorio || !regra.tipo) item[campo] = valorParaForma(regra, etapa);
     }
     return [item];
   }
   if (forma.tipo === "objeto") {
     const obj = {};
     for (const [campo, regra] of Object.entries(forma.campos || {})) {
-      const enumV = typeof regra.enum === "function" ? regra.enum(etapa) : regra.enum;
-      obj[campo] = enumV && enumV.length ? enumV[0] : "x";
+      if (regra.obrigatorio) obj[campo] = valorParaForma(regra, etapa);
     }
     if (Object.keys(obj).length === 0) obj.x = 1; // objeto sem campos exigidos: não-vazio
     return obj;
   }
-  return ["item"];
+  if (forma.tipo === "lista-de-strings") return ["s"];
+  // escalar: primeiro valor do enum, ou "x"
+  const enumV = typeof forma.enum === "function" ? forma.enum(etapa) : forma.enum;
+  return enumV && enumV.length ? enumV[0] : "x";
 }
 
 // Gera um output VÁLIDO para uma etapa. Se a etapa tem schemaEstrutural, gera a forma rica a partir

@@ -40,12 +40,12 @@ describe("Peças 2 e 3 — executor como dado + enum derivado", () => {
     }
   });
 
-  it("o enum NÃO está mais hardcoded na Seção 4 do CORE — fonte única (auditoria)", () => {
-    const dag = etapaPorId("dag");
+  it("o schema da Seção 4 é GERADO (placeholder {schema_prosa}), não escrito à mão — fonte única", () => {
     const core = readFileSync(new URL("../cores/CORE-DAG.md", import.meta.url), "utf8");
-    // A Seção 4 deve usar os placeholders, não os valores literais do enum em linha de schema.
-    assert.match(core, /\{confianca_enum\}/, "Seção 4 (Nós) deve usar o placeholder do enum");
-    assert.match(core, /\{confianca_enum_arestas\}/, "Seção 4 (Arestas) deve usar o placeholder do subconjunto");
+    // A Seção 4 não tem mais o schema escrito à mão; usa o placeholder gerado do schemaEstrutural.
+    assert.match(core, /\{schema_prosa\}/, "Seção 4 deve usar o placeholder do schema gerado");
+    // E o enum NÃO aparece hardcoded em linha de schema fixa no CORE (só via injeção).
+    assert.doesNotMatch(core, /- confianca: lido no código \| inferido do código \| não encontrado/, "enum não pode estar hardcoded no schema");
   });
 
   it("etapa SEM executor não injeta placeholders de executor (não regride — code-reviewer)", () => {

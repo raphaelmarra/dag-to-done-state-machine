@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa, nomeEtapa } from "./pipeline.config.mjs";
+import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa, nomeEtapa, gerarSchemaProsa } from "./pipeline.config.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DAG_DIR = join(RAIZ, ".dag");
@@ -200,6 +200,10 @@ function contextoDeSubstituicao(estado, etapa) {
     }
     if (ex.nome) ctx.executor_nome = ex.nome;
     if (ex.capacidade) ctx.executor_capacidade = ex.capacidade;
+  }
+  // Schema em prosa GERADO do schemaEstrutural (fonte única: valida E descreve ao executor).
+  if (etapa.schemaEstrutural) {
+    ctx.schema_prosa = gerarSchemaProsa(etapa.schemaEstrutural, etapa);
   }
   return ctx;
 }

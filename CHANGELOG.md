@@ -5,6 +5,19 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Etapa 1, Peças 4+5 COMPLETAS — schema recursivo que gera o contrato (2026-06-28)
+- **Schema estrutural RECURSIVO** (`validarForma` chama a si mesma) — valida profundidade-3
+  (`fronteira.expansoes`, `ciclos`), tipos (`lista-de-strings`), obrigatoriedade em qualquer nível.
+  O porteiro deixou de ser cego à estrutura interna.
+- **Schema GERA a Seção 4 do CORE** (`gerarSchemaProsa` → placeholder `{schema_prosa}`): a mesma
+  estrutura que valida o output também o descreve ao executor. **Duplicação schema↔prosa eliminada
+  por construção** (antes divergiam em tipos/enums).
+- **2 rodadas de anti-viés saturado (3+3 verificadores):** auditor-v2 confirmou zero divergência
+  nome-a-nome executor↔porteiro; code-reviewer achou 1 bug (obrigatório-vazio escapava no aninhado —
+  corrigido) + filosofia do enum vazio + 4 testes de borda; backend-architect apontou dívida
+  não-bloqueante (fonte única é de forma, não de significado → ABERTO A011).
+- Suíte v1 **29/29**. Etapa 1: peças 1,2,3,4,5 ✅ — faltam 6,7,8.
+
 ### Etapa 1, Peças 2+3 — executor como dado + enum derivado (fonte única) (2026-06-28)
 - **Executor vira DADO consultável:** a etapa dag ganhou `executor: {nome, capacidade, confianca_enum,
   confianca_enum_arestas}` em `v1/pipeline.config.mjs`. O enum de confiança deixa de ser prosa fixa.

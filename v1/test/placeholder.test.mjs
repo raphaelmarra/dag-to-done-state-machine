@@ -57,12 +57,12 @@ describe("Peça 1 — substituição de placeholders no briefing (F1)", () => {
     // Estado inicial: etapa dag, next_stage = descoberta. Após avançar (com output válido), a nova
     // etapa atual é 'descoberta' e next_stage deve apontar para a etapa seguinte a ela ('gap').
     const out = {
-      nos: [{ nome: "X", tipo: "f", path: "a.ts", confianca: "lido no código" }],
-      arestas: [{ consumidor: "X", provedor: "Y", confianca: "lido no código" }],
-      blast_radius: [{ no: "Y", amplitude: "MÉDIA" }],
-      fronteira: { nos_folha: ["Y"] },
-      gaps: [{ id: "G1", prioridade: "P0" }],
-      confianca: { lido: 1 },
+      nos: [{ nome: "X", tipo: "f", path: "a.ts", shape: "s", confianca: "lido no código" }],
+      arestas: [{ consumidor: "X", provedor: "Y", tipo: "consome", custo_reverso: "n/a", confianca: "lido no código" }],
+      blast_radius: [{ no: "Y", consumido_por: ["X"], amplitude: "MÉDIA" }],
+      fronteira: { nos_folha: ["Y"], saidas_1hop: ["Z"] },
+      gaps: [{ id: "G1", prioridade: "P0", acao: "a" }],
+      confianca: { lido: 1, inferido: 0, nao_encontrado: 0 },
     };
     writeFileSync(outputPath(FEATURE, "dag"), JSON.stringify(out), "utf8");
     assert.equal(main(["advance", FEATURE]), 0, "advance da dag deve aprovar");

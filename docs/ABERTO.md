@@ -137,3 +137,20 @@ e o lint costuma barrá-los).
 **Próximo passo:** promover a regra (de provisória a cristalizada, vira ADR) quando aparecer um
 ciclo de consumo genuíno num caso real e o CORE o fizer declarar o super-nó corretamente. Até lá,
 fica no CORE como provisória. Evidência sintética: ver _WIP-core-dag-v4.md, Fase 3, Teste 3.
+
+---
+
+## A011 — Descrições semânticas dos campos: fonte única incompleta (schema gera forma, não significado)
+
+**Status:** dívida registrada (não bloqueante) — apontada pela revisão cega das peças 4+5.
+**Questão:** O `schemaEstrutural` (v1) virou fonte única da FORMA do output (tipos, enums, obrigatoriedade)
+e GERA a prosa do contrato (Seção 4 do CORE). Mas o SIGNIFICADO de cada campo (ex.: "shape = contrato
+observável, não a implementação"; "blast_radius = vista reversa, A3") ficou num bloco de prosa MANUAL
+no CORE-DAG, acima do bloco gerado. Esse bloco repete os nomes/ordem dos campos do schema sem teste de
+sincronia — então pode divergir (se renomear um campo no schema, a descrição manual fica órfã).
+**Impacto:** Baixo — as descrições mudam raramente, e a auditoria confirmou que hoje estão corretas e
+preservadas. Mas é a mesma classe de divergência que a refatoração combateu, num eixo menos visível.
+**Direção:** o schema carregar um campo `desc` por campo/itemCampo, e `gerarSchemaProsa` emiti-lo
+(`nome: tipo — desc`), colapsando os dois blocos num só gerado. Fecha a fonte única de verdade.
+**Próximo passo:** avaliar ao destilar a etapa 2 (quando o gerador de prosa for reusado) — se a dívida
+morder, implementar o `desc`; senão, manter o bloco manual com um teste de sincronia nomes-schema↔prosa.

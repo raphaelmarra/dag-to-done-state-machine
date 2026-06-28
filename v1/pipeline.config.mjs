@@ -55,45 +55,106 @@ function resolverEnum(regra, etapa) {
   return regra.enum;
 }
 
-function validarCampoDeItem(valorItem, regra, etapa, caminho, erros) {
-  if (regra.obrigatorio && (valorItem === undefined || valorItem === null)) {
-    erros.push(`${caminho}: campo obrigatório ausente`);
+// Valida UM valor contra UMA forma — RECURSIVO (resolve a profundidade-3+ do CORE: um campo pode ser
+// ele próprio uma lista-de-objetos/objeto). Cobre tipo, vazio e enum em qualquer nível (corrige o gap
+// "campo de item só checava presença"). `forma` aceita:
+//   { tipo: "lista-de-objetos", itemCampos: {campo: forma}, minItens? }
+//   { tipo: "objeto", campos: {campo: forma} }
+//   { tipo: "escalar"?, enum?: [..]|(etapa)=>[..] }   (escalar é o default quando não há 'tipo')
+//   qualquer forma pode ter { obrigatorio: bool } quando aninhada como campo.
+function validarForma(valor, forma, etapa, caminho, erros) {
+  const ausente = valor === undefined || valor === null;
+  if (ausente) {
+    if (forma.obrigatorio) erros.push(`${caminho}: campo obrigatório ausente`);
+    return; // opcional ausente: ok
+  }
+  // Lista/objeto obrigatório porém VAZIO escapa se só checarmos null/undefined — fechar a assimetria
+  // topo↔aninhado (o topo já barra vazio via valorVazio; aqui replicamos para qualquer nível).
+  if (forma.obrigatorio && valorVazio(valor)) {
+    erros.push(`${caminho}: obrigatório porém vazio`);
     return;
   }
-  if (valorItem === undefined || valorItem === null) return; // opcional ausente: ok
-  const enumValido = regra.enum ? resolverEnum(regra, etapa) : null;
-  if (enumValido && !enumValido.includes(valorItem)) {
-    erros.push(`${caminho}: valor "${valorItem}" fora do enum [${enumValido.join(", ")}]`);
+
+  if (forma.tipo === "lista-de-objetos") {
+    if (!Array.isArray(valor)) { erros.push(`${caminho}: deveria ser uma lista`); return; }
+    if (forma.minItens && valor.length < forma.minItens) erros.push(`${caminho}: mínimo ${forma.minItens} item(ns)`);
+    valor.forEach((item, i) => {
+      if (typeof item !== "object" || item === null || Array.isArray(item)) {
+        erros.push(`${caminho}[${i}]: deveria ser um objeto (recebido: ${Array.isArray(item) ? "lista" : typeof item})`);
+        return;
+      }
+      for (const [ic, regra] of Object.entries(forma.itemCampos || {})) {
+        validarForma(item[ic], regra, etapa, `${caminho}[${i}].${ic}`, erros);
+      }
+    });
+  } else if (forma.tipo === "objeto") {
+    if (typeof valor !== "object" || Array.isArray(valor)) { erros.push(`${caminho}: deveria ser um objeto`); return; }
+    for (const [ic, regra] of Object.entries(forma.campos || {})) {
+      validarForma(valor[ic], regra, etapa, `${caminho}.${ic}`, erros);
+    }
+  } else if (forma.tipo === "lista-de-strings") {
+    if (!Array.isArray(valor)) { erros.push(`${caminho}: deveria ser uma lista`); return; }
+    valor.forEach((s, i) => {
+      if (typeof s !== "string") erros.push(`${caminho}[${i}]: deveria ser string (recebido: ${typeof s})`);
+    });
+  } else {
+    // escalar: valida enum se houver E não estiver vazio. Enum vazio (ex.: executor ausente) =
+    // SEM restrição (não reprova tudo silenciosamente — fail-open, coerente com "lacuna visível").
+    const enumValido = forma.enum ? resolverEnum(forma, etapa) : null;
+    if (enumValido && enumValido.length > 0 && !enumValido.includes(valor)) {
+      erros.push(`${caminho}: valor "${valor}" fora do enum [${enumValido.join(", ")}]`);
+    }
   }
 }
 
-// Valida `output` contra `schemaEstrutural`. Retorna {ok, faltando} (contrato do motor).
+// Valida `output` (um objeto) contra `schemaEstrutural` (mapa campo→forma). Cada campo de topo é
+// tratado como obrigatório e não-vazio. Retorna {ok, faltando} (contrato do motor).
 function validarEstrutura(output, schemaEstrutural, etapa) {
   const erros = [];
   for (const [campo, forma] of Object.entries(schemaEstrutural)) {
     const v = output?.[campo];
-    if (valorVazio(v)) { erros.push(`${campo}: ausente ou vazio`); continue; }
-
-    if (forma.tipo === "lista-de-objetos") {
-      if (!Array.isArray(v)) { erros.push(`${campo}: deveria ser uma lista`); continue; }
-      if (forma.minItens && v.length < forma.minItens) erros.push(`${campo}: mínimo ${forma.minItens} item(ns)`);
-      v.forEach((item, i) => {
-        if (typeof item !== "object" || item === null || Array.isArray(item)) {
-          erros.push(`${campo}[${i}]: deveria ser um objeto (recebido: ${Array.isArray(item) ? "lista" : typeof item})`);
-          return;
-        }
-        for (const [ic, regra] of Object.entries(forma.itemCampos || {})) {
-          validarCampoDeItem(item[ic], regra, etapa, `${campo}[${i}].${ic}`, erros);
-        }
-      });
-    } else if (forma.tipo === "objeto") {
-      if (typeof v !== "object" || Array.isArray(v)) { erros.push(`${campo}: deveria ser um objeto`); continue; }
-      for (const [ic, regra] of Object.entries(forma.campos || {})) {
-        validarCampoDeItem(v[ic], regra, etapa, `${campo}.${ic}`, erros);
-      }
+    if (valorVazio(v)) {
+      if (!forma.opcionalNoTopo) erros.push(`${campo}: ausente ou vazio`);
+      continue; // campo opcional de topo ausente (ex.: ciclos, A5 provisória): ok
     }
+    validarForma(v, forma, etapa, campo, erros);
   }
   return { ok: erros.length === 0, faltando: erros };
+}
+
+// Gera a PROSA do schema (o "## Nós / - tipo: ..." da Seção 4 do CORE) a partir do schemaEstrutural —
+// fonte única: a mesma estrutura que valida também descreve o contrato ao executor. Elimina a
+// duplicação schema(código)↔Seção 4(prosa) que já tinha divergido. Enums resolvidos do contexto.
+function descreverForma(forma, etapa) {
+  if (forma.tipo === "lista-de-objetos") return "lista de objetos";
+  if (forma.tipo === "lista-de-strings") return "lista de strings";
+  if (forma.tipo === "objeto") return "objeto";
+  if (forma.enum) return resolverEnum(forma, etapa).map((v) => `\`${v}\``).join(" | ");
+  return "texto";
+}
+function camposDeProsa(itemCampos, etapa, indent) {
+  return Object.entries(itemCampos || {})
+    .map(([nome, regra]) => {
+      const opc = regra.obrigatorio ? "" : " (opcional)";
+      let linha = `${indent}- ${nome}${opc}: ${descreverForma(regra, etapa)}`;
+      // recursa em qualquer profundidade (espelha validarForma)
+      if (regra.tipo === "lista-de-objetos" && regra.itemCampos) {
+        linha += "\n" + camposDeProsa(regra.itemCampos, etapa, indent + "    ");
+      } else if (regra.tipo === "objeto" && regra.campos) {
+        linha += "\n" + camposDeProsa(regra.campos, etapa, indent + "    ");
+      }
+      return linha;
+    })
+    .join("\n");
+}
+function gerarSchemaProsa(schemaEstrutural, etapa) {
+  return Object.entries(schemaEstrutural)
+    .map(([campo, forma]) => {
+      const campos = forma.itemCampos || forma.campos;
+      const cab = `## ${campo}${forma.opcionalNoTopo ? " (opcional)" : ""} — ${descreverForma(forma, etapa)}`;
+      return campos ? `${cab}\n${camposDeProsa(campos, etapa, "")}` : cab;
+    })
+    .join("\n\n");
 }
 
 export const PIPELINE = [
@@ -117,28 +178,52 @@ export const PIPELINE = [
     schema: ["nos", "arestas", "blast_radius", "fronteira", "gaps", "confianca"],
     // Schema ESTRUTURAL (dado único, peças 4+5): descreve a forma de cada campo. O enum de confiança
     // é uma FUNÇÃO que lê o executor da etapa — fonte única (o mesmo enum do briefing valida o output).
+    // Forma COMPLETA do output (profundidade-3, recursiva). Fonte única: valida E gera a Seção 4 do
+    // CORE (ver gerarSchemaProsa). Enums de confiança vêm do executor (mesma fonte do briefing).
     schemaEstrutural: {
       nos: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         nome: { obrigatorio: true },
         tipo: { obrigatorio: true },
         path: { obrigatorio: true },
+        shape: { obrigatorio: true },
+        hub: { enum: ["sim", "não"] },
         confianca: { obrigatorio: true, enum: (e) => e.executor?.confianca_enum ?? [] },
       } },
       arestas: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         consumidor: { obrigatorio: true },
         provedor: { obrigatorio: true },
+        tipo: { obrigatorio: true, enum: ["consome", "depende"] },
+        custo_reverso: { obrigatorio: true, enum: ["🟢 cheap", "🟡 indireto", "🔴 scan", "a-confirmar", "n/a"] },
         confianca: { obrigatorio: true, enum: (e) => e.executor?.confianca_enum_arestas ?? [] },
       } },
       blast_radius: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         no: { obrigatorio: true },
+        consumido_por: { obrigatorio: true, tipo: "lista-de-strings" },
         amplitude: { obrigatorio: true, enum: ["BAIXA", "MÉDIA", "ALTA", "CRÍTICA"] },
       } },
-      fronteira: { tipo: "objeto", campos: { nos_folha: { obrigatorio: true } } },
+      fronteira: { tipo: "objeto", campos: {
+        nos_folha: { obrigatorio: true, tipo: "lista-de-strings" },
+        saidas_1hop: { obrigatorio: true, tipo: "lista-de-strings" },
+        expansoes: { tipo: "lista-de-objetos", itemCampos: {
+          vizinho: { obrigatorio: true },
+          motivo: { obrigatorio: true, enum: ["hub", "pass-through", "contrato"] },
+        } },
+        candidatos_transitivos: { tipo: "lista-de-strings" },
+      } },
+      ciclos: { opcionalNoTopo: true, tipo: "lista-de-objetos", itemCampos: {
+        nos: { obrigatorio: true, tipo: "lista-de-strings" },
+        relacao: { obrigatorio: true },
+      } },
       gaps: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         id: { obrigatorio: true },
         prioridade: { obrigatorio: true, enum: ["P0", "P1", "P2"] },
+        acao: { obrigatorio: true },
       } },
-      confianca: { tipo: "objeto", campos: {} },
+      confianca: { tipo: "objeto", campos: {
+        lido: { obrigatorio: true },
+        inferido: { obrigatorio: true },
+        nao_encontrado: { obrigatorio: true },
+      } },
     },
     aceita(o) {
       const presenca = camposPresentes(o, this.schema);
@@ -269,3 +354,7 @@ export function nomeEtapa(id) {
   const e = etapaPorId(id);
   return e ? `${e.nome} (etapa ${id})` : id;
 }
+
+// Exporta o gerador de prosa do schema (motor injeta {schema_prosa} no briefing) e o validador
+// estrutural (para testes diretos).
+export { gerarSchemaProsa, validarEstrutura };

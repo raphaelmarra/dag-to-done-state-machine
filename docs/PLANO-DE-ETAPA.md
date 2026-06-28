@@ -105,8 +105,8 @@ CORE↔motor↔teste**, não só presença de campos no schema. (Corrige o viés
 | 1 | **Substituição de placeholders no motor (F1)** — `cmdInit`/`cmdAdvance` populam `next_stage` derivado do pipeline; `montarBriefing` substitui `{chave}` do estado, protegendo inline code | ✅ **PRONTA** | M | ✅ | — (motor) |
 | 2 | **Executor como dado consultável (1)** — `executor: {nome, capacidade, confianca_enum}` na config; injetado no briefing | ✅ **PRONTA** | M | ✅ | — |
 | 3 | **Grau de certeza (2)** — enum derivado do executor, injetado em TODO o CORE (Seções 1 E 4 — fonte única) | ✅ **PRONTA** | M | ✅ | peça 2 |
-| 4 | **Schema como DADO ÚNICO (6)** — objeto fonte-de-verdade. **1ª versão feita, mas revisão saturada achou 3 problemas (1 crítico)** — ver log | parcial | F | 🟡 **em progresso** | peças 2,3 |
-| 5 | **Critério de aceitação estrutural (7)** — valida estrutura aninhada. **Funciona p/ profundidade-2; falta recursão + correção de acento** | parcial | F | 🟡 **em progresso** | peça 4 (fundida) |
+| 4 | **Schema como DADO ÚNICO (6)** — objeto fonte-de-verdade RECURSIVO que **gera a Seção 4 do CORE** (sem duplicação) | ✅ **PRONTA** | F | ✅ | peças 2,3 |
+| 5 | **Critério de aceitação estrutural (7)** — valida estrutura aninhada profundidade-3 (nós/arestas/fronteira/ciclos), tipos, enums | ✅ **PRONTA** | F | ✅ | peça 4 (fundida) |
 | 6 | **Bloqueio / early-exit no motor (10)** — pré-condição (entry_point/project_root) implementada no motor | só no CORE | M | ⬜ | — |
 | 7 | **Estado curado por etapa (3)** — `montarBriefing(estado, etapa)` usa `etapa.estadoCurado`. **Mudança de MOTOR, blast radius nas 13 etapas** (F7) | hardcoded no motor | M-alto | ⬜ | peça 1 |
 | 8 | **Confirmar peças dinâmicas (5,8,9)** — profundidade/gaps/handoff já no CORE; verificar que o motor não as quebra | ok no CORE | T | ⬜ | peça 1 |
@@ -207,7 +207,17 @@ cega. Aí o sistema está provado e replicamos para a etapa 2.
     ausentes no schema). Direção certa: o schema deve **GERAR** a Seção 4, não coexistir.
   - 🟡 **code-reviewer — PENDENTE:** campos de item só checam presença, não tipo (`nos_folha: "string"`
     passa — mesma classe de bug um nível abaixo); `this` em `aceita` é frágil; faltam testes de borda.
-- **DECISÃO:** o crítico (acento) foi corrigido já. Os 2 arquiteturais (recursão + schema gera prosa)
-  são a "melhoria de maior impacto, 1 passo 3 ganhos" (backend-architect) e mudam o escopo da peça —
-  **ponto de checkpoint com o operador** antes de seguir, por serem decisão estrutural (não patch).
-- **Commit:** (próximo — estado verde + diagnóstico).
+- **DECISÃO (operador escolheu INVESTIR):** implementadas as 2 melhorias estruturais.
+  - **Gramática RECURSIVA:** `validarForma` chama a si mesma → valida profundidade-3 (`fronteira.expansoes`,
+    `ciclos`), tipos (lista-de-strings), e fecha o furo "campo de item só checava presença".
+  - **Schema GERA a Seção 4:** `gerarSchemaProsa(schemaEstrutural)` produz a prosa do contrato; o CORE
+    usa `{schema_prosa}`. **Duplicação eliminada por construção** (a forma que valida é a que descreve).
+- **2ª rodada anti-viés (3 verificadores) na refatoração:**
+  - **auditor-v2:** CONFORME — zero divergências nome-a-nome entre o que o executor lê e o que o porteiro valida.
+  - **code-reviewer achou 1 BUG:** obrigatório-mas-vazio escapava no aninhado (`fronteira.nos_folha: []`
+    passava) — **corrigido**; + filosofia do enum vazio (fail-open) e comentário mentiroso — corrigidos; + 4 testes de borda — adicionados.
+  - **backend-architect:** aceitável com dívida — a fonte única é de FORMA, não de SIGNIFICADO (descrições
+    semânticas em bloco manual) → registrado em **ABERTO A011** (não bloqueante).
+- **DoD:** ✅ dinâmica (schema dado, gera e valida) · ✅ evidência (TDD; 29/29) · ✅ teste (cobre
+  profundidade-3, tipos, opcional, vazio aninhado) · ✅ anti-viés (3+3 verificadores em 2 rodadas) · ✅ governança (A011).
+- **Commits:** 07525c7 (parcial) + (próximo, final).

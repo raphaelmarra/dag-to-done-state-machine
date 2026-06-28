@@ -174,45 +174,20 @@ Para cada aresta, aplique A2 (verifique o caminho de volta antes de afirmar dire
 
 ### Schema a injetar no briefing (listas aninhadas, nunca tabelas)
 
+> O schema abaixo é GERADO da fonte única (o `schemaEstrutural` da etapa, que também valida o
+> output — não há duplicação). Nomes de campo JSON sem acento e exatamente como listados; o porteiro
+> valida estes nomes, tipos e enums. Significado de cada campo:
+> - **nós:** `nome` (identificador) · `tipo` (nível Component nomeado pelo stack: superfície-UI,
+>   função-API, comando-CLI…) · `path` (arquivo/endpoint) · `shape` (contrato observável, não a
+>   implementação) · `hub` (sim se fan-in/out alto → dispara A4) · `confianca`.
+> - **arestas** (consumidor→provedor, verificada por A2): `tipo` · `custo_reverso` · `confianca`.
+> - **blast_radius:** `no` · `consumido_por` (a vista reversa, A3) · `amplitude`.
+> - **fronteira:** `nos_folha` · `saidas_1hop` · `expansoes` (A4: vizinho+motivo) · `candidatos_transitivos`.
+> - **ciclos** (opcional, A5): super-nós de dependência mútua.
+> - **gaps** (passaram em C1): `id` · `prioridade` · `acao`. **confianca:** resumo lido/inferido/não-encontrado.
+
 ```
-> Nomes de campo JSON sem acento (chaves estáveis): `nome`, `tipo`, `path`, `shape`, `confianca`,
-> `hub`. O porteiro valida exatamente estes nomes.
-
-## Nós
-- nome: [identificador do nó]
-  - tipo: [rótulo do nível Component nomeado pelo stack — ex. web: superfície-UI, função-API,
-           componente-compartilhado, hook-estado, função-domínio, disco; CLI: comando, flag]
-  - path: [arquivo ou endpoint no código]
-  - shape: [contrato observável: função-API → params e campos da resposta; superfície-UI → props;
-            função → assinatura (args→retorno). Não a implementação interna.]
-  - hub: [sim, se fan-in/out alto — dispara A4 | não]
-  - confianca: {confianca_enum}
-
-## Arestas (consumidor → provedor, sempre nessa direção — verificada por A2)
-- consumidor: [nó]  / provedor: [nó]
-  - tipo: consome | depende
-  - custo-reverso: 🟢 cheap | 🟡 indireto | 🔴 scan | a-confirmar | n/a (pura)
-  - confianca: {confianca_enum_arestas}
-
-## Blast radius (grafo reverso — calculado, com amplitude)
-- [nó]: consumido por [lista] — amplitude: BAIXA | MÉDIA | ALTA | CRÍTICA
-
-## Fronteira do grafo
-- nós-folha (onde parei de expandir): [lista]
-- arestas de saída do entry_point (1 hop): [lista]
-- expansões dinâmicas feitas (A4) e por quê: [vizinho — motivo: hub | pass-through | contrato]
-- candidatos transitivos "a verificar" (não expandidos): [lista]
-
-## Ciclos (se houver — A5)
-- super-nó ciclo: {nós} — relação mútua: [qual]
-
-## Gaps (passaram no teste C1)
-- [ID]: [o que o código não revela e a próxima etapa precisa]
-  - prioridade: P0 (bloqueia a próxima etapa) | P1 (lacuna visível) | P2 (edge)
-  - ação: [quem resolve e onde]
-
-## Resumo de confiança
-- lido: N | inferido: N | não encontrado: N → [ids] | custo a confirmar: N → [ids]
+{schema_prosa}
 ```
 
 ### FRONTEIRAS — o executor entrega isto; o resto é de outra etapa
