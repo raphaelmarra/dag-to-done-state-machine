@@ -21,28 +21,44 @@ Decididas pelo operador em 2026-06-28. Valem para todo o piloto e a réplica fut
 3. **Autonomia total na execução** — escrever, testar, mudar config/motor, registrar e cristalizar
    ADR sem checkpoint humano. O operador revê pelo tracker e pelos commits, e manda desfazer se
    discordar.
-4. **Portão anti-viés MÁXIMO (sempre)** — nenhuma peça fecha sem um **verificador independente cego**
-   (subagente sem contexto da decisão) ratificar. Réu nunca é juiz. (Peça 17 do catálogo aplicada ao
-   próprio processo.)
-5. **Evidência obrigatória** — toda decisão lastreada em pesquisa citada, teste que roda, ou caso
-   real. Sem fonte verificável → a peça não fecha. "Parece bom" não é evidência.
+4. **Portão anti-viés (sempre) — COM limite reconhecido (F4).** Nenhuma peça fecha sem um
+   **verificador independente cego** (subagente sem o contexto da decisão) ratificar. MAS: o
+   verificador é o **mesmo modelo, mesmo repo** — ele reduz **erro de transmissão e omissão local**;
+   NÃO neutraliza vieses *sistemáticos* do modelo (ex.: o próprio "dinâmico é melhor", sycophancy),
+   que são **compartilhados** entre réu e juiz. Por isso, para peças de esforço **F** (que viram
+   lei), a evidência PRIMÁRIA é **mecânica/externa** (um teste que roda, um contraexemplo, um caso
+   real) — o verificador cego é complemento, não substituto.
+5. **Evidência obrigatória E PERTINENTE (F5).** Não basta *citar* uma fonte — a decisão precisa
+   **seguir** dela. Citação irrelevante não conta (seria o mesmo `camposPresentes` que combatemos: 
+   presença ≠ conteúdo). Se a evidência é um teste, o teste roda e está no commit; se é caso real, o
+   caso está linkado.
 
 > Tensão resolvida: (3) autonomia total + (4) verificador sempre = sigo sem consultar o humano, mas
-> **não fecho sozinho** — um agente cego ratifica cada peça. Velocidade com anti-viés.
+> **não fecho sozinho**. Ressalva honesta: o verificador cego não é bala de prata anti-viés (F4) —
+> é uma segunda leitura correlacionada. A defesa real contra viés sistemático é o **teste mecânico**.
 
 ---
 
 ## Definição de PRONTO de uma peça (Definition of Done)
 
-Uma peça só passa de 🟡 para ✅ quando TODAS as caixas abaixo estão marcadas:
+Uma peça só passa de 🟡 para ✅ quando TODAS as caixas abaixo estão marcadas. **As caixas foram
+endurecidas (F5) para serem verificáveis, não subjetivas** — cada uma tem um critério objetivo:
 
 ```
-[ ] DINÂMICA   — descobre do contexto onde possível; hardcode restante justificado (M1)
-[ ] EVIDÊNCIA  — a decisão cita pesquisa / teste / caso real (não opinião)
-[ ] TESTE      — há um teste automatizado que falha se a peça regredir (quando aplicável a código)
-[ ] ANTI-VIÉS  — um verificador independente cego ratificou (e seu veredito está registrado)
-[ ] GOVERNANÇA — registrada: ADR se virou lei; ABERTO se provisória; CHANGELOG/INDEX atualizados
+[ ] DINÂMICA   — descobre do contexto OU o hardcode é invariante POR DEFINIÇÃO DO DOMÍNIO (não por
+                 conveniência). Critério: nomear QUAL invariante. "É mais fácil" não justifica.
+[ ] EVIDÊNCIA  — a decisão SEGUE de uma fonte acionável: teste que roda (no commit) / caso real
+                 (linkado) / pesquisa cujo achado X sustenta a decisão. Citar ≠ sustentar.
+[ ] TESTE      — há um teste automatizado que falha se a peça regredir. "Não aplicável" SÓ se a peça
+                 é pura redação do CORE (sem efeito em código) — e isso é declarado explicitamente.
+[ ] ANTI-VIÉS  — verificador cego ratificou (veredito registrado). Para esforço F: + evidência
+                 mecânica primária (o verificador sozinho NÃO basta — ver regra 4).
+[ ] GOVERNANÇA — registrada: ADR se virou lei; ABERTO se provisória; CHANGELOG/INDEX atualizados.
 ```
+
+> Por que endurecer: uma DoD cuja função é ser o portão objetivo de "pronto" não pode ter caixas que
+> dependem de julgamento não-especificado — isso devolveria a decisão ao mesmo agente, reabrindo o
+> viés que a DoD existe para fechar.
 
 ## Triagem de esforço (qual método aplicar a cada peça)
 
@@ -61,37 +77,70 @@ Nem toda peça merece o canhão 0→4. Classifique antes de executar:
 
 # PLANO CONCRETO — ETAPA 1 (DAG)
 
-> Estado-base (auditoria 2026-06-28, subagente): 9 peças obrigatórias presentes, mas 3 com hardcode
-> que viola M1 e 1 incompleta. As peças 🔵/⚪ do catálogo **não se aplicam** ao DAG (lentes,
-> pre-mortem, arquétipo, walking skeleton são de Design/Gate) — exceto verificação independente e
-> retry, que são candidatas transversais (decisão registrada abaixo).
+> **⚠️ Este plano foi REVISADO por um crítico cego independente (2026-06-28) que achou 10 findings,
+> 3 graves.** A versão original tinha um viés-raiz: a auditoria-base checou *presença de campos*, não
+> *consistência CORE↔motor↔teste* — o mesmo erro (`camposPresentes`) que o plano quer corrigir no
+> código, cometido no próprio processo. Correções incorporadas abaixo. Crítica completa: ver
+> `_RETRO-revisao-plano-etapa1.md`.
 
-## Tracker da etapa 1
+## Achado que reordena tudo: o motor NÃO substitui placeholders (bug F1)
 
-| Ordem | Peça | Estado base | Esforço | Status | Depende de |
-|-------|------|-------------|---------|--------|------------|
-| 1 | **Grau de certeza (2)** — enum derivado do executor, não fixo no .md | parcial/hardcoded | M | ⬜ a fazer | — |
-| 2 | **Padrão de entrega / schema (6)** — derivar do CORE-DAG, estrutura aninhada | hardcoded | F | ⬜ a fazer | peça 1 (enum entra no schema) |
-| 3 | **Critério de aceitação (7)** — validar estrutura, não só presença; derivado do schema | hardcoded/presença | F | ⬜ a fazer | peça 2 (valida o schema) |
-| 4 | **Bloqueio / early-exit (10)** — motor implementa pré-condição (entry_point/project_root) | parcial (só no CORE) | M | ⬜ a fazer | — |
-| 5 | **Estado curado (3)** — seleção de campos derivada, não inline fixa | hardcoded inline | M | ⬜ a fazer | — |
-| 6 | **Briefing (4)** — já v4.0; revisar só o template inline do motor | ok (parcial) | T | ⬜ a fazer | peças 1,5 |
-| 7 | **Executor (1)** — tornar a capacidade um dado consultável (não texto) | ok/hardcoded | M | ⬜ a fazer | habilita peça 1 |
-| 8 | **Profundidade (5)**, **Gaps (8)**, **Handoff (9)** — já dinâmicos no CORE; confirmar | ok | T | ⬜ a fazer | — |
-| — | **Verificação independente (17)** como peça da etapa? | não | — | 🤔 decidir | — |
-| — | **Retry (18)** — loop de volta ao reprovar | não formalizado | — | 🤔 decidir | motor |
+A auditoria original disse "9 peças obrigatórias presentes". **Falso para 2 delas.** O CORE-DAG usa
+`{next_stage}` como variável de template em 2 pontos (cores/CORE-DAG.md:221-222), e a tabela da
+instância declara `next_stage` como campo. **Mas:** `resolverCore` (dag.mjs:148-155) devolve o
+markdown CRU, sem substituir nada; e `cmdInit` nunca popula `next_stage`. Resultado: o briefing
+gerado contém a string literal `{next_stage}` — o executor recebe um placeholder quebrado. As peças
+Briefing(4)/Handoff(9) estão **presentes mas inertes**, não "ok". Confirmado lendo o código.
 
-> Ordem racional: peça 1 (enum) destrava 2 (schema usa o enum) que destrava 3 (critério valida o
-> schema). 4, 5, 7 são independentes. As peças "ok" (6, 8) só precisam de confirmação por verificador.
+**Consequência metodológica:** a auditoria-base de QUALQUER etapa deve verificar **consistência
+CORE↔motor↔teste**, não só presença de campos no schema. (Corrige o viés-raiz.)
 
-## Decisões de escopo da etapa 1 (registradas)
+## Tracker da etapa 1 (REORDENADO por dependência real, verificada no código)
 
-- **Peças que NÃO se aplicam ao DAG:** lentes, pre-mortem, spike, arquétipo, walking skeleton — são
-  de etapas de Design/Gate. Não entram na etapa 1. (Evidência: ANATOMIA-DE-ETAPA.md grupos D/E.)
-- **Paralelismo (14):** a pesquisa de mercado roda em paralelo ao DAG (ADR 0008), mas isso é
-  orquestração *entre* etapas, não uma peça *da* etapa 1. Fora do escopo desta etapa.
-- **Verificação independente (17) e Retry (18):** transversais. Decisão na execução — provavelmente
-  pertencem ao motor/pipeline, não ao CORE-DAG. Marcadas 🤔 para resolver com evidência.
+| Ordem | Peça | Estado base (verificado) | Esforço | Status | Depende de |
+|-------|------|--------------------------|---------|--------|------------|
+| 1 | **Substituição de placeholders no motor (F1)** — `resolverCore` substitui `{next_stage}` etc.; `cmdInit` popula `next_stage` | **quebrado** (placeholder literal) | M | ⬜ | — (motor) |
+| 2 | **Executor como dado consultável (1)** — capacidade vira propriedade da etapa, não texto solto | hardcoded no .md | M | ⬜ | — |
+| 3 | **Grau de certeza (2)** — enum derivado da propriedade do executor (peça 2) | hardcoded no .md | M | ⬜ | peça 2 |
+| 4 | **Schema como DADO ÚNICO (6)** — objeto/JSON fonte-de-verdade, injetado no briefing E no validador. **NÃO parsear markdown** (F3) | hardcoded, duplicado | F | ⬜ | peças 2,3 (enum entra na estrutura) |
+| 5 | **Critério de aceitação estrutural (7)** — valida a estrutura aninhada do schema (peça 4), não só presença | só presença | F | ⬜ | peça 4 (fundida — ver nota) |
+| 6 | **Bloqueio / early-exit no motor (10)** — pré-condição (entry_point/project_root) implementada no motor | só no CORE | M | ⬜ | — |
+| 7 | **Estado curado por etapa (3)** — `montarBriefing(estado, etapa)` usa `etapa.estadoCurado`. **Mudança de MOTOR, blast radius nas 13 etapas** (F7) | hardcoded no motor | M-alto | ⬜ | peça 1 |
+| 8 | **Confirmar peças dinâmicas (5,8,9)** — profundidade/gaps/handoff já no CORE; verificar que o motor não as quebra | ok no CORE | T | ⬜ | peça 1 |
+
+**Notas de dependência (verificadas, não racionalizadas — corrige F2):**
+- **2→3:** o enum (3) *espelha* o executor; logo o executor-como-dado (2) vem antes. (Era o inverso no plano original.)
+- **4 e 5 são quase inseparáveis:** o "critério" (5) valida a "estrutura" (4). Trata-se como uma
+  unidade entregue junto, não duas peças em cadeia. O enum (3) é um valor *dentro* da estrutura.
+- **1 vem primeiro de tudo:** sem substituição de placeholder, qualquer edição do CORE (peças 2,3,4,6)
+  gera briefing quebrado. É pré-requisito infra.
+- **7 é a mais arriscada:** muda a assinatura de `montarBriefing` → afeta as 13 etapas e o e2e. Não é
+  "M isolado". Cobrir com teste antes.
+
+## Restrição operacional da execução autônoma (F8)
+
+O CORE-DAG vive em DOIS lugares: `docs/CORE-DAG.md` (fonte) e `v1/cores/CORE-DAG.md` (cópia que o
+motor lê via corePath), com um teste de **igualdade byte-a-byte** (core-dag.test.mjs:48-56). **Toda
+edição do CORE:** editar `docs/CORE-DAG.md` E recopiar para `v1/cores/`. O teste de sincronia é o
+guarda — se eu editar só um, ele falha (de propósito).
+
+## Decisões de escopo — REVISADAS com teste por peça (corrige F6)
+
+A exclusão original ("são do grupo D/E") era auto-referente (petição de princípio). Agora cada peça
+🔵/⚪ passa pelo teste: **"o DAG precisa disto para entregar o território à etapa 2?"**
+
+| Peça | Aplica ao DAG? | Motivo (testado, não assumido) |
+|------|----------------|-------------------------------|
+| Lentes (11) | Não | O DAG mapeia, não revisa qualidade. Quem usa lentes é o Gate A. |
+| Pre-mortem (12) | Não | Riscos de *implementação* são do Design; o DAG não decide implementação. |
+| **Spike (13)** | **Talvez — reavaliar** | Está no grupo C (Controle), não D/E (erro do plano original). A regra A5 (ciclo) é PROVISÓRIA: um ciclo real ambíguo durante o DAG É "incerteza técnica que bloqueia". Decidir com evidência ao executar. |
+| Arquétipo (15) | Não | Calibra rigor de Design/Gate; o DAG mapeia igual para qualquer arquétipo. |
+| Walking Skeleton (16) | Não | Prova fim-a-fim entre Design e Implementação; não é fase de mapeamento. |
+| Paralelismo (14) | Não (à etapa) | Pesquisa ‖ DAG é orquestração *entre* etapas (ADR 0008), não peça *da* etapa 1. |
+| **Verif. independente (17)** | Como processo, sim | É o portão anti-viés do próprio método (já em uso). Como *peça de pipeline*, é do motor — fora do CORE-DAG. |
+| **Retry (18)** | Parcial — **evidência no código** | Bloqueio JÁ implementado (dag.mjs:251-262 + teste e2e:87). Falta só o *destino de regressão*. Não é "decidir do zero" (corrige F9). Decisão: para onde voltar, automático vs. humano — do motor. |
+
+> Spike e Retry saem de "🤔 decidir do zero" para "decidir com a evidência que já existe".
 
 ## Marco de "etapa 1 PRONTA"
 Quando as peças 1–8 estiverem ✅ pela Definition of Done, a etapa 1 deixa de depender de hardcode

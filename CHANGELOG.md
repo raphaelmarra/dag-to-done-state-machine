@@ -5,6 +5,20 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Revisão cega do plano da etapa 1 (2026-06-28)
+- **`docs/_RETRO-revisao-plano-etapa1.md`** (novo) — registro da revisão adversarial do PLANO-DE-ETAPA
+  por um verificador cego independente ANTES de executar. 10 findings (3 graves). Provou o portão
+  anti-viés: o cego achou F1 (`{next_stage}` nunca substituído no motor — bug real), F2 (ordem das
+  peças se inverte ao ler o código), F7 (estado curado hardcoded no motor, blast radius nas 13 etapas)
+  — que o autor não viu sozinho.
+- **`PLANO-DE-ETAPA.md` corrigido:** tracker reordenado por dependência real; schema vira DADO ÚNICO
+  (não parsear markdown — F3); contrato anti-viés reconhece que verificador cego = mesmo modelo (não
+  neutraliza viés sistemático; esforço F exige evidência mecânica — F4); DoD endurecida (caixas
+  objetivas, "citar ≠ sustentar" — F5); escopo de peças com teste por peça (não auto-referência — F6).
+- **Viés-raiz documentado:** a auditoria-base checava *presença de campos*, não *consistência
+  CORE↔motor↔teste* — o mesmo erro (`camposPresentes`) que o plano quer corrigir no código. Vira
+  regra do método para as etapas 2–13.
+
 ### Sistema de plano de etapa + piloto da etapa 1 (2026-06-28)
 - **`docs/PLANO-DE-ETAPA.md`** (novo) — molde + tracker para completar uma etapa INTEIRA peça por
   peça (o CORE/briefing é só 1 das 18 peças). Formaliza o "contrato de execução" do piloto: M1
