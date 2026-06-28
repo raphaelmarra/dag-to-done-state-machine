@@ -38,7 +38,8 @@
 - [`DESCARTADO.md`](DESCARTADO.md) — o que foi considerado e descartado, com motivo.
 
 ## How-to (como fazer)
-- [`METODOLOGIA-CORE.md`](METODOLOGIA-CORE.md) — **o pipeline para destilar o CORE de uma etapa** (da pesquisa ao refinamento, 5 fases). Reutilizável para as etapas 2–13. Validou-se obtendo o CORE-DAG v4.0.
+- [`PLANO-DE-ETAPA.md`](PLANO-DE-ETAPA.md) — **o sistema para completar uma etapa inteira**, peça por peça (o briefing é só 1 das 18). Molde + tracker com portão de evidência/anti-viés + triagem de esforço. Contém o plano concreto da etapa 1 (piloto).
+- [`METODOLOGIA-CORE.md`](METODOLOGIA-CORE.md) — **o pipeline para destilar o CORE de uma etapa** (da pesquisa ao refinamento, 5 fases). É o "método funda" de uma peça no PLANO-DE-ETAPA. Validou-se obtendo o CORE-DAG v4.0.
 - [`_RETRO-metodologia-core.md`](_RETRO-metodologia-core.md) — retrospectiva cética: os 4 furos da metodologia (n=1, cego não-independente, adversarial fácil, juiz = autor). Leia antes de confiar.
 - Skill global `manter-governanca` (`~/.claude/skills/`) — como manter toda esta estrutura viva.
 

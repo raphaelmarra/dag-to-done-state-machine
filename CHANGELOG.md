@@ -5,6 +5,17 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Sistema de plano de etapa + piloto da etapa 1 (2026-06-28)
+- **`docs/PLANO-DE-ETAPA.md`** (novo) — molde + tracker para completar uma etapa INTEIRA peça por
+  peça (o CORE/briefing é só 1 das 18 peças). Formaliza o "contrato de execução" do piloto: M1
+  (dinâmico > hardcode), autonomia total na execução, **portão anti-viés máximo** (verificador
+  independente cego ratifica cada peça — réu nunca é juiz), evidência obrigatória. Inclui Definition
+  of Done por peça e triagem de esforço (Trivial/Média/Funda → qual método aplicar).
+- **Plano concreto da etapa 1 (DAG)** preenchido a partir de auditoria factual (subagente): 9 peças
+  obrigatórias presentes, mas 3 com hardcode que viola M1 (schema, critério de aceitação, grau de
+  certeza) + bloqueio incompleto. Tracker com ordem/dependências/esforço. Próximo: executar peça a
+  peça com ratificação cega.
+
 ### Catálogo de anatomia de etapa (2026-06-28)
 - **`docs/ANATOMIA-DE-ETAPA.md`** (novo) — documento de consulta que lista **todas as peças que se
   pode definir numa etapa** da state machine (não só o briefing): executor, grau de certeza, estado
