@@ -5,6 +5,21 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### 🏁 ETAPA 3 (GAP) COMPLETA + regrasExtras (A012 resolvida) (2026-06-28)
+- **Cristalizada (ADR 0024):** CORE-GAP v1.0 plugado no `v1/`. Executor `error-detective` (analista —
+  confronta o já descoberto, não re-descobre). Honestidade estrutural: o porteiro REPROVA gap sem
+  evidência (E1), "impossível" sem `angulos_tentados` (E3), no-go sem os 3 campos, resumo que mente
+  sobre a lista, e complexidade incoerente com os drivers (X2 — computada, não opinada).
+- **A012 RESOLVIDA:** as regras de aceitação foram unificadas no **`regrasExtras` declarativo** —
+  `comCondicao` deletado, os 4 gates migrados, fábricas reutilizáveis (`regraEvidenciaObrigatoria`
+  usada pelas etapas 2 e 3; `regraCampoIgual` pelos gates). Um padrão único, não 3 dialetos.
+- **Testada (cego):** um error-detective cego executou o briefing gerado, confrontando o código real
+  do ravi; achou 4 gaps provados + complexidade computada; o porteiro aprovou e avançou para o Design.
+- **Anti-viés saturado (3 verificadores):** acharam e corrigiram 4 itens (incl. o mesmo bug F3 de
+  paridade — `angulos_tentados`; o resumo mentiroso; a banda "média" cega). Tese de amortização
+  confirmada: ~16 linhas de mecanismo, 0 de motor.
+- ROADMAP: **3/13**. Suíte v1 **75/75**.
+
 ### Etapa 1 reauditada com a lente da etapa 2 — 4 buracos de paridade fechados (2026-06-28)
 - **Pergunta do operador:** os erros achados na etapa 2 baixaram a qualidade da etapa 1? **Resposta:**
   não houve regressão (a etapa 2 mudou o motor em 4 linhas aditivas; suíte sempre verde). MAS aplicar a

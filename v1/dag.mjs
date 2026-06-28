@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa, nomeEtapa, gerarSchemaProsa } from "./pipeline.config.mjs";
+import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa, nomeEtapa, gerarSchemaProsa, avaliarEtapa } from "./pipeline.config.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DAG_DIR = join(RAIZ, ".dag");
@@ -326,8 +326,9 @@ function cmdAdvance(feature) {
     return erro(`output da etapa "${etapa.id}" não é JSON válido: ${e.message}`);
   }
 
-  // 3. PORTEIRO: precisa passar no critério de aceitação da etapa.
-  const veredito = etapa.aceita(output);
+  // 3. PORTEIRO: precisa passar no critério de aceitação da etapa. Usa o avaliador genérico (A012:
+  // schema + estrutura + regrasExtras); `aceita` custom só se a etapa ainda o definir (compat).
+  const veredito = typeof etapa.aceita === "function" ? etapa.aceita(output) : avaliarEtapa(etapa, output);
   if (!veredito.ok) {
     const faltando = veredito.faltando?.length
       ? `campos ausentes/vazios: ${veredito.faltando.join(", ")}`

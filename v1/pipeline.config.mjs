@@ -26,14 +26,6 @@ function camposPresentes(output, schema) {
   return { ok: faltando.length === 0, faltando };
 }
 
-// Combina camposPresentes com uma condição extra preservando o contrato {ok, faltando}
-// que o motor (dag.mjs) consome via `veredito.ok`. Sem isto, `camposPresentes(...) && cond`
-// colapsaria para um boolean cru e o motor leria `true.ok === undefined` → bloqueio indevido.
-function comCondicao(base, ok, motivo) {
-  if (!base.ok) return base;
-  if (ok) return base;
-  return { ok: false, faltando: base.faltando, motivo };
-}
 
 // --- Validação ESTRUTURAL declarativa (peças 4+5) ----------------------------------------------
 // O schema é um DADO (objeto), não prosa markdown (F3 da revisão cega). Cada campo de topo declara
@@ -167,6 +159,119 @@ function gerarSchemaProsa(schemaEstrutural, etapa) {
     .join("\n\n");
 }
 
+// --- Porteiro genérico (A012): compõe as três camadas de validação numa só (declarativo) -----------
+// 1) presença de campos de topo (schema) · 2) estrutura (schemaEstrutural) · 3) regras EXTRAS da etapa
+// (regrasExtras: lista de (output)=>{ok, faltando}). Substitui o `aceita` custom imperativo por etapa:
+// uma etapa declara `schema`/`schemaEstrutural`/`regrasExtras` e o motor avalia. Regra além de
+// presença/estrutura ("se confianca==X então Y obrigatório") vira UMA função reutilizável, não um
+// dialeto solto. Mantém o contrato {ok, faltando} que o motor consome.
+function avaliarEtapa(etapa, output) {
+  if (Array.isArray(etapa.schema)) {
+    const presenca = camposPresentes(output, etapa.schema);
+    if (!presenca.ok) return presenca;
+  }
+  if (etapa.schemaEstrutural) {
+    const estrutura = validarEstrutura(output, etapa.schemaEstrutural, etapa);
+    if (!estrutura.ok) return estrutura;
+  }
+  for (const regra of etapa.regrasExtras ?? []) {
+    const r = regra(output, etapa);
+    if (!r.ok) return r;
+  }
+  return { ok: true, faltando: [] };
+}
+
+// "Vazio de verdade": undefined/null/""/[], objeto sem chaves, string só-espaços, número/bool.
+// Usado por regras de evidência (uma evidência {} ou "  " não é prova — achado das revisões cegas).
+function evidenciaVazia(v) {
+  if (valorVazio(v)) return true;
+  if (typeof v === "string") return v.trim() === "";
+  if (typeof v === "object") return Object.keys(v).length === 0;
+  return true; // número/bool não é evidência
+}
+
+// Fábrica de regra (A012): "o campo `campo` do output deve ser exatamente `valor`". Migra os gates
+// (veredito==="APROVA", status==="verde"...) do antigo `comCondicao` para o padrão declarativo único.
+function regraCampoIgual(campo, valor, motivo) {
+  return (output) => (output?.[campo] === valor
+    ? { ok: true, faltando: [] }
+    : { ok: false, faltando: [motivo ?? `${campo} deve ser "${valor}"`] });
+}
+
+// Regra de coerência do resumo: o resumo não pode MENTIR sobre a lista (total_gaps == gaps.length;
+// p0 == nº de gaps P0). Honestidade imposta pelo formato (achado da revisão cega da etapa 3).
+function regraResumoCoerente(output) {
+  const gaps = output?.gaps ?? [];
+  const r = output?.resumo ?? {};
+  const num = (v) => (typeof v === "number" ? v : parseInt(v, 10));
+  const erros = [];
+  if (num(r.total_gaps) !== gaps.length) erros.push(`resumo.total_gaps (${r.total_gaps}) ≠ nº real de gaps (${gaps.length})`);
+  const p0Real = gaps.filter((g) => g.prioridade === "P0").length;
+  if (num(r.p0) !== p0Real) erros.push(`resumo.p0 (${r.p0}) ≠ nº real de gaps P0 (${p0Real})`);
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
+// Regra E3: gap descrito como impossível/sem-solução exige `angulos_tentados` não-vazio (senão é
+// desistência, não conclusão). Heurística de texto na descricao+evidencia (o schema não tem flag).
+function regraAngulosSeImpossivel(output) {
+  const re = /imposs[íi]vel|sem solu[çc][ãa]o|inviável|n[ãa]o h[áa] como/i;
+  const sem = (output?.gaps ?? []).filter((g) => {
+    const texto = `${g.descricao ?? ""} ${g.evidencia ?? ""}`;
+    return re.test(texto) && evidenciaVazia(g.angulos_tentados);
+  });
+  if (sem.length) {
+    return { ok: false, faltando: sem.map((g) => `${g.id}: descrito como impossível sem angulos_tentados (E3)`) };
+  }
+  return { ok: true, faltando: [] };
+}
+
+// Fábrica de regra reutilizável (A012): "todo item de `listaCampo` cujo `condCampo` == `condValor`
+// DEVE ter `evidCampo` não-vazio". Usada pela etapa 2 ("confirmado ao vivo" exige evidencia_ao_vivo)
+// e pela etapa 3 (todo gap exige evidencia). A honestidade é imposta pelo formato, não pela boa-fé.
+function regraEvidenciaObrigatoria(listaCampo, idCampo, condCampo, condValor, evidCampo) {
+  // condCampo === null → aplica a TODO item (ex.: todo gap exige evidência). Senão, só aos itens
+  // cujo condCampo == condValor (ex.: só os "confirmado ao vivo" exigem evidencia_ao_vivo).
+  const aplica = (item) => condCampo === null || item?.[condCampo] === condValor;
+  const rotulo = condCampo === null ? "exige" : `"${condValor}" sem`;
+  return (output) => {
+    const sem = (output?.[listaCampo] ?? []).filter(
+      (item) => aplica(item) && evidenciaVazia(item?.[evidCampo])
+    );
+    if (sem.length) {
+      return { ok: false, faltando: sem.map(
+        (item) => `${item?.[idCampo] ?? "(item)"}: ${rotulo} ${evidCampo} (sem prova = suposição, não gap)`
+      ) };
+    }
+    return { ok: true, faltando: [] };
+  };
+}
+
+// Regra X2 da etapa 3: a banda de complexidade deve ser COERENTE com os drivers (computada, não opinada).
+// Não força uma fórmula rígida (pesos a validar — provisório), mas barra incoerências grosseiras: banda
+// "simples" com P0>0 ou infra nova; banda "alta" sem nenhum driver de peso. Imposta pelo formato.
+function regraComplexidadeCoerente(output) {
+  const c = output?.complexidade;
+  if (!c || !c.drivers) return { ok: true, faltando: [] }; // estrutura já validada antes
+  const d = c.drivers;
+  const num = (v) => (typeof v === "number" ? v : parseInt(v, 10) || 0);
+  const p0 = num(d.p0), p1 = num(d.p1), integ = num(d.integracoes), inc = num(d.incertezas);
+  const infraNova = d.exige_infra_nova === "sim";
+  const peso = p0 * 3 + p1 + integ + inc + (infraNova ? 4 : 0);
+  const erros = [];
+  // Simetria (achado da revisão cega): cada banda barra a incoerência grosseira no seu lado. Não é
+  // fórmula rígida (pesos provisórios — M4); só rejeita o que contradiz os drivers de forma óbvia.
+  if (c.banda === "simples" && (p0 > 0 || infraNova)) {
+    erros.push(`complexidade "simples" incoerente: há ${p0} P0${infraNova ? " e exige infra nova" : ""}`);
+  }
+  if (peso === 0 && c.banda !== "simples") {
+    erros.push(`complexidade "${c.banda}" incoerente: nenhum driver de peso (tudo zero) deveria ser "simples"`);
+  }
+  if (c.banda !== "alta" && (p0 >= 3 || (infraNova && p0 >= 1))) {
+    erros.push(`complexidade "${c.banda}" incoerente: ${p0} P0${infraNova ? " + infra nova" : ""} é perfil de "alta"`);
+  }
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
 export const PIPELINE = [
   {
     id: "dag",
@@ -247,11 +352,7 @@ export const PIPELINE = [
         nao_encontrado: { obrigatorio: true },
       } },
     },
-    aceita(o) {
-      const presenca = camposPresentes(o, this.schema);
-      if (!presenca.ok) return presenca;
-      return validarEstrutura(o, this.schemaEstrutural, this);
-    },
+    // Sem `aceita` custom: o avaliador genérico do motor faz presença (schema) + estrutura (schemaEstrutural).
   },
   {
     id: "descoberta",
@@ -301,40 +402,78 @@ export const PIPELINE = [
         nao_verificado: { obrigatorio: true },
       } },
     },
-    aceita(o) {
-      const presenca = camposPresentes(o, this.schema);
-      if (!presenca.ok) return presenca;
-      const estrutura = validarEstrutura(o, this.schemaEstrutural, this);
-      if (!estrutura.ok) return estrutura;
-      // Regra ESTRUTURAL da etapa 2 (achado P2): "confirmado ao vivo" SEM evidencia_ao_vivo é mentira
-      // — o porteiro REPROVA. A honestidade não depende da boa-fé do agente; é imposta aqui.
-      // evidenciaVazia pega TODOS os "vazios": undefined/null/""/[], objeto sem chaves, string só-espaços
-      // (senão {} ou "  " furariam a regra — achado da revisão cega).
-      const evidenciaVazia = (v) => {
-        if (valorVazio(v)) return true;
-        if (typeof v === "string") return v.trim() === "";
-        if (typeof v === "object") return Object.keys(v).length === 0;
-        return true; // número/bool não é evidência ("o que foi chamado + o que retornou")
-      };
-      const semEvidencia = (o.endpoints_confirmados ?? []).filter(
-        (ep) => ep.confianca === "confirmado ao vivo" && evidenciaVazia(ep.evidencia_ao_vivo)
-      );
-      if (semEvidencia.length) {
-        return { ok: false, faltando: semEvidencia.map(
-          (ep) => `${ep.endpoint}: marcado "confirmado ao vivo" sem evidencia_ao_vivo anexada`
-        ) };
-      }
-      return { ok: true, faltando: [] };
-    },
+    // Regra estrutural da etapa 2 (achado P2) — agora declarativa via regrasExtras (A012), não `aceita`
+    // imperativo. "confirmado ao vivo" SEM evidencia_ao_vivo é mentira → REPROVA. Imposta pelo formato.
+    regrasExtras: [regraEvidenciaObrigatoria(
+      "endpoints_confirmados", "endpoint", "confianca", "confirmado ao vivo", "evidencia_ao_vivo"
+    )],
   },
   {
     id: "gap",
     nome: "GAP",
     agente: "error-detective",
-    core: "[fallback] Confronte o que existe com o que a feature precisa.",
-    corePath: "cores-aba-clis/gap.md",
-    schema: ["gaps", "complexidade"],
-    aceita: (o) => camposPresentes(o, ["gaps", "complexidade"]),
+    // Executor: error-detective — ANALISTA (confronta o já descoberto; não re-descobre, não toca rede).
+    // Confiança herda a origem da evidência das etapas 1-2.
+    executor: {
+      nome: "error-detective",
+      capacidade: "confronta o output do DAG e da Descoberta com o que a feature precisa; analisa, não descobre",
+      confianca_enum: ["confirmado na descoberta", "inferido do código", "a confirmar via spike"],
+    },
+    core: "[fallback] Confronte o DAG + a Descoberta com o que a feature precisa. Ver cores/CORE-GAP.md.",
+    corePath: "cores/CORE-GAP.md",
+    // Pré-condições: precisa do mapa do DAG E do contrato da Descoberta (confronta os dois). Sem eles,
+    // não há o que confrontar — o motor bloqueia antes do briefing.
+    precondicoes: ["entry_point", "project_root", "dag_output", "descoberta_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "dag_output", "descoberta_output", "next_stage", "concluidas"],
+    schema: ["complexidade", "resumo"],
+    schemaEstrutural: {
+      // gaps: pode ser [] (zero gaps é válido — C1 é filtro). Cada gap exige evidencia (regra extra).
+      gaps: { presente: true, tipo: "lista-de-objetos", itemCampos: {
+        id: { obrigatorio: true },
+        descricao: { obrigatorio: true },
+        prioridade: { obrigatorio: true, enum: ["P0", "P1", "P2"] },
+        categoria: { obrigatorio: true, enum: ["quebra", "alinhamento", "indefinicao"] },
+        evidencia: { obrigatorio: true },         // origem auditável (E1)
+        angulos_tentados: {},                     // opcional; OBRIGATÓRIO se o gap é "impossível" (regra E3)
+        confianca: { obrigatorio: true, enum: (e) => e.executor?.confianca_enum ?? [] },
+      } },
+      pronto_para_reuso: { presente: true, tipo: "lista-de-objetos", itemCampos: {
+        item: { obrigatorio: true },
+        por_que_serve: { obrigatorio: true },     // o "não reconstruir"
+      } },
+      no_gos: { presente: true, tipo: "lista-de-objetos", itemCampos: {
+        o_que: { obrigatorio: true },
+        motivo: { obrigatorio: true },
+        destino: { obrigatorio: true, enum: ["desta-feature", "de-proposito", "de-outra-etapa"] },
+      } },
+      incertezas: { presente: true, tipo: "lista-de-objetos", itemCampos: {
+        incerteza: { obrigatorio: true },
+        spike: { obrigatorio: true },             // plano executável
+      } },
+      complexidade: { tipo: "objeto", campos: {
+        banda: { obrigatorio: true, enum: ["simples", "média", "alta"] },
+        drivers: { obrigatorio: true, tipo: "objeto", campos: {
+          p0: { obrigatorio: true },
+          p1: { obrigatorio: true },
+          integracoes: { obrigatorio: true },
+          incertezas: { obrigatorio: true },
+          exige_infra_nova: { obrigatorio: true, enum: ["sim", "não"] },
+        } },
+        justificativa: { obrigatorio: true },     // o rastro dos drivers, não narrativa
+      } },
+      resumo: { tipo: "objeto", campos: {
+        total_gaps: { obrigatorio: true },
+        p0: { obrigatorio: true },
+      } },
+    },
+    // Regras estruturais da etapa 3 (A012, declarativas): (1) todo gap exige evidencia (E1 — qualquer
+    // gap, não só os "impossíveis"); (2) a banda de complexidade é coerente com os drivers (X2).
+    regrasExtras: [
+      regraEvidenciaObrigatoria("gaps", "id", null, undefined, "evidencia"), // null cond = TODO item (E1)
+      regraAngulosSeImpossivel,   // E3: gap "impossível" exige angulos_tentados
+      regraComplexidadeCoerente,  // X2: banda coerente com drivers
+      regraResumoCoerente,        // resumo não pode mentir sobre a lista
+    ],
   },
   {
     id: "design",
@@ -370,7 +509,7 @@ export const PIPELINE = [
     core: "[fallback] Revisão adversarial com lentes por arquétipo.",
     corePath: "cores-aba-clis/gate_a.md",
     schema: ["veredito"],
-    aceita: (o) => comCondicao(camposPresentes(o, ["veredito"]), o.veredito === "APROVA", 'veredito deve ser "APROVA"'),
+    regrasExtras: [regraCampoIgual("veredito", "APROVA", 'veredito deve ser "APROVA"')],
   },
   {
     id: "acessibilidade",
@@ -387,7 +526,7 @@ export const PIPELINE = [
     core: "[fallback] Execute os cenários com dado real.",
     corePath: "cores-aba-clis/gate_b.md",
     schema: ["veredito", "evidencia"],
-    aceita: (o) => comCondicao(camposPresentes(o, ["veredito", "evidencia"]), o.veredito === "verificado", 'veredito deve ser "verificado"'),
+    regrasExtras: [regraCampoIgual("veredito", "verificado", 'veredito deve ser "verificado"')],
   },
   {
     id: "aprovacao_humana",
@@ -403,7 +542,7 @@ export const PIPELINE = [
     agente: "sistema",
     core: "[PLACEHOLDER MVP] dag verify + check ci verdes; INDEX e ADRs commitados.",
     schema: ["verify_ok"],
-    aceita: (o) => comCondicao(camposPresentes(o, ["verify_ok"]), o.verify_ok === true, "verify_ok deve ser true"),
+    regrasExtras: [regraCampoIgual("verify_ok", true, "verify_ok deve ser true")],
   },
   {
     id: "smoke",
@@ -411,7 +550,7 @@ export const PIPELINE = [
     agente: "devops-engineer",
     core: "[PLACEHOLDER MVP] Verifique a feature em produção real. Verde/alerta/rollback.",
     schema: ["status"],
-    aceita: (o) => comCondicao(camposPresentes(o, ["status"]), o.status === "verde", 'status deve ser "verde"'),
+    regrasExtras: [regraCampoIgual("status", "verde", 'status deve ser "verde"')],
   },
   {
     id: "retrospectiva",
@@ -444,4 +583,4 @@ export function nomeEtapa(id) {
 
 // Exporta o gerador de prosa do schema (motor injeta {schema_prosa} no briefing) e o validador
 // estrutural (para testes diretos).
-export { gerarSchemaProsa, validarEstrutura };
+export { gerarSchemaProsa, validarEstrutura, avaliarEtapa };

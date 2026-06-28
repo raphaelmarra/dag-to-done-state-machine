@@ -61,6 +61,16 @@ function outputValido(etapa) {
       }];
       out.resumo_confianca = { confirmado_ao_vivo: "1", inferido: "0", nao_verificado: "0" };
       break;
+    case "gap":
+      // Análise de GAP honesta: cada gap com evidência; complexidade coerente com os drivers.
+      out.gaps = [{ id: "G1", descricao: "args objeto→array", prioridade: "P0", categoria: "quebra",
+                    evidencia: "Descoberta commands/run + código x.tsx:31", confianca: "confirmado na descoberta" }];
+      out.pronto_para_reuso = [{ item: "ravi()", por_que_serve: "transporte confirmado" }];
+      out.no_gos = [{ o_que: "executar agente", motivo: "run só renderiza", destino: "de-proposito" }];
+      out.incertezas = [{ incerteza: "fonte de args", spike: "rastrear cadeia antes do design" }];
+      out.complexidade = { banda: "média", drivers: { p0: 1, p1: 0, integracoes: 1, incertezas: 1, exige_infra_nova: "não" }, justificativa: "1 P0 de contrato sobre base existente" };
+      out.resumo = { total_gaps: 1, p0: 1 };
+      break;
     case "gate_a":
       out.veredito = "APROVA";
       break;

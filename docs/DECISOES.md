@@ -28,6 +28,14 @@
 
 ---
 
+## Etapa 3 (GAP) + regrasExtras — cristalizada (2026-06-28)
+
+- **ADR 0024** — Etapa 3 (GAP): confronta DAG+API com o que a feature precisa; executor analista
+  (error-detective); honestidade estrutural (gap exige evidência; "impossível" exige ângulos; no-go
+  com 3 campos; resumo não mente; complexidade computada dos drivers). E **resolve A012**: regras de
+  aceitação unificadas no `regrasExtras` declarativo (`comCondicao` deletado, gates migrados). Validado
+  por cego + 3 verificadores. Tese de amortização confirmada: ~16 linhas de mecanismo, 0 de motor.
+
 ## Etapa 2 (Descoberta da API) — cristalizada (2026-06-28)
 
 - **ADR 0023** — Honestidade imposta pelo porteiro: "confirmado ao vivo" sem evidência anexada é

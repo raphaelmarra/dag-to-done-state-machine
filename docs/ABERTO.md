@@ -163,7 +163,8 @@ morder, implementar o `desc`; senão, manter o bloco manual com um teste de sinc
 
 ## A012 — Regras de aceitação custom: padronizar em `regrasExtras` declarativo
 
-**Status:** dívida registrada (não bloqueante) — apontada pela revisão cega da etapa 2 (backend-architect).
+**Status:** ✅ RESOLVIDA em 2026-06-28 (ADR 0024) — `regrasExtras`/`avaliarEtapa` implementados; `comCondicao` deletado; gates migrados.
+**Status (histórico):** dívida registrada (não bloqueante) — apontada pela revisão cega da etapa 2 (backend-architect).
 **Questão:** Hoje há 3 formas de exprimir "regra de aceitação" no `aceita()` de uma etapa: presença de
 campos (declarativo), estrutura via schemaEstrutural (declarativo), e condição custom imperativa — em
 dois sabores: `comCondicao(...)` (gates simples: gate_a/gate_b/done/smoke) e um `.filter()` cru (a regra
