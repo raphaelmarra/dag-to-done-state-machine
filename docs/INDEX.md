@@ -42,6 +42,7 @@
 - [`METODOLOGIA-CORE.md`](METODOLOGIA-CORE.md) — **o pipeline para destilar o CORE de uma etapa** (da pesquisa ao refinamento, 5 fases). É o "método funda" de uma peça no PLANO-DE-ETAPA. Validou-se obtendo o CORE-DAG v4.0.
 - [`_RETRO-metodologia-core.md`](_RETRO-metodologia-core.md) — retrospectiva cética: os 4 furos da metodologia (n=1, cego não-independente, adversarial fácil, juiz = autor). Leia antes de confiar.
 - [`_RETRO-revisao-plano-etapa1.md`](_RETRO-revisao-plano-etapa1.md) — revisão cega do plano da etapa 1: 10 findings (3 graves, incl. bug `{next_stage}` no motor); o viés-raiz (auditoria checa presença, não consistência). Por que o portão anti-viés se pagou.
+- [`_RETRO-mvp-vs-v1.md`](_RETRO-mvp-vs-v1.md) — avaliação comparativa MVP vs v1 (etapa 1): ganho real provado por execução cega, zero regressão, saldo positivo; a ressalva do over-engineering localizado.
 - Skill global `manter-governanca` (`~/.claude/skills/`) — como manter toda esta estrutura viva.
 
 ## Código (o motor)
