@@ -5,6 +5,15 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Executor do DAG validado — Explore (2026-06-28)
+- A escolha do executor da etapa 1 (Explore) — antes dedutiva e não-confrontada — foi **validada**
+  contra os 40 agentes do CLI `agents` + built-in. Achado: o Explore é o **único** que garante
+  read-only POR CONSTRUÇÃO (sem rede/escrita); os demais têm Bash → garantia só comportamental, que
+  poderia corromper o enum de confiança (marcar "confirmado ao vivo" o que só a etapa 2 pode).
+- **Critério permanente registrado** no CORE-DAG §1: qualquer executor substituto deve passar no
+  teste read-only-estrutural. Atualizados (sem novos arquivos): `CORE-DAG.md` §1, `ROADMAP.md` (nota
+  do executor: de "em aberto" para "validado"), `ABERTO.md` A008 (ranking e método).
+
 ### 🏁 ETAPA 1 (DAG) COMPLETA — piloto do sistema de plano de etapa (2026-06-28)
 - **Peça 6 — bloqueio no motor:** etapa declara `precondicoes`; o motor verifica em `cmdNext` e
   bloqueia antes de gerar o briefing se faltar `entry_point`/`project_root`. (Antes só o CORE descrevia.)

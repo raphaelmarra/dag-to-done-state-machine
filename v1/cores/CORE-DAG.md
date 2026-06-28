@@ -45,6 +45,15 @@ aresta é uma relação de **dependência de consumo** (o consumidor depende do 
 
 Executor: **{executor_nome}** — {executor_capacidade}.
 
+**Critério PERMANENTE de escolha do executor desta etapa (validado, ver A008):** o executor do DAG
+deve garantir read-only **por construção** — sem ferramentas de rede ou de escrita (não basta o prompt
+pedir; a capacidade não pode existir). Motivo: se o executor tocasse a rede, marcaria itens como
+"confirmado ao vivo", corrompendo o enum de confiança que só a etapa 2 pode emitir — e o porteiro
+deixaria passar. Por isso o **Explore** (built-in, sem Edit/Write/Bash) é o executor: garantia
+estrutural, não comportamental. Qualquer executor candidato deve passar neste critério antes de
+substituí-lo. A fraqueza do Explore (lê excertos, não raciocina arquitetura nativamente) é suprida
+por este briefing, que estrutura o mapeamento (2 passes).
+
 Enum de confiança permitido (B3 — reflete o executor, injetado da config):
 {confianca_enum}
 

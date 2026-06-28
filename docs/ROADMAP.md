@@ -74,7 +74,9 @@ Uma etapa é considerada "CORE pronto" quando:
 | 13 | Retrospectiva | documentador | — | ⬜ não iniciado |
 | — | Pesquisa de mercado (paralela à 1) | search-specialist | — | ⬜ não iniciado |
 
-\* Executor do DAG: o CORE-DAG isola isso na Seção 1 (trocar executor = editar só ali). Em aberto se Explore é o ideal.
+\* Executor do DAG: **Explore — validado** (A008) como o melhor para a etapa, por garantir read-only
+por construção (sem rede/escrita); a alternativa só entra se passar nesse critério. O CORE-DAG isola
+isso na Seção 1 (trocar executor = editar o objeto `executor` na config).
 
 ---
 

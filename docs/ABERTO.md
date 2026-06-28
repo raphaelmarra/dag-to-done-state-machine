@@ -88,7 +88,11 @@ impact analysis. Artefato-âncora: `docs/_WIP-briefing-dag-perfeito.md` (caso CR
 - Fronteira = 1 hop armazenado, closure transitiva sob demanda
 - Custo de aresta = **híbrido**: Explore infere o que o código revela (`inferido`); o que é
   runtime vira gap `a confirmar pela Descoberta` (etapa 2). Respeita D019 (Explore não toca rede).
-- Executor = Explore (lê código) — D019 preservada
+- Executor = Explore (lê código) — D019 preservada. **VALIDADO em 2026-06-28** contra os 40 agentes
+  do CLI `agents` + built-in: Explore é o único que garante read-only POR CONSTRUÇÃO (sem rede/escrita);
+  os demais (code-reviewer, auditor-v2, typescript-pro…) têm Bash → garantia só comportamental, que
+  pode corromper o enum de confiança. Ranking: Explore 8.5 > auditor-v2 5.5 > typescript-pro 4.0. Critério
+  permanente registrado no CORE-DAG §1: substituto só entra se passar no teste read-only-estrutural.
 - **Largura do escopo vem da DEMANDA REAL (`entry_point`), não do CORE.** Intent estreito
   ("card da oportunidade") vs. domínio amplo ("CRM") — a mecânica é a mesma; o gerador lê
   o entry_point, não inventa a largura.
