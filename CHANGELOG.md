@@ -5,6 +5,14 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Catálogo de anatomia de etapa (2026-06-28)
+- **`docs/ANATOMIA-DE-ETAPA.md`** (novo) — documento de consulta que lista **todas as peças que se
+  pode definir numa etapa** da state machine (não só o briefing): executor, grau de certeza, estado
+  curado, briefing, profundidade, padrão de entrega (schema), critério de aceitação, gaps direcionais,
+  handoff, bloqueio, lentes, pre-mortem, spike, paralelismo, arquétipo, walking skeleton, verificação
+  independente, retry. Cada peça com o-que-é/quando/exemplo/decisão/status (🟢 em uso · 🔵 disponível ·
+  ⚪ candidata), ancorada nos ADRs/COREs/pesquisas reais. Indexado em INDEX (Reference).
+
 ### v1 pós-MVP: CORE-DAG v4.0 plugado no motor (2026-06-28)
 - **`v1/`** (novo) — versão pós-MVP, clone só-código do `MVP/` (motor `dag.mjs`, config, spec/plan,
   testes), autocontido. O `MVP/` fica congelado como marco + evidência da aba CLIs.
