@@ -3,11 +3,11 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
-> **Onde paramos (2026-06-27):** MVP funcional (e2e 5/5), teste real da aba CLIs rodado até o
-> Gate A (parou honestamente). Repo **publicado** em `raphaelmarra/dag-to-done-state-machine`
-> (privado), `main` sincronizada com `origin`. Pendência fora do código: compartilhar com
-> `filipexyz` (ver `ESTADO-ATUAL.md`). Próximo trabalho técnico: generalizar os COREs (hoje
-> específicos da aba CLIs) e plugar o CORE-DAG v3.0 no motor.
+> **Onde paramos (2026-06-28):** **v1 pós-MVP em `v1/`** com a etapa 1 rodando o **CORE-DAG v4.0
+> cristalizado** (testes 8/8 verde). MVP congelado em `MVP/` como marco. CORE-DAG v4.0 destilado pela
+> rotina 0→4 (ADR 0020/0021/0022; metodologia em `METODOLOGIA-CORE.md`). Repo publicado em
+> `raphaelmarra/dag-to-done-state-machine`. Próximo trabalho: destilar os COREs das etapas 2–13 (uma
+> a uma, pela metodologia) e plugá-los no `v1/pipeline.config.mjs` como foi a etapa 1.
 
 ---
 
@@ -43,9 +43,14 @@ Uma etapa é considerada "CORE pronto" quando:
 | M-3 Porteiro de fases | `advance` bloqueia output inválido e não deixa pular/regredir | ✅ MVP (validado + auditado) |
 | M-4 Verbos do CLI | `init` / `next` / `advance` / `status` | ✅ MVP (`verify`/`check` pós-MVP) |
 
-> MVP (Walking Skeleton) construído e validado em `MVP/`. e2e 5/5 verde. Handoff com
-> subagente real provado ponta-a-ponta (Explore mapeou o CRM → motor validou → avançou).
-> Conteúdo das etapas 2-13 ainda hardcoded (dívida deliberada). Spec/plan: `MVP/spec.md`, `MVP/plan.md`.
+> MVP (Walking Skeleton) construído e validado em `MVP/` (congelado como marco + evidência do E2E
+> da aba CLIs). e2e 5/5 verde lá.
+>
+> **v1 pós-MVP em `v1/`** (clone só-código do MVP, autocontido): a **etapa 1 (DAG) agora roda o
+> CORE-DAG v4.0 cristalizado**, carregado de `v1/cores/CORE-DAG.md` via `corePath`. Testes **8/8
+> verde** (`cd v1 && node --test`): 5 e2e herdados + 3 novos (briefing carrega o CORE rico; schema
+> v4.0; sincronia cópia↔fonte `docs/CORE-DAG.md`). Etapas 2–13 ainda placeholders — serão destiladas
+> pela `METODOLOGIA-CORE.md` e plugadas como a etapa 1.
 > Referência futura: `ravi-console/scripts/dag.mjs` (40K) — ver SOURCES.md.
 
 ---

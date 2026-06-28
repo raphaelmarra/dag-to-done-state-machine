@@ -5,6 +5,18 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### v1 pós-MVP: CORE-DAG v4.0 plugado no motor (2026-06-28)
+- **`v1/`** (novo) — versão pós-MVP, clone só-código do `MVP/` (motor `dag.mjs`, config, spec/plan,
+  testes), autocontido. O `MVP/` fica congelado como marco + evidência da aba CLIs.
+- **Etapa 1 (DAG) agora roda o CORE-DAG v4.0 cristalizado** — `v1/pipeline.config.mjs` aponta a etapa
+  `dag` para `cores/CORE-DAG.md` (cópia local autocontida) via `corePath`; schema atualizado para o
+  v4.0 (`nos, arestas, blast_radius, fronteira, gaps, confianca`).
+- **Testes 8/8 verde** (`cd v1 && node --test`): 5 e2e herdados + 3 novos em `core-dag.test.mjs`
+  (briefing carrega o CORE rico de 4.0, não o fallback; schema v4.0; **sincronia** cópia↔fonte
+  `docs/CORE-DAG.md` — falha se divergirem, impedindo a duplicata de apodrecer).
+- Verificado ponta-a-ponta: `node dag.mjs next` gera briefing de ~316 linhas com estado curado +
+  CORE-DAG v4.0 completo. ROADMAP/INDEX atualizados.
+
 ### Metodologia do CORE documentada + retrospectiva cética (2026-06-28)
 - **`docs/METODOLOGIA-CORE.md`** (novo) — o pipeline reutilizável para destilar o CORE de qualquer
   etapa (pesquisa → Fase 0 vereditos → Fase 1 padrão-ouro cego+principal → Fase 2 escrever → Fase 3

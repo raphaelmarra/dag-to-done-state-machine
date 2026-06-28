@@ -41,6 +41,10 @@
 - [`_RETRO-metodologia-core.md`](_RETRO-metodologia-core.md) — retrospectiva cética: os 4 furos da metodologia (n=1, cego não-independente, adversarial fácil, juiz = autor). Leia antes de confiar.
 - Skill global `manter-governanca` (`~/.claude/skills/`) — como manter toda esta estrutura viva.
 
+## Código (o motor)
+- [`../v1/`](../v1/) — **versão ativa pós-MVP.** Motor `dag.mjs` + `pipeline.config.mjs`; etapa 1 roda o CORE-DAG v4.0 (cores/CORE-DAG.md). Testes: `cd v1 && node --test` (8/8).
+- [`../MVP/`](../MVP/) — Walking Skeleton congelado (marco) + evidência do E2E da aba CLIs.
+
 ## Histórico / processo
 - [`../CHANGELOG.md`](../CHANGELOG.md) — mudanças notáveis por marco.
 - [`../benchmarks/`](../benchmarks/) — scripts de benchmark isolados (schema estrito vs. camadas).
