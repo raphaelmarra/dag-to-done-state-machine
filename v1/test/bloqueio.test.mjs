@@ -38,9 +38,10 @@ describe("Peça 6 — bloqueio de pré-condição no motor", () => {
     assert.ok(existsSync(briefingPath(FEATURE, "dag")), "briefing gerado");
   });
 
-  it("uma etapa SEM precondicoes nunca bloqueia (não regride as outras 12)", () => {
-    const desc = etapaPorId("descoberta");
-    assert.ok(!desc.precondicoes, "descoberta não declara precondicoes");
+  it("uma etapa SEM precondicoes nunca bloqueia (não regride as etapas placeholder)", () => {
+    // 'gap' (etapa 3) ainda é placeholder — não declara precondicoes. (descoberta já foi destilada.)
+    const g = etapaPorId("gap");
+    assert.ok(!g.precondicoes, "gap não declara precondicoes");
     // o e2e percorre as 13 etapas com init mínimo e passa — confirma que ausência de precondicoes não bloqueia.
   });
 });

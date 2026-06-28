@@ -241,10 +241,53 @@ export const PIPELINE = [
     id: "descoberta",
     nome: "Descoberta da API",
     agente: "fiscal",
-    core: "[fallback] Confirme os endpoints que o DAG listou.",
-    corePath: "cores-aba-clis/descoberta.md",
-    schema: ["endpoints_confirmados"],
-    aceita: (o) => camposPresentes(o, ["endpoints_confirmados"]),
+    // Executor: fiscal — TOCA a rede (oposto do Explore), mas read-only por construção. Enum de
+    // confiança próprio da etapa 2 (ao-vivo). "confirmado ao vivo" só vale com evidência anexada
+    // (o porteiro rebaixa — ver aceita).
+    executor: {
+      nome: "fiscal",
+      capacidade: "verifica endpoints ao vivo (read-only por construção); não muta estado",
+      confianca_enum: ["confirmado ao vivo", "inferido do código", "não verificado"],
+    },
+    core: "[fallback] Confirme ao vivo o contrato dos endpoints que o DAG listou. Ver cores/CORE-DISCOVERY.md.",
+    corePath: "cores/CORE-DISCOVERY.md",
+    // Pré-condição: precisa do mapa do DAG (quais endpoints importam). Sem ele, a Descoberta não sabe
+    // o que confirmar — o motor bloqueia antes do briefing.
+    precondicoes: ["entry_point", "project_root", "dag_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "dag_output", "next_stage", "concluidas"],
+    schema: ["endpoints_confirmados", "resumo_confianca"],
+    // Schema estrutural da Ficha de API. Cada endpoint carrega contrato observado + confiança + evidência.
+    schemaEstrutural: {
+      endpoints_confirmados: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        endpoint: { obrigatorio: true },
+        params: { obrigatorio: true, tipo: "objeto", campos: {} },
+        shape_resposta: { obrigatorio: true },
+        confianca: { obrigatorio: true, enum: (e) => e.executor?.confianca_enum ?? [] },
+        evidencia_ao_vivo: {}, // exigida só p/ "confirmado ao vivo" — regra aplicada em aceita()
+      } },
+      resumo_confianca: { tipo: "objeto", campos: {
+        confirmado_ao_vivo: { obrigatorio: true },
+        inferido: { obrigatorio: true },
+        nao_verificado: { obrigatorio: true },
+      } },
+    },
+    aceita(o) {
+      const presenca = camposPresentes(o, this.schema);
+      if (!presenca.ok) return presenca;
+      const estrutura = validarEstrutura(o, this.schemaEstrutural, this);
+      if (!estrutura.ok) return estrutura;
+      // Regra ESTRUTURAL da etapa 2 (achado P2): "confirmado ao vivo" SEM evidencia_ao_vivo é mentira
+      // — o porteiro REPROVA. A honestidade não depende da boa-fé do agente; é imposta aqui.
+      const semEvidencia = (o.endpoints_confirmados ?? []).filter(
+        (ep) => ep.confianca === "confirmado ao vivo" && !ep.evidencia_ao_vivo
+      );
+      if (semEvidencia.length) {
+        return { ok: false, faltando: semEvidencia.map(
+          (ep) => `${ep.endpoint}: marcado "confirmado ao vivo" sem evidencia_ao_vivo anexada`
+        ) };
+      }
+      return { ok: true, faltando: [] };
+    },
   },
   {
     id: "gap",

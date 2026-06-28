@@ -79,11 +79,29 @@ demanda, 4 partes do briefing) + placeholders que o motor já injeta (`{executor
 `{schema_prosa}`, `{next_stage}`) + regra-mestra em sanduíche. Incorpora os 4 achados de pesquisa
 (D-C confiança rebaixável, D-E divergência entregável, D-F segurança estrutural, D-G protocolo de fronteiras).
 
-## FASE 3 — pendente (próxima sessão / continuação)
-Plugar a etapa 2 no `v1/pipeline.config.mjs` declarando seus dados (executor `fiscal`, enum próprio,
-`schemaEstrutural` da ficha de API, `precondicoes` incl. dag_output, `estadoCurado`), copiar o CORE para
-`v1/cores/`, e TESTAR (cego executa o briefing gerado; regressão; adversarial). Esta fase MUDA o motor
-(nova etapa real) → rende muitas rodadas de anti-viés saturado, como a etapa 1.
+## FASE 3 — TESTE REAL AO VIVO ✅ (2026-06-28) — SUCESSO
+**Etapa 2 plugada no `v1/`:** etapa `descoberta` ganhou `executor` (fiscal), `precondicoes`
+(+dag_output), `estadoCurado`, `schemaEstrutural` (Ficha de API) e `corePath` → `cores/CORE-DISCOVERY.md`.
+O `aceita()` aplica a regra estrutural P2: **reprova "confirmado ao vivo" sem `evidencia_ao_vivo`**.
+
+**Teste de generalidade AO VIVO (o mesmo sistema da etapa 1, agora tocando a rede):**
+1. Motor gerou o briefing da etapa 2 (256 linhas; enum injetado; `{schema_prosa}` gerado da fonte única; placeholders resolvidos).
+2. Um agente **fiscal CEGO** (só o briefing, sem CORE/pesquisas) executou **chamando a API real** do
+   ravi (`ravi-console.tail40b2ad.ts.net:3000/api/ravi`, read-only) — 13 sondas, invariante de estado verificado (antes==depois, zero mutação).
+3. **Resultado:** 2 endpoints confirmados ao vivo (list, show — cadeia stateful), 6 falhas registradas
+   como dados (400 vs 500 distintos), **3 surpresas reais** (items≡commands duplicados; clamp silencioso
+   limit→500; dois regimes de erro), e **uma DIVERGÊNCIA de 1ª classe DAG↔realidade** (o DAG de teste
+   dizia que contact-tag-picker consome commands/list — FALSO; consome tags/list). Exatamente o tipo de
+   achado que só a verificação ao vivo revela.
+4. **O porteiro APROVOU** e avançou para a etapa 3 (gap). Confirmado: ambos "confirmado ao vivo" têm
+   evidência anexada → a regra estrutural funcionou.
+
+**Veredito:** o CORE-DISCOVERY e o motor da etapa 2 funcionam ao vivo, ponta a ponta. Mesma prova que
+validou a etapa 1, agora com a dificuldade extra de tocar uma API real com segurança. Suíte v1 40/40
+(2 testes da etapa 1 reapontados de `descoberta`→`gap`, que agora é a etapa-placeholder de referência).
+
+> Pendente p/ fechar a etapa 2: anti-viés saturado nas peças (verificadores cegos sobre o código que
+> pluguei), Fase 4 (cristalizar: ADR + governança + ROADMAP 2/13). O TESTE em si passou.
 
 ## FASE 4 — pendente
 Cristalizar: CORE oficial + ADR(s) da etapa 2 + governança + atualizar ROADMAP (2/13).
