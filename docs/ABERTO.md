@@ -70,7 +70,12 @@
 
 ## A008 — Fundação do DAG (etapa 1): decidida em validação, não cristalizada
 
-**Status:** fundação estável, aguardando validação contra demanda real (D016)
+**Status:** ✅ RESOLVIDA em 2026-06-28 — cristalizada no CORE-DAG v4.0 via ADR 0020/0021/0022
+(rotina 0→4, 2 casos + 9 pesquisas). A mecânica abaixo foi absorvida e refinada (aciclicidade
+agora *verificável*, profundidade *dinâmica*, nó no nível Component, blast radius graduado).
+A parte ainda aberta (condensação de ciclo) virou A010. Mantida abaixo por histórico.
+
+**Status (histórico):** fundação estável, aguardando validação contra demanda real (D016)
 **Contexto:** Revisão da etapa 1 (DAG) pelo método bottom-up — escrever o briefing perfeito
 primeiro, destilar o racional, e só então reescrever o CORE-DAG. Cruzou-se a base interna
 (`relations/`, metodologia `research/0001`, contrato F0) com pesquisa externa sobre DAG e
@@ -117,3 +122,18 @@ controle e reprodutibilidade.
 **Próximo passo:** não decidir agora. Reavaliar ao destilar o CORE-DAG real no motor — é quando
 a tensão fica concreta. Provável: manter (b) como caminho, mas só implementar se a falta de
 controle morder num caso real.
+
+---
+
+## A010 — Condensação de ciclo (CORE-DAG A5): validada só em sintético
+
+**Status:** provisória — no CORE-DAG v4.0 marcada "⚠️ PROVISÓRIO", não cristalizada em ADR.
+**Questão:** A regra A5 manda, ao detectar dependência mútua genuína (A precisa de B e B precisa de
+A na mesma relação), declarar um super-nó `ciclo: {A,B}` (condensação SCC) em vez de apagar uma
+aresta. Funciona — mas só foi testada contra um caso SINTÉTICO (import circular plantado,
+order.js ↔ pricing.js). Não vimos um ciclo de consumo REAL ainda (o ADP faz código bom evitá-los,
+e o lint costuma barrá-los).
+**Impacto:** Baixo/Médio — a regra é uma rede de segurança; a maioria das features é acíclica.
+**Próximo passo:** promover a regra (de provisória a cristalizada, vira ADR) quando aparecer um
+ciclo de consumo genuíno num caso real e o CORE o fizer declarar o super-nó corretamente. Até lá,
+fica no CORE como provisória. Evidência sintética: ver _WIP-core-dag-v4.md, Fase 3, Teste 3.

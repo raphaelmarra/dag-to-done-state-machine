@@ -5,6 +5,24 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### CORE-DAG v4.0 cristalizado (2026-06-28)
+- **`docs/CORE-DAG.md` → v4.0** (v3.0 arquivado em `CORE-DAG-v3.archive.md`). Evoluído pela rotina
+  0→4 (escrever → revisar → testar → cristalizar) contra 2 casos reais (CRM amplo do ravi-console +
+  regressão aba CLIs) e 9 pesquisas. Mudanças:
+  - **Aciclicidade verificável** (A2 testa o caminho de volta, não assume) — ADR 0022.
+  - **Profundidade dinâmica** (1 hop default + gatilhos hub/pass-through/contrato; transitivos "a
+    verificar" em vez de omitidos) — ADR 0020.
+  - **Nó no nível Component (C4)** + **blast radius com amplitude graduada** (BAIXA→CRÍTICA) — ADR 0021.
+  - **Regras de escrita** das pesquisas: sanduíche (regra-mestra repetida no fim), polaridade
+    positiva, exclusões como transferência de responsabilidade, raciocínio-antes-do-JSON.
+  - **Condensação de ciclo (A5)** marcada PROVISÓRIA — validada só em teste sintético (ABERTO A010).
+- **ADRs 0020, 0021, 0022** criados; **A008 resolvida**; **A010** aberta (condensação provisória).
+- **Validação (Fase 3):** agente cego executou o briefing gerado pelo v4.0 no CRM → 23 nós, 4 hubs,
+  blast radius graduado, 5 gaps filtrados por C1 (4 descartados), 0 ciclos com verificação por aresta.
+  Teste sintético de import circular → super-nó declarado corretamente. Evidência em `docs/research/`
+  (`_cego-briefing-crm.md`, `_teste-v4-crm-output.md`) e `docs/_WIP-core-dag-v4.md` (registro da rotina).
+- ROADMAP: etapa 1 (DAG) de 🟡 → ✅. INDEX e DECISOES atualizados.
+
 ### Fundação teórica do CORE (2026-06-27, sessão posterior)
 - **`docs/FLUXO-EXECUCAO.md`** (novo) — registra como a execução roda de fato: a state machine
   é dona dos prompts; o agente principal consome o briefing e o **traduz** num prompt de

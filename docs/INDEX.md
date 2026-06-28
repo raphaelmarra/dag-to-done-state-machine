@@ -13,7 +13,7 @@
 ## Reference (fatos técnicos — o quê)
 - [`PIPELINE.md`](PIPELINE.md) — as 13 etapas: agente, entregável, critério de aceitação de cada uma.
 - [`CORE.md`](CORE.md) — CORE genérico (esqueleto de regras de geração de briefing).
-- [`CORE-DAG.md`](CORE-DAG.md) — CORE da etapa 1 (DAG) v3.0. Gerador de briefing do mapa de correlações.
+- [`CORE-DAG.md`](CORE-DAG.md) — CORE da etapa 1 (DAG) **v4.0** (cristalizado, ADR 0020/0021/0022). Gerador de briefing do mapa de correlações: aciclicidade verificável, profundidade dinâmica, nó nível Component, blast radius graduado. (v3.0 arquivado em `CORE-DAG-v3.archive.md`.)
 - [`PADRAO-BRIEFING.md`](PADRAO-BRIEFING.md) — o padrão Meta-Prompt + Structured Handoff (camadas, R1-R9, nomenclatura).
 
 ## Explanation (o porquê)

@@ -28,9 +28,12 @@
 
 ---
 
-## Pendente de cristalizar (fundação do DAG — em validação, ADR 0016/D016)
+## CORE-DAG v4.0 — cristalizado (2026-06-28)
 
-A fundação do CORE-DAG v3.0 (nó=superfície, acíclico, custo híbrido, largura pela demanda)
-está validada 2x mas ainda vive em `ABERTO.md` (A008) por disciplina do ADR 0016. Vira ADR
-formal quando rodar no motor real. Achados das validações (#6 desempate, #7 provedor não-rede,
-#8 shape de comando) anotados em A008.
+- **ADR 0020** — Fronteira do DAG com profundidade dinâmica (não "1 hop" fixo).
+- **ADR 0021** — Nó no nível Component (C4) + blast radius com amplitude graduada.
+- **ADR 0022** — Aciclicidade verificável no DAG de dependências de consumo.
+
+Validados pela rotina 0→4 contra 2 casos (CRM amplo + aba CLIs estreita) e 9 pesquisas
+(`research/0006–0014`). A regra A5 (condensação de ciclo) fica **provisória** (validada só em
+sintético) — ver `ABERTO.md` A010. A fundação do v3.0 (A008) foi absorvida e superada.
