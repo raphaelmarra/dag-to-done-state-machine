@@ -72,6 +72,23 @@ Três testes:
 - **Portão 3 (cristalização):** passou nos três, sem regressão, e os achados adversariais
   apareceram. Só aqui sai de WIP.
 
+> **⚠️ LIÇÃO DA ETAPA 2 — "passou no teste real" ≠ "está pronto".** O teste de campo (mesmo AO VIVO
+> contra produção) valida o **caminho feliz**, NÃO a robustez do porteiro. Na etapa 2 o teste ao vivo
+> passou e o porteiro *aprovou* — mas o anti-viés saturado depois achou que a regra-central era
+> **burlável** (evidência vazia `{}` passava). Teste-de-campo e anti-viés pegam coisas DIFERENTES;
+> ambos são obrigatórios antes de cristalizar. Nunca cristalize só porque o ao-vivo passou.
+
+> **As 3 checagens da auditoria-base (a partir da etapa 3 — nascidas dos achados da etapa 2):**
+> Antes de declarar uma etapa pronta, o anti-viés saturado DEVE verificar, além de bugs:
+> 1. **Paridade CORE↔porteiro:** todo campo/regra que o CORE PROMETE ao executor é de fato EXIGIDO
+>    pelo porteiro (schema/aceita)? (Na etapa 2, o porteiro não exigia `limites`/`bordas`/`divergencias`
+>    que o CORE prometia — a divergência schema↔prosa F3 que a etapa 1 matou, reintroduzida por subuso da infra.)
+> 2. **Encanamento de entrada:** a pré-condição que esta etapa exige é REALMENTE produzida e entregue
+>    pela etapa anterior, no fluxo real? (Na etapa 2, `dag_output` era pré-condição mas o motor não o
+>    promovia — `next` sempre bloquearia; o e2e mascarava por usar `advance` direto.)
+> 3. **Dialeto de validação:** esta etapa precisou de regra custom no `aceita`? Então cheque se já é
+>    hora de padronizar em `regrasExtras` declarativo (A012) — antes que os gates fragmentem o padrão.
+
 ### FASE 4 — Cristalizar (governança)
 - WIP → oficial; versão anterior arquivada (não deletada).
 - Cada decisão estrutural validada → **um ADR** (motivo ancorado em pesquisa + caso).
@@ -90,19 +107,36 @@ Três testes:
 
 ---
 
-## Custo observado (1 execução, etapa DAG)
-- ~9 pesquisas em paralelo (5 de forma reutilizáveis + 4 de conteúdo do DAG).
-- 2 casos reais (CRM + regressão aba CLIs) + 1 sintético (ciclo).
-- 2 subagentes cegos (1 padrão-ouro, 1 generalidade) + 1 adversarial.
-- 3 ADRs + 1 questão aberta + arquivamento da versão anterior.
+## Custo observado (2 execuções — a tese de amortização CONFIRMADA)
+**Etapa 1 (DAG) — construiu o motor:**
+- ~9 pesquisas (5 de forma reutilizáveis + 4 de conteúdo) · 2 casos reais + 1 sintético · 2 cegos + 1 adversarial.
+- **~155 linhas de infra genérica** (validador recursivo, gerador de prosa, placeholders, bloqueio) + 3 ADRs.
 
-> Para etapas 2–13: a pesquisa de **forma** (0006–0010) **não se repete**. Repete-se só a pesquisa
-> de **conteúdo** da etapa + as Fases 0→4. Tende a ficar mais barato a cada etapa.
+**Etapa 2 (Descoberta) — só reusou:**
+- 4 pesquisas de conteúdo · 1 caso real + teste AO VIVO contra produção · 1 cego + 3 verificadores saturados.
+- **~50 linhas de config + 0 de motor** + 1 ADR. O único "código" novo: a regra custom no `aceita` (~12 linhas).
+
+> **Tese amortização — PROVADA por número (não por fé):** o custo marginal de uma etapa nova caiu de
+> "construir o motor" (~155 linhas) para "declarar um objeto" (~50). A infra da etapa 1 era investimento
+> que se paga. ⇒ Nas etapas 3–13, **seja agressivo na reutilização**: não re-prove o motor, só declare
+> dados. A pesquisa de **forma** (0006–0010) **não se repete** — só a de **conteúdo** + as Fases 0→4.
+
+> **Ressalva (etapa 2):** parte da "economia" foi por SUBUSO da infra (schema raso). Fechar o que faltou
+> custou +~25 linhas — ainda declarativo. Ou seja: até o trabalho que falta é "declarar dados", o que
+> REFORÇA a tese. Mas o subuso é uma armadilha (ver as 3 checagens da Fase 3 — paridade CORE↔porteiro).
 
 ---
 
 ## Limites conhecidos da própria metodologia
-Ver `_RETRO-metodologia-core.md`. Em resumo: foi exercitada **uma vez, pelo próprio autor, com
-testes que o autor escolheu**. Não é uma metodologia validada — é uma hipótese com uma evidência
-favorável e enviesada. Aplicar com ceticismo; cada nova etapa que ela destilar com sucesso (ou
-falha) é um datapoint sobre a própria metodologia.
+Ver `_RETRO-metodologia-core.md` (4 furos da 1ª execução). **Avanço na etapa 2** (2º datapoint): dois
+dos furos foram ATACADOS — (a) o teste deixou de ser só "escolhido pelo autor": foi **ao vivo contra
+produção real**, fora do controle do autor; (b) o anti-viés deixou de ser um cego único e virou
+**3 verificadores de perspectivas diversas** (code-reviewer + auditor-v2 + backend-architect), que
+acharam bugs que um só não acharia. Ainda compartilham o mesmo modelo — não zera o viés sistemático —
+mas é mais forte que a etapa 1.
+
+**Datapoint da etapa 2:** a metodologia produziu uma etapa que PARECIA pronta (teste ao vivo passou) e
+os verificadores acharam 4 problemas reais. Conclusão: a rotina **funciona como rede de segurança** —
+mas só porque o anti-viés saturado foi aplicado DEPOIS do teste de campo. A lição virou regra (Fase 3:
+as 3 checagens + "ao-vivo passou ≠ pronto"). Continua não-validada no sentido forte (2 execuções, mesmo
+autor/modelo), mas cada etapa a fortalece e já tem mecanismos contra os próprios furos.

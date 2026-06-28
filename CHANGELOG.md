@@ -5,6 +5,17 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Refino do workflow — lições da etapa 2 (2026-06-28)
+Destila o "core" do que a etapa 2 ensinou para o método (sem novos arquivos — refina os existentes):
+- **`METODOLOGIA-CORE.md`:** Fase 3 ganhou a regra "ao-vivo passou ≠ pronto" (teste de campo valida o
+  caminho feliz; anti-viés saturado pega a robustez do porteiro — os dois são obrigatórios) + as **3
+  checagens da auditoria-base** (paridade CORE↔porteiro; encanamento de entrada; dialeto de validação).
+  "Custo observado" agora tem 2 execuções (tese de amortização PROVADA por número: 155→50 linhas).
+  "Limites conhecidos" registra que 2 dos 4 furos foram atacados (teste ao vivo fora do controle do
+  autor; 3 verificadores de perspectivas diversas).
+- **`PLANO-DE-ETAPA.md`:** a auditoria-base do molde passa a listar as 3 checagens — a etapa 3 nasce
+  com o aprendizado embutido.
+
 ### 🏁 ETAPA 2 (Descoberta da API) COMPLETA — testada AO VIVO (2026-06-28)
 - **Cristalizada (ADR 0023):** CORE-DISCOVERY v1.0 plugado no `v1/`. Executor `fiscal` (read-only por
   construção); enum de confiança ao-vivo; **honestidade estrutural** — o porteiro REPROVA "confirmado

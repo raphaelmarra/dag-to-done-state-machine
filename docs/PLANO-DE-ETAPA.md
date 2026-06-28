@@ -98,6 +98,17 @@ Briefing(4)/Handoff(9) estão **presentes mas inertes**, não "ok". Confirmado l
 **Consequência metodológica:** a auditoria-base de QUALQUER etapa deve verificar **consistência
 CORE↔motor↔teste**, não só presença de campos no schema. (Corrige o viés-raiz.)
 
+> **As 3 checagens da auditoria-base (nascidas da etapa 2 — aplicar da etapa 3 em diante).** Detalhe
+> em `METODOLOGIA-CORE.md` (Fase 3). Antes de declarar uma etapa pronta, o anti-viés saturado verifica:
+> 1. **Paridade CORE↔porteiro** — todo campo/regra prometido no CORE é exigido pelo porteiro? (etapa 2:
+>    o porteiro não exigia `limites`/`bordas`/`divergencias` — F3 reintroduzida por subuso da infra).
+> 2. **Encanamento de entrada** — a pré-condição desta etapa é de fato produzida e promovida pela
+>    anterior, no fluxo real? (etapa 2: `dag_output` era inalcançável; o motor passou a promover `<etapa>_output`).
+> 3. **Dialeto de validação** — precisou de regra custom no `aceita`? É hora do `regrasExtras` declarativo (A012)?
+>
+> **E a regra de ouro nova:** "passou no teste de campo (mesmo AO VIVO) ≠ pronto". O teste valida o
+> caminho feliz; o anti-viés saturado pega a robustez do porteiro. Os dois são obrigatórios.
+
 ## Tracker da etapa 1 (REORDENADO por dependência real, verificada no código)
 
 | Ordem | Peça | Estado base (verificado) | Esforço | Status | Depende de |
