@@ -158,3 +158,21 @@ preservadas. Mas é a mesma classe de divergência que a refatoração combateu,
 (`nome: tipo — desc`), colapsando os dois blocos num só gerado. Fecha a fonte única de verdade.
 **Próximo passo:** avaliar ao destilar a etapa 2 (quando o gerador de prosa for reusado) — se a dívida
 morder, implementar o `desc`; senão, manter o bloco manual com um teste de sincronia nomes-schema↔prosa.
+
+---
+
+## A012 — Regras de aceitação custom: padronizar em `regrasExtras` declarativo
+
+**Status:** dívida registrada (não bloqueante) — apontada pela revisão cega da etapa 2 (backend-architect).
+**Questão:** Hoje há 3 formas de exprimir "regra de aceitação" no `aceita()` de uma etapa: presença de
+campos (declarativo), estrutura via schemaEstrutural (declarativo), e condição custom imperativa — em
+dois sabores: `comCondicao(...)` (gates simples: gate_a/gate_b/done/smoke) e um `.filter()` cru (a regra
+de evidência da etapa 2). Isso começa a fragmentar o padrão.
+**Impacto:** Médio — funciona, mas não escala limpo. Os GATES (etapas 7/9) terão regras próprias e cada
+um tende a inventar seu `aceita` imperativo.
+**Direção:** um campo declarativo único `regrasExtras: [(o)=>{ok,faltando}]` que o motor compõe (AND)
+após `validarEstrutura`; migrar os gates de `comCondicao` para ele. Depois, a gramática de schema pode
+absorver o caso comum ("campo obrigatório quando outro campo == valor") — que é o que a regra de
+evidência da etapa 2 realmente é (obrigatoriedade condicional).
+**Próximo passo:** avaliar ao destilar a etapa 7 (Gate A) — quando o 2º caso de regra custom aparecer,
+implementar o `regrasExtras`. Até lá, o `aceita` custom por etapa serve.

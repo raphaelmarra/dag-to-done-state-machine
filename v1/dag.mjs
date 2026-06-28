@@ -343,6 +343,10 @@ function cmdAdvance(feature) {
 
   // 4. APROVADO: registra conclusão e avança.
   estado.concluidas.push(etapa.id);
+  // Promove o output da etapa para o estado (genérico, M1): a próxima etapa pode declarar
+  // `<etapaId>_output` como pré-condição/estado curado. Ex.: a Descoberta exige `dag_output`. Sem isto,
+  // a pré-condição da etapa seguinte seria inalcançável (achado da revisão cega — defeito de integração).
+  estado[`${etapa.id}_output`] = output;
   registrarHistorico(estado, { evento: "aprovado", etapa: etapa.id });
 
   const prox = proximaEtapa(etapa.id);

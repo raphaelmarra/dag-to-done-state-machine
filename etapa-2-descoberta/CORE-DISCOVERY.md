@@ -1,8 +1,9 @@
 # CORE-DISCOVERY — Gerador de Briefing para a Etapa Descoberta da API
 
-> Versão: 1.0-draft (WIP — não cristalizar até Fase 3 de _WIP-construcao.md)
+> Versão: 1.0 | 2026-06-28
 > Etapa: 2 — Descoberta da API (confirma ao vivo o contrato REAL dos endpoints)
-> Status: derivado bottom-up do caso real (descoberta.output.json) + 4 pesquisas (research/01-04).
+> Status: cristalizado (ADR 0023). Derivado bottom-up do caso real (descoberta.output.json) + 4
+> pesquisas (research/01-04). Validado por teste REAL ao vivo + anti-viés saturado (3 verificadores).
 > Plugado no motor via {placeholders} (mesmo mecanismo da etapa 1).
 
 ---
@@ -166,10 +167,13 @@ Fora do escopo (e quem cobre): [endpoints não usados pela feature; varredura da
 ### FORMATO — o schema da ficha de API (gerado da fonte única)
 
 > Gerado do `schemaEstrutural` da etapa (que também valida o output — sem duplicação). Significado:
-> - **endpoints:** `endpoint` (método+rota) · `params` (cada um com tipo real, obrigatoriedade, default,
->   traço crítico) · `shape_resposta` · `limites` · `bordas` · `divergencias` (doc↔real) · `confianca`
->   (enum) · `evidencia_ao_vivo` (obrigatória se "confirmado ao vivo").
-> - **nao_verificado:** o que não foi possível confirmar, COM justificativa (zero sem motivo).
+> - **endpoints_confirmados:** lista de endpoints, cada um com `endpoint` (método+rota) · `params`
+>   (LISTA — cada item: `nome`, `tipo` real ex. "string opcional (NÃO number)", `obrigatorio`) ·
+>   `shape_resposta` · `limites` (paginação/timeout/teto ou "não determinado") · `bordas` (duplicações,
+>   coexistências, normalização, erros) · `divergencias` (doc↔real, se houver) · `confianca` (enum) ·
+>   `evidencia_ao_vivo` (objeto — obrigatório se "confirmado ao vivo").
+> - **nao_verificado:** lista do que não foi possível confirmar, cada item com `item` + `motivo`
+>   (critério oficial: zero não-verificado SEM justificativa).
 > - **resumo_confianca:** contagem confirmado/inferido/não-verificado.
 
 ```

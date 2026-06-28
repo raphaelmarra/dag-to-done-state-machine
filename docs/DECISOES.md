@@ -28,6 +28,14 @@
 
 ---
 
+## Etapa 2 (Descoberta da API) — cristalizada (2026-06-28)
+
+- **ADR 0023** — Honestidade imposta pelo porteiro: "confirmado ao vivo" sem evidência anexada é
+  REPROVADO; executor `fiscal` read-only por construção; divergência doc↔real é entregável; o motor
+  promove `<etapa>_output` para o estado. Validado por teste REAL ao vivo + anti-viés saturado (3
+  verificadores acharam e corrigiram 4 problemas). Reusou a infra da etapa 1 (~50 linhas, 0 de motor).
+  Dívida do `regrasExtras` declarativo em ABERTO A012.
+
 ## CORE-DAG v4.0 — cristalizado (2026-06-28)
 
 - **ADR 0020** — Fronteira do DAG com profundidade dinâmica (não "1 hop" fixo).

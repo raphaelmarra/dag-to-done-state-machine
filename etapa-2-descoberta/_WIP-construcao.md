@@ -100,8 +100,28 @@ O `aceita()` aplica a regra estrutural P2: **reprova "confirmado ao vivo" sem `e
 validou a etapa 1, agora com a dificuldade extra de tocar uma API real com segurança. Suíte v1 40/40
 (2 testes da etapa 1 reapontados de `descoberta`→`gap`, que agora é a etapa-placeholder de referência).
 
-> Pendente p/ fechar a etapa 2: anti-viés saturado nas peças (verificadores cegos sobre o código que
-> pluguei), Fase 4 (cristalizar: ADR + governança + ROADMAP 2/13). O TESTE em si passou.
+## ANTI-VIÉS SATURADO (3 verificadores) — achou 4 problemas reais, TODOS corrigidos
+O teste ao vivo provou o caminho feliz, mas os verificadores acharam que o porteiro era teatral em
+pontos críticos. Convergência dos 3 (code-reviewer + auditor-v2 + backend-architect):
+- 🔴 **BUG 1** — `evidencia_ao_vivo: {}` (objeto vazio) furava a regra-mestra (`!ep.evidencia` só pega
+  falsy). **Corrigido:** `evidenciaVazia()` pega {}, [], "  ", número. Testado (4 formas vazias).
+- 🔴 **BUG 2** — `dag_output` era inalcançável no fluxo real (`next` da descoberta sempre bloquearia;
+  o e2e mascarava por usar `advance` direto). **Corrigido:** o motor PROMOVE `<etapa>_output` para o
+  estado ao aprovar (genérico, M1). Testado.
+- 🔴 **SCHEMA RASO** — o porteiro não exigia `limites`/`bordas`/`divergencias`/`params` ricos que o
+  CORE promete (a divergência schema↔prosa F3 que a etapa 1 matou, reintroduzida). **Corrigido:**
+  params vira lista-de-objetos {nome,tipo,obrigatorio}; +limites/bordas/divergencias/nao_verificado.
+  CORE Seção 6 atualizado para casar. Testado (params malformado e falta de limites reprovam).
+- 🟡 **SEM TESTE PRÓPRIO** — **Corrigido:** `discovery.test.mjs` (13 casos) + sync-test do CORE.
+
+**Tese confirmada com números (backend-architect):** etapa 2 custou ~50 linhas config + 0 de motor,
+vs etapa 1 que construiu ~155 de infra. "O custo marginal caiu de 'construir o motor' para 'declarar
+um objeto'." A aposta do piloto está quantificada.
+
+**Suíte v1: 51/51.** Veredito pós-correção: design sólido, regra estrutural agora REAL (não teatral).
+
+## FASE 4 — cristalizar (a seguir)
+ADR(s) da etapa 2; ROADMAP 2/13; governança. CORE-DISCOVERY sai de draft.
 
 ## FASE 4 — pendente
 Cristalizar: CORE oficial + ADR(s) da etapa 2 + governança + atualizar ROADMAP (2/13).

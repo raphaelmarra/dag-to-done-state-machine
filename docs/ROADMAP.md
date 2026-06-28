@@ -3,11 +3,11 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
-> **Onde paramos (2026-06-28):** **v1 pós-MVP em `v1/`** com a etapa 1 rodando o **CORE-DAG v4.0
-> cristalizado** (testes 8/8 verde). MVP congelado em `MVP/` como marco. CORE-DAG v4.0 destilado pela
-> rotina 0→4 (ADR 0020/0021/0022; metodologia em `METODOLOGIA-CORE.md`). Repo publicado em
-> `raphaelmarra/dag-to-done-state-machine`. Próximo trabalho: destilar os COREs das etapas 2–13 (uma
-> a uma, pela metodologia) e plugá-los no `v1/pipeline.config.mjs` como foi a etapa 1.
+> **Onde paramos (2026-06-28):** **2 de 13 etapas completas** no `v1/`. Etapa 1 (DAG, CORE v4.0, ADR
+> 0020/0021/0022) e **Etapa 2 (Descoberta da API, CORE v1.0, ADR 0023) — testada AO VIVO** contra a API
+> real do ravi. Suíte v1 **51/51**. A etapa 2 reusou a infra da etapa 1 (~50 linhas, 0 de motor) —
+> confirmando que a infra era investimento amortizável e que o método REPLICA. MVP congelado em `MVP/`.
+> Próximo: etapa 3 (GAP), mesma rotina. Dívidas: A010 (condensação), A011 (descrições), A012 (regrasExtras).
 
 ---
 
@@ -60,7 +60,7 @@ Uma etapa é considerada "CORE pronto" quando:
 | # | Etapa | Agente | CORE | Status |
 |---|-------|--------|------|--------|
 | 1 | DAG | Explore* | `CORE-DAG.md` v4.0 | ✅ CORE cristalizado + **etapa completa no v1** (8/8 peças, plugada no motor, 40/40 testes) |
-| 2 | Descoberta da API | fiscal | — | ⬜ não iniciado |
+| 2 | Descoberta da API | fiscal | `CORE-DISCOVERY.md` v1.0 | ✅ cristalizado (ADR 0023) + plugado no v1 + **testado AO VIVO** (51/51) |
 | 3 | GAP | error-detective | — | ⬜ não iniciado |
 | 4 | Design | ui-ux-designer | — | ⬜ não iniciado |
 | 5 | Mapa de dependências | Plan | — | ⬜ não iniciado |

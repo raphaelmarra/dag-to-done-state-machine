@@ -260,10 +260,24 @@ export const PIPELINE = [
     schemaEstrutural: {
       endpoints_confirmados: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         endpoint: { obrigatorio: true },
-        params: { obrigatorio: true, tipo: "objeto", campos: {} },
+        // params como lista-de-objetos (não objeto-vazio): captura a forma rica que o CORE exige —
+        // cada param com tipo real, obrigatoriedade, traço crítico. (Correção do schema raso.)
+        params: { obrigatorio: true, tipo: "lista-de-objetos", itemCampos: {
+          nome: { obrigatorio: true },
+          tipo: { obrigatorio: true },        // ex.: "string opcional (NÃO number)"
+          obrigatorio: { obrigatorio: true }, // "sim" | "não"
+        } },
         shape_resposta: { obrigatorio: true },
+        limites: { obrigatorio: true },       // paginação, timeout, tetos (ou "não determinado")
+        bordas: { obrigatorio: true },        // duplicações, coexistências, normalização, erros
+        divergencias: {},                     // doc↔realidade (opcional — pode não haver)
         confianca: { obrigatorio: true, enum: (e) => e.executor?.confianca_enum ?? [] },
-        evidencia_ao_vivo: {}, // exigida só p/ "confirmado ao vivo" — regra aplicada em aceita()
+        evidencia_ao_vivo: { tipo: "objeto", campos: {} }, // forma; obrigatoriedade condicional no aceita()
+      } },
+      // O que não foi possível confirmar — COM justificativa (critério oficial: zero sem motivo).
+      nao_verificado: { opcionalNoTopo: true, tipo: "lista-de-objetos", itemCampos: {
+        item: { obrigatorio: true },
+        motivo: { obrigatorio: true },
       } },
       resumo_confianca: { tipo: "objeto", campos: {
         confirmado_ao_vivo: { obrigatorio: true },
@@ -278,8 +292,16 @@ export const PIPELINE = [
       if (!estrutura.ok) return estrutura;
       // Regra ESTRUTURAL da etapa 2 (achado P2): "confirmado ao vivo" SEM evidencia_ao_vivo é mentira
       // — o porteiro REPROVA. A honestidade não depende da boa-fé do agente; é imposta aqui.
+      // evidenciaVazia pega TODOS os "vazios": undefined/null/""/[], objeto sem chaves, string só-espaços
+      // (senão {} ou "  " furariam a regra — achado da revisão cega).
+      const evidenciaVazia = (v) => {
+        if (valorVazio(v)) return true;
+        if (typeof v === "string") return v.trim() === "";
+        if (typeof v === "object") return Object.keys(v).length === 0;
+        return true; // número/bool não é evidência ("o que foi chamado + o que retornou")
+      };
       const semEvidencia = (o.endpoints_confirmados ?? []).filter(
-        (ep) => ep.confianca === "confirmado ao vivo" && !ep.evidencia_ao_vivo
+        (ep) => ep.confianca === "confirmado ao vivo" && evidenciaVazia(ep.evidencia_ao_vivo)
       );
       if (semEvidencia.length) {
         return { ok: false, faltando: semEvidencia.map(

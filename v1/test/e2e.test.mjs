@@ -46,6 +46,20 @@ function outputValido(etapa) {
   }
 
   switch (etapa.id) {
+    case "descoberta":
+      // Ficha de API honesta: "confirmado ao vivo" COM evidência (a regra estrutural exige).
+      // Não confiar no gerador genérico aqui (ele produziria evidência inválida — ver discovery.test).
+      out.endpoints_confirmados = [{
+        endpoint: "POST /api/x/list",
+        params: [{ nome: "limit", tipo: "string opcional", obrigatorio: "não" }],
+        shape_resposta: "{ data: {...} }",
+        limites: "não determinado",
+        bordas: "nenhuma",
+        confianca: "confirmado ao vivo",
+        evidencia_ao_vivo: { chamou: "{}", retornou: "ok" },
+      }];
+      out.resumo_confianca = { confirmado_ao_vivo: "1", inferido: "0", nao_verificado: "0" };
+      break;
     case "gate_a":
       out.veredito = "APROVA";
       break;

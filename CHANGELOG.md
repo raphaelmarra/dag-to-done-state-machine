@@ -5,6 +5,20 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### 🏁 ETAPA 2 (Descoberta da API) COMPLETA — testada AO VIVO (2026-06-28)
+- **Cristalizada (ADR 0023):** CORE-DISCOVERY v1.0 plugado no `v1/`. Executor `fiscal` (read-only por
+  construção); enum de confiança ao-vivo; **honestidade estrutural** — o porteiro REPROVA "confirmado
+  ao vivo" sem evidência anexada (evidência vazia {}/[]/"  " conta como ausente).
+- **Testada AO VIVO:** um fiscal cego executou o briefing gerado pelo motor chamando a API real do
+  ravi (read-only, 13 sondas, zero mutação). Achou 2 endpoints + 3 surpresas + 1 divergência DAG↔real.
+  O porteiro aprovou (evidência presente).
+- **Anti-viés saturado (3 verificadores) achou e corrigiu 4 problemas:** bug da evidência vazia; defeito
+  de integração (o motor agora promove `<etapa>_output` para o estado); schema raso (params vira lista
+  rica; +limites/bordas/divergencias/nao_verificado); falta de teste próprio (`discovery.test.mjs`, 13 casos).
+- **Tese do piloto CONFIRMADA com números:** etapa 2 custou ~50 linhas de config + 0 de motor, vs ~155
+  de infra na etapa 1. O custo marginal de uma etapa caiu de "construir o motor" para "declarar um objeto".
+- ROADMAP: **2/13**. Suíte v1 **51/51**. Dívida A012 (regrasExtras declarativo) registrada.
+
 ### Executor do DAG validado — Explore (2026-06-28)
 - A escolha do executor da etapa 1 (Explore) — antes dedutiva e não-confrontada — foi **validada**
   contra os 40 agentes do CLI `agents` + built-in. Achado: o Explore é o **único** que garante
