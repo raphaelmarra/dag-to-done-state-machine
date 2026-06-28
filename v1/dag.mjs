@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa } from "./pipeline.config.mjs";
+import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa, nomeEtapa } from "./pipeline.config.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DAG_DIR = join(RAIZ, ".dag");
@@ -90,12 +90,16 @@ function cmdInit(feature, flags) {
   if (existsSync(statePath(feature))) {
     return erro(`feature "${feature}" já existe (${statePath(feature)}). Use 'status' para inspecionar.`);
   }
+  // next_stage é derivado do pipeline (a próxima etapa real), não hardcoded (M1). Recalculado a
+  // cada avanço em cmdAdvance, para refletir sempre o consumidor imediato do output da etapa atual.
+  const prox = proximaEtapa(PRIMEIRA_ETAPA);
   const estado = {
     feature,
     entry_point: flags.entry ?? feature,
     description: flags.desc ?? "",
     project_root: flags.root ?? "",
     etapaAtual: PRIMEIRA_ETAPA,
+    next_stage: prox ? nomeEtapa(prox) : "(última etapa)",
     concluidas: [],
     historico: [{ evento: "init", etapa: PRIMEIRA_ETAPA, em: nowISO() }],
   };
@@ -154,8 +158,33 @@ function resolverCore(etapa) {
   return etapa.core ?? "(sem CORE definido)";
 }
 
+// Substitui placeholders {chave} no texto pelos valores escalares do estado da instância (M1: o CORE
+// referencia campos por nome; o motor resolve do contexto, sem lista fixa). Regras:
+//  - só substitui chaves cujo valor é string/number não-vazio; sem valor → mantém {chave} (lacuna
+//    visível, nunca "undefined");
+//  - NÃO toca em código INLINE (entre `crases`): ali ficam as menções-literais ao próprio
+//    placeholder (ex.: `{next_stage}` na doc) e eventuais literais de código tipo `{nos}` — não
+//    devem ser substituídos (ressalva da revisão cega da peça 1).
+//  - Blocos ```fenced``` deste CORE são TEMPLATES a preencher (ex.: as FRONTEIRAS com {next_stage}),
+//    não código literal — portanto a substituição OCORRE dentro deles. (Semântica específica deste
+//    projeto: o fenced é um molde, não um exemplo.)
+function substituirPlaceholders(texto, estado) {
+  const trocar = (s) => s.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (match, chave) => {
+    const v = estado[chave];
+    if (typeof v === "string" && v !== "") return v;
+    if (typeof v === "number") return String(v);
+    return match;
+  });
+  // Divide preservando só código inline (`...`); índices ímpares = inline a NÃO tocar.
+  return texto
+    .split(/(`[^`\n]*`)/g)
+    .map((parte, i) => (i % 2 === 1 ? parte : trocar(parte)))
+    .join("");
+}
+
 function montarBriefing(estado, etapa) {
   // Estado curado: só os campos que a etapa precisa (R5 do CORE). No MVP, os essenciais.
+  const coreResolvido = substituirPlaceholders(resolverCore(etapa), estado);
   return [
     `# Briefing — Etapa: ${etapa.nome}`,
     ``,
@@ -166,10 +195,11 @@ function montarBriefing(estado, etapa) {
     `- entry_point: ${estado.entry_point}`,
     `- description: ${estado.description || "(vazio)"}`,
     `- project_root: ${estado.project_root || "(vazio)"}`,
+    `- next_stage: ${estado.next_stage || "(não definido)"}`,
     `- etapas concluídas: ${estado.concluidas.length ? estado.concluidas.join(", ") : "(nenhuma)"}`,
     ``,
     `## CORE / instrução desta etapa`,
-    resolverCore(etapa),
+    coreResolvido,
     ``,
     `## Output esperado`,
     `Escreva o resultado desta etapa (JSON) no arquivo de output indicado.`,
@@ -268,6 +298,9 @@ function cmdAdvance(feature) {
   const prox = proximaEtapa(etapa.id);
   if (prox) {
     estado.etapaAtual = prox;
+    // Recalcula next_stage para o consumidor do output da NOVA etapa atual (M1 — derivado, não fixo).
+    const seguinte = proximaEtapa(prox);
+    estado.next_stage = seguinte ? nomeEtapa(seguinte) : "(última etapa)";
     registrarHistorico(estado, { evento: "avancou", etapa: prox });
     salvarEstado(estado);
     console.log(`✅ etapa "${etapa.id}" APROVADA. Avançou para: ${prox}`);

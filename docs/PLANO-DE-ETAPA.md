@@ -99,7 +99,7 @@ CORE↔motor↔teste**, não só presença de campos no schema. (Corrige o viés
 
 | Ordem | Peça | Estado base (verificado) | Esforço | Status | Depende de |
 |-------|------|--------------------------|---------|--------|------------|
-| 1 | **Substituição de placeholders no motor (F1)** — `resolverCore` substitui `{next_stage}` etc.; `cmdInit` popula `next_stage` | **quebrado** (placeholder literal) | M | ⬜ | — (motor) |
+| 1 | **Substituição de placeholders no motor (F1)** — `cmdInit`/`cmdAdvance` populam `next_stage` derivado do pipeline; `montarBriefing` substitui `{chave}` do estado, protegendo inline code | ✅ **PRONTA** | M | ✅ | — (motor) |
 | 2 | **Executor como dado consultável (1)** — capacidade vira propriedade da etapa, não texto solto | hardcoded no .md | M | ⬜ | — |
 | 3 | **Grau de certeza (2)** — enum derivado da propriedade do executor (peça 2) | hardcoded no .md | M | ⬜ | peça 2 |
 | 4 | **Schema como DADO ÚNICO (6)** — objeto/JSON fonte-de-verdade, injetado no briefing E no validador. **NÃO parsear markdown** (F3) | hardcoded, duplicado | F | ⬜ | peças 2,3 (enum entra na estrutura) |
@@ -153,4 +153,18 @@ cega. Aí o sistema está provado e replicamos para a etapa 2.
 
 > Cada entrada: peça, o que foi feito, evidência, veredito do verificador cego, commit.
 
-_(vazio — execução começa após este plano ser commitado)_
+### ✅ Peça 1 — Substituição de placeholders no motor (2026-06-28)
+- **O que foi feito:** `cmdInit` e `cmdAdvance` populam `estado.next_stage` derivado de
+  `proximaEtapa()` (dinâmico, não hardcoded); `montarBriefing` aplica `substituirPlaceholders()` que
+  troca qualquer `{chave}` por `estado[chave]`, protegendo código inline (crases) e deixando
+  placeholders sem valor como lacuna visível (não "undefined").
+- **DoD:**
+  - ✅ DINÂMICA — substituição genérica (qualquer `{chave}`); valor vem do pipeline. Zero constante no motor.
+  - ✅ EVIDÊNCIA — TDD: teste falhou antes (RED), passou depois (GREEN). Bug confirmado lendo o código.
+  - ✅ TESTE — `test/placeholder.test.mjs` (6 casos: init, FRONTEIRA substituída, inline protegido, anti-undefined, advance recalcula). Suíte 13/13.
+  - ✅ ANTI-VIÉS — verificador cego (code-reviewer) ratificou COM ressalvas; **todas as 3 ressalvas
+    aplicadas** (skip de inline code, asserção robusta na FRONTEIRA, testes de advance/inline). Evidência primária = teste mecânico.
+  - ✅ GOVERNANÇA — sem ADR (correção de bug, não decisão de lei); CHANGELOG atualizado.
+- **Nuance de design registrada:** blocos ```` ``` ```` do CORE-DAG são TEMPLATES (preenchidos), não
+  código literal — por isso a substituição ocorre dentro deles; só código inline (crase) é protegido.
+- **Commit:** (ver próximo commit desta sessão).

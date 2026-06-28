@@ -5,6 +5,17 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Etapa 1, Peça 1 — substituição de placeholders no motor (2026-06-28)
+- **Corrige o bug F1** (achado pela revisão cega): o motor entregava `{next_stage}` literal ao
+  executor. Agora `cmdInit`/`cmdAdvance` populam `next_stage` derivado do pipeline (dinâmico, M1), e
+  `montarBriefing` substitui `{chave}` pelos valores do estado (`v1/dag.mjs`).
+- **Dinâmico de verdade:** substituição genérica de qualquer `{chave}` (não só next_stage); valor vem
+  de `proximaEtapa()`/`nomeEtapa()` — zero constante no motor.
+- **Robustez:** código inline (entre crases) é protegido — um literal `{nos}` num CORE futuro não é
+  substituído por engano; placeholder sem valor vira lacuna visível, não "undefined".
+- **TDD + anti-viés:** teste RED→GREEN; verificador cego ratificou com 3 ressalvas, todas aplicadas
+  (skip de inline, asserção na FRONTEIRA específica, testes de advance/inline). Suíte v1 **13/13**.
+
 ### Revisão cega do plano da etapa 1 (2026-06-28)
 - **`docs/_RETRO-revisao-plano-etapa1.md`** (novo) — registro da revisão adversarial do PLANO-DE-ETAPA
   por um verificador cego independente ANTES de executar. 10 findings (3 graves). Provou o portão

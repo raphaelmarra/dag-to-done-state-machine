@@ -161,3 +161,10 @@ export function proximaEtapa(id) {
   if (i === -1 || i === PIPELINE.length - 1) return null;
   return PIPELINE[i + 1].id;
 }
+
+// Nome legível de uma etapa pelo id (para substituir {next_stage} no briefing de forma dinâmica:
+// o valor vem do pipeline, não de uma constante). Inclui o id entre parênteses para rastreio.
+export function nomeEtapa(id) {
+  const e = etapaPorId(id);
+  return e ? `${e.nome} (etapa ${id})` : id;
+}
