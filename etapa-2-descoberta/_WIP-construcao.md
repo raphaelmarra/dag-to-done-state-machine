@@ -1,6 +1,12 @@
-# _WIP — Construção da Etapa 2 (Descoberta da API)
+# _WIP — Construção da Etapa 2 (Descoberta da API) — ✅ CONCLUÍDA
 
-> Registro da rotina 0→4 da etapa 2. Status: em execução (autônoma). Pesquisas em `research/01-04`.
+> Status: ✅ ETAPA 2 FINALIZADA em 2026-06-28 (ADR 0023, CORE-DISCOVERY v1.0, testada AO VIVO, 56/56).
+> Este arquivo é o REGISTRO HISTÓRICO da rotina 0→4 — não editar. Pesquisas em `research/01-04`.
+>
+> **Dívida que NÃO bloqueou o fechamento:** A012 (padrão `aceita` custom → `regrasExtras` declarativo).
+> Decisão de sequência: resolver A012 quando a etapa 3 (GAP) trouxer o 2º caso de regra custom — não
+> antes (bottom-up: 2 casos antes de abstrair). O teste automático genérico de paridade fica como dívida
+> aberta, a construir só se o processo (checagem + anti-viés) escapar alguma vez.
 
 ## FASE 0 — Vereditos das mudanças candidatas
 
