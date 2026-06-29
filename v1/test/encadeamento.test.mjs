@@ -10,7 +10,7 @@ import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
 import { writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { main, outputPath, briefingPath, featureDir, carregarEstado } from "../dag.mjs";
-import { CATALOGO_LENTES } from "../pipeline.config.mjs";
+import { CATALOGO_LENTES, CATALOGO_WCAG } from "../pipeline.config.mjs";
 
 const FEATURE = "encadeamento-test";
 function limpar() { rmSync(featureDir(FEATURE), { recursive: true, force: true }); }
@@ -104,11 +104,23 @@ const OUT_GATEA = {
   p0_coberto: "sim",
   exigencias_antes_de_mergear: [],
 };
+// Acessibilidade honesta: TODOS os critérios WCAG declarados (cobertura total); 1 coberto com evidência, o
+// resto N/A com motivo substantivo. aprovado com 0 issue 'alta'.
+const OUT_A11Y = {
+  veredito: "aprovado",
+  resumo: "Operei a tela: foco/teclado sadios; form/modal/drag não se aplicam a este diff.",
+  criterios: CATALOGO_WCAG.map((W) => (
+    /2\.4\.3|focus order/.test(W.re.source)
+      ? { criterio: W.nome, situacao: "coberto", evidencia_operacional: "Tab percorreu input→botão na ordem visual (activeElement registrado)" }
+      : { criterio: W.nome, situacao: "nao_aplicavel", evidencia_operacional: "feature de correção de contrato sem este padrão de interação; não se aplica" })),
+  issues: [],
+  fica_para_humano: ["confirmar com leitor de tela real na etapa 10"],
+};
 
-describe("Encadeamento real DAG → … → Implementação → Gate A (fluxo do motor, sem injeção manual)", () => {
+describe("Encadeamento real DAG → … → Gate A → Acessibilidade (fluxo do motor, sem injeção manual)", () => {
   after(() => limpar());
 
-  it("as 7 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
+  it("as 8 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
     limpar();
     // init com o que o motor não promove (entry_point/project_root vêm do operador).
     assert.equal(main(["init", FEATURE, "--entry", "aba CLIs", "--root", "/proj"]), 0);
@@ -171,10 +183,19 @@ describe("Encadeamento real DAG → … → Implementação → Gate A (fluxo do
     assert.ok(existsSync(briefingPath(FEATURE, "gate_a")), "briefing Gate A gerado");
     escrever("gate_a", OUT_GATEA);
     assert.equal(main(["advance", FEATURE]), 0, "advance Gate A aprova (revisão bem-feita, cobertura total)");
+    assert.ok(carregarEstado(FEATURE).gate_a_output, "motor promoveu gate_a_output");
     assert.equal(carregarEstado(FEATURE).etapaAtual, "acessibilidade", "avançou para Acessibilidade");
 
-    // Encadeamento provado: 7 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
-    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao", "gate_a"]);
+    // ETAPA 8 (Acessibilidade) — exige as 7 anteriores. O briefing injeta o catálogo WCAG; o verificador opera
+    // a tela e declara cada critério. aprovado com 0 issue 'alta' (coerente).
+    assert.equal(main(["next", FEATURE]), 0, "next Acessibilidade ok (7 pré-condições presentes)");
+    assert.ok(existsSync(briefingPath(FEATURE, "acessibilidade")), "briefing Acessibilidade gerado");
+    escrever("acessibilidade", OUT_A11Y);
+    assert.equal(main(["advance", FEATURE]), 0, "advance Acessibilidade aprova (verificação bem-feita, cobertura total)");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "gate_b", "avançou para Gate B");
+
+    // Encadeamento provado: 8 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
+    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao", "gate_a", "acessibilidade"]);
   });
 
   it("PROVA da rastreabilidade no fluxo real: âncora-FANTASMA na etapa 6 BLOQUEIA o advance", () => {

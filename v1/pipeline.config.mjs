@@ -513,14 +513,27 @@ function regraVeredictoJustificado(output) {
 // "simplificar"; o anti-viés a repôs): uma lente `nao_aplicavel` exige um MOTIVO SUBSTANTIVO, não nota-lixo
 // ("n/a", "-", "na", "não"). O schema já barra nota vazia; esta barra a nota oca. Sem ela, marcar tudo N/A com
 // "n/a" + APROVA passa o porteiro — teatro de revisão. O N/A tem de ser decisão consciente, não automática.
-const NOTA_OCA = /^(n\/?a|na|-+|—|n\.?a\.?|não|nao|sem|nenhum|x)$/i;
-function regraNaoAplicavelComMotivo(output) {
-  const ocas = (output?.lentes ?? []).filter(
-    (l) => l?.situacao === "nao_aplicavel" && NOTA_OCA.test(`${l?.nota ?? ""}`.trim())
-  );
-  return ocas.length
-    ? { ok: false, faltando: ocas.map((l) => `lente "${l.lente}" nao_aplicavel com motivo oco ("${l.nota}") — diga POR QUE não se aplica a esta feature`) }
-    : { ok: true, faltando: [] };
+// Motivo OCO: evidência/nota sem substância. Um item legítimo diz POR QUE (não se aplica) ou PROVA (operou).
+// Inclui as fugas comuns: "n/a", "-", "não", e os assentimentos vazios "ok"/"sim"/"feito"/"verificado" (que
+// afirmam sem provar — o pior caso num "coberto", a afirmação mais forte do agente). Achado D1/W1 da revisão.
+const NOTA_OCA = /^(n\/?a|na|-+|—|n\.?a\.?|não|nao|sem|nenhum|x|ok|sim|feito|done|pass|passou|verificado|checado|✓|✔)$/i;
+
+// Fábrica (A012 — generalizada ao 2º caso, etapa 8): "todo item de `listaCampo` cujo `situCampo` == `valorNA`
+// exige um `motivoCampo` SUBSTANTIVO (não-oco)". A defesa anti-fuga do catálogo declarado (etapa 7: lentes;
+// etapa 8: critérios WCAG) — sem ela, marcar tudo N/A com "n/a" passa o porteiro. `idCampo` rotula o erro.
+// `valorNA === null` → aplica a TODO item (qualquer situação): a evidência precisa de substância SEMPRE — não
+// só "coberto" com "ok" passaria teatro (achado D1 da revisão cega: a defesa anti-teatro vale p/ toda situação).
+function regraNaoAplicavelComMotivo(listaCampo, idCampo, situCampo, valorNA, motivoCampo) {
+  const aplica = (it) => valorNA === null || it?.[situCampo] === valorNA;
+  return (output) => {
+    const ocas = (output?.[listaCampo] ?? []).filter(
+      (it) => aplica(it) && NOTA_OCA.test(`${it?.[motivoCampo] ?? ""}`.trim())
+    );
+    const rotulo = valorNA === null ? "com evidência oca" : `${valorNA} com motivo oco`;
+    return ocas.length
+      ? { ok: false, faltando: ocas.map((it) => `"${it?.[idCampo] ?? "(item)"}" ${rotulo} ("${it?.[motivoCampo]}") — dê uma evidência/motivo SUBSTANTIVO`) }
+      : { ok: true, faltando: [] };
+  };
 }
 
 // Regra D-I da etapa 7: toda lente DESCOBERTA (= sem cobertura, = problema) é referenciada por ao menos uma
@@ -543,8 +556,8 @@ function regraDescobertaViraIssue(output) {
     : { ok: true, faltando: [] };
 }
 
-// Regra I-acion da etapa 7: toda issue tem localizacao + acao não-vazias (sem isso a etapa 6 não sabe onde
-// mexer nem o quê fazer). Reúso da filosofia de evidência obrigatória, aplicada a 2 campos.
+// Regra I-acion da etapa 7 (e 8): toda issue tem localizacao + acao não-vazias (sem isso a etapa 6 não sabe
+// onde mexer nem o quê fazer). Reúso da filosofia de evidência obrigatória, aplicada a 2 campos.
 function regraIssueAcionavel(output) {
   const erros = [];
   for (const i of output?.issues ?? []) {
@@ -552,6 +565,85 @@ function regraIssueAcionavel(output) {
     if (evidenciaVazia(i?.acao)) erros.push(`issue "${i?.id ?? "(sem id)"}" sem acao (o que fazer — acionável)`);
   }
   return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
+// --- Regras da etapa 8 (Acessibilidade — o "Gate A do runtime") -------------------------------------
+// CATÁLOGO WCAG OPERACIONAL (DADO no CORE — exceção HONESTA a M1: é norma EXTERNA estável e finita, WCAG 2.2
+// A/AA + APG do W3C; o dinâmico é a SITUAÇÃO de cada critério, não o catálogo). ≈16 critérios que SÓ se pegam
+// operando a tela (Deque: Focus Order 0%, Keyboard 2,5% automatizáveis — o Gate A estático é cego a eles).
+// Decisão (operador, simetria c/ etapa 7): injeta-se o catálogo INTEIRO e o agente declara cada critério
+// coberto/violado/nao_aplicavel — a condicionalidade (só interação real) vira N/A com motivo (NÃO pular: VPAT
+// + CI/CD compliance convergem — pular gera falso-verde). Cada {nome, re} com matching conceitual; regex
+// DISJUNTOS (anti-colisão da etapa 7) — invariantes "casa o próprio nome" e "não casa o de outro" testados.
+const CATALOGO_WCAG = [
+  // Foco / teclado (transversais a qualquer interação)
+  { nome: "2.1.1 Keyboard", re: /2\.1\.1|operável por teclado|operavel por teclado|todo interativo.*teclado/ }, // não "keyboard" solto (casaria "Keyboard Trap")
+  { nome: "2.1.2 No Keyboard Trap", re: /2\.1\.2|keyboard trap|armadilha de foco|foco preso/ },
+  { nome: "2.4.3 Focus Order", re: /2\.4\.3|focus order|ordem de (foco|tabula)/ },
+  { nome: "2.4.7 Focus Visible", re: /2\.4\.7|focus visible|foco vis[íi]vel|anel de foco/ },
+  { nome: "2.4.11 Focus Not Obscured", re: /2\.4\.11|not obscured|foco (não|nao) (obscurecido|escondido|coberto)/ },
+  // Formulário (MUTACAO)
+  { nome: "3.3.1 Error Identification", re: /3\.3\.1|error identification|identifica[çc][ãa]o de erro|erro identificado/ },
+  { nome: "3.3.2 Labels or Instructions", re: /3\.3\.2|labels or instructions|r[óo]tulo|label.*campo|campo.*label/ },
+  { nome: "3.3.3 Error Suggestion", re: /3\.3\.3|error suggestion|sugest[ãa]o de (corre[çc][ãa]o|erro)/ },
+  { nome: "4.1.3 Status Messages", re: /4\.1\.3|status messages|mensagem de status|anunci|aria-live|live region|regi[ãa]o viva/ },
+  // Modal / drawer (4 critérios distintos — os casos provaram que aparecem separados)
+  { nome: "foco entra ao abrir (modal)", re: /foco entra|entra ao abrir|foco inicial.*(modal|drawer|dialog)/ },
+  { nome: "focus trap no modal", re: /focus trap|trap.*(modal|foco)|prend(er|e) o foco.*modal/ },
+  { nome: "Escape fecha o modal", re: /escape fecha|esc.*fecha|fecha.*escape/ },
+  { nome: "foco retorna ao gatilho", re: /foco retorna|retorna ao gatilho|restaura[çr].*foco/ },
+  // Board / drag-drop
+  { nome: "2.5.7 Dragging Movements", re: /2\.5\.7|dragging|arrast|drag.*alternativa|alternativa.*arrast/ },
+  // Transversais (todo conteúdo)
+  { nome: "1.4.3 Contrast", re: /1\.4\.3|contrast|contraste/ },
+  { nome: "4.1.2 Name Role Value", re: /4\.1\.2|name.*role.*value|nome.*papel|papel.*nome|nome acess[íi]vel/ },
+];
+
+// Regra W-cob da etapa 8: o agente declara TODOS os critérios do catálogo WCAG (cada um aparece em
+// `criterios[].criterio`, matching conceitual 1-para-1 — molde regraCatalogoLentesDeclaradas da etapa 7).
+// Critério em silêncio = verificação incompleta = REPROVA do porteiro (não da feature).
+function regraCatalogoWcagDeclarado(output) {
+  const declarados = (output?.criterios ?? []).map((c) => `${c?.criterio ?? ""}`.toLowerCase());
+  const usados = new Set();
+  const faltam = [];
+  for (const W of CATALOGO_WCAG) {
+    const idx = declarados.findIndex((d, i) => !usados.has(i) && W.re.test(d));
+    if (idx === -1) faltam.push(W.nome);
+    else usados.add(idx);
+  }
+  return faltam.length
+    ? { ok: false, faltando: faltam.map((nome) => `critério WCAG não considerado: '${nome}' (declare coberto/violado/nao_aplicavel)`) }
+    : { ok: true, faltando: [] };
+}
+
+// Regra V-a11y da etapa 8: coerência veredito↔issues (molde regraVeredictoJustificado da etapa 7). `aprovado`
+// com issue 'alta' é incoerente (defeito de a11y alto barra o merge); `reprovado` sem nenhuma issue é reprovar
+// em silêncio. Checagem lógica (não-semântica) — não julga se o defeito é real, só a consistência interna.
+function regraVeredictoA11y(output) {
+  const v = output?.veredito;
+  const issuesAltas = (output?.issues ?? []).filter((i) => i?.severidade === "alta").length;
+  const totalIssues = (output?.issues ?? []).length;
+  if (v === "aprovado" && issuesAltas > 0) return { ok: false, faltando: [`veredito "aprovado" com ${issuesAltas} issue(s) de severidade "alta" (defeito de a11y alto não aprova — corrija ou rebaixe)`] };
+  if (v === "reprovado" && totalIssues === 0) return { ok: false, faltando: ['veredito "reprovado" sem nenhuma issue (não se reprova em silêncio — aponte o defeito)'] };
+  return { ok: true, faltando: [] };
+}
+
+// Regra W-circ da etapa 8: todo critério `violado` é referenciado por ≥1 issue (molde regraDescobertaViraIssue
+// da etapa 7). Impede a "violação órfã" (declarar violado e não acionar). Matching: a issue.criterio CONTÉM o
+// NOME INTEIRO do critério (a issue o instancia, possivelmente com alvo: "3.3.1 Error Identification (div#erro)"
+// contém "3.3.1 error identification"). NÃO o 1º token — ancorar em "foco"/"focus" deixava uma issue de um
+// critério satisfazer a violação órfã de OUTRO sem código (4 critérios de modal começam com foco/focus/escape).
+// Furo achado pela revisão cega (C1); a etapa 7 já ancorava por nome inteiro — aqui a 8 regrediu e voltou.
+function regraViolacaoViraIssue(output) {
+  const violados = (output?.criterios ?? []).filter((c) => c?.situacao === "violado");
+  const criteriosDeIssues = (output?.issues ?? []).map((i) => `${i?.criterio ?? ""}`.toLowerCase());
+  const orfaos = violados.filter((c) => {
+    const nome = `${c?.criterio ?? ""}`.toLowerCase().trim();
+    return !criteriosDeIssues.some((ci) => ci.includes(nome));
+  });
+  return orfaos.length
+    ? { ok: false, faltando: orfaos.map((c) => `critério "${c.criterio}" declarado VIOLADO mas sem issue que o acione (violação órfã)`) }
+    : { ok: true, faltando: [] };
 }
 
 // Fábrica de regra reutilizável (A012): "todo item de `listaCampo` cujo `condCampo` == `condValor`
@@ -1006,7 +1098,7 @@ export const PIPELINE = [
     // NÃO usa `estado` (não cruza arquétipo — o catálogo é injetado inteiro, decisão do operador).
     regrasExtras: [
       regraCatalogoLentesDeclaradas,
-      regraNaoAplicavelComMotivo,   // N/A exige motivo SUBSTANTIVO (anti-fuga central — não basta "n/a")
+      regraNaoAplicavelComMotivo("lentes", "lente", "situacao", "nao_aplicavel", "nota"), // anti-fuga (fábrica)
       regraIssueAcionavel,
       regraVeredictoJustificado,    // inclui: REPROVA→≥1 exig; APROVA→0 exig + P0 coberto + 0 issue 'alta'
       regraDescobertaViraIssue,
@@ -1016,9 +1108,53 @@ export const PIPELINE = [
     id: "acessibilidade",
     nome: "Acessibilidade",
     agente: "web-accessibility-checker",
-    core: "[PLACEHOLDER MVP] Teste a tela em movimento (foco, teclado, leitura). Só MUTACAO/DRAWER/BOARD.",
-    schema: ["resultado"],
-    aceita: (o) => camposPresentes(o, ["resultado"]),
+    // Executor: web-accessibility-checker — opera a tela (Playwright+axe) e verifica WCAG OPERACIONAL (foco,
+    // teclado, leitura de tela, contraste com dado real) EM MOVIMENTO. É o "Gate A do runtime": o Gate A (7)
+    // leu o código estaticamente; esta vê operando (Deque: Focus Order 0%, Keyboard 2,5% automatizáveis — o
+    // estático é cego a isto). confianca = o que VERIFICOU operando vs. o que JULGOU semanticamente (falível).
+    executor: {
+      nome: "web-accessibility-checker",
+      capacidade: "opera a tela (Playwright+axe) e verifica WCAG operacional em movimento; não lê código, não conserta",
+      confianca_enum: ["verificado operando a tela", "julgamento semântico (falível)"],
+    },
+    core: "[fallback] Opere a tela e verifique CADA critério WCAG do catálogo, com evidência operacional. Ver cores/CORE-A11Y.md.",
+    corePath: "cores/CORE-A11Y.md",
+    catalogoBriefing: CATALOGO_WCAG, // injeta os critérios WCAG no briefing ({catalogo_lentes}) — fonte única com a regra
+    // Pré-condições: as 7 etapas anteriores (precisa do Gate A aprovado). O motor bloqueia se faltar.
+    precondicoes: ["entry_point", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output", "mapa_dependencias_output", "implementacao_output", "gate_a_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "design_output", "implementacao_output", "gate_a_output", "next_stage", "concluidas"],
+    schema: ["veredito"],
+    schemaEstrutural: {
+      veredito: { obrigatorio: true, enum: ["aprovado", "reprovado"] }, // binário; reprovado é resultado válido
+      resumo: { obrigatorio: true },
+      criterios: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        criterio: { obrigatorio: true },
+        situacao: { obrigatorio: true, enum: ["coberto", "violado", "nao_aplicavel"] },
+        evidencia_operacional: { obrigatorio: true }, // âncora(coberto)/observado(violado)/motivo(nao_aplicavel)
+      } },
+      issues: { presente: true, tipo: "lista-de-objetos", itemCampos: {
+        id: { obrigatorio: true },
+        severidade: { obrigatorio: true, enum: ["alta", "media", "baixa"] },
+        criterio: { obrigatorio: true },     // qual critério WCAG
+        localizacao: { obrigatorio: true },  // onde (elemento/seletor) — regra extra reforça
+        descricao: { obrigatorio: true },
+        acao: { obrigatorio: true },          // correção acionável — regra extra reforça
+      } },
+      fica_para_humano: { presente: true, tipo: "lista-de-strings" }, // a fronteira p/ a etapa 10 (screen reader real)
+    },
+    // Regras da etapa 8 (todas reúso/molde — zero dialeto novo): (1) TODOS os critérios WCAG do catálogo
+    // declarados; (2) nao_aplicavel exige motivo SUBSTANTIVO (a fábrica generalizada da etapa 7); (3) toda
+    // issue tem localizacao+acao; (4) veredito coerente (aprovado→0 issue 'alta'; reprovado→≥1 issue); (5)
+    // critério violado vira issue (circuito). NÃO usa `estado` (não cruza nada — o catálogo é injetado inteiro).
+    regrasExtras: [
+      regraCatalogoWcagDeclarado,
+      // null = TODA situação: a evidência_operacional precisa de substância sempre (coberto com "ok" também
+      // é teatro — achado D1). Cobre o anti-fuga do N/A e a defesa anti-teatro de coberto/violado de uma vez.
+      regraNaoAplicavelComMotivo("criterios", "criterio", "situacao", null, "evidencia_operacional"),
+      regraIssueAcionavel,
+      regraVeredictoA11y,
+      regraViolacaoViraIssue,
+    ],
   },
   {
     id: "gate_b",
@@ -1084,4 +1220,4 @@ export function nomeEtapa(id) {
 
 // Exporta o gerador de prosa do schema (motor injeta {schema_prosa} no briefing) e o validador
 // estrutural (para testes diretos).
-export { gerarSchemaProsa, validarEstrutura, avaliarEtapa, CATALOGO_LENTES };
+export { gerarSchemaProsa, validarEstrutura, avaliarEtapa, CATALOGO_LENTES, CATALOGO_WCAG };

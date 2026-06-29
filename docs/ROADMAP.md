@@ -3,13 +3,13 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
-> **Onde paramos (2026-06-29):** **7 de 13 etapas completas** no `v1/` — mais da metade. Etapas 1 (DAG), 2
-> (Descoberta), 3 (GAP), 4 (Design), 5 (Mapa), 6 (Implementação) e **7 (Gate A, ADR 0028 — revisão adversarial
-> com catálogo de lentes PLANO)**. Suíte v1 **164/164**. Encadeamento real das **7 etapas** testado. A etapa 7
-> é a 1ª REFUTADORA — fecha o anti-viés "réu nunca é juiz" (o réu da etapa 6 encontra seu juiz). Decisão do
-> operador: catálogo plano (injeta todas as lentes, sem arquétipo) — eliminou o gargalo D-2. O anti-viés pegou
-> um furo que o próprio Claude introduziu (regra de motivo-do-N/A perdida). MVP congelado. Próximo: etapa 8
-> (Acessibilidade). Dívidas: A010, A011, A016.
+> **Onde paramos (2026-06-29):** **8 de 13 etapas completas** no `v1/` — quase dois terços. Etapas 1 (DAG), 2
+> (Descoberta), 3 (GAP), 4 (Design), 5 (Mapa), 6 (Implementação), 7 (Gate A) e **8 (Acessibilidade, ADR 0029 —
+> o "Gate A do runtime")**. Suíte v1 **186/186**. Encadeamento real das **8 etapas** testado. A etapa 8 verifica
+> a tela EM MOVIMENTO (foco/teclado/contraste) — o que o Gate A leu estático, esta vê operando (Focus Order é 0%
+> automatizável no código). É a 1ª CONDICIONAL: roda sempre + N/A com motivo (não pula). Reúso massivo da etapa
+> 7 (~85% dado, 0 motor); a fábrica de motivo-substantivo foi generalizada (M4). MVP congelado. Próximo: etapa 9
+> (Gate B — verificação ao vivo). Dívidas: A010, A011, A016, A017.
 
 ---
 
@@ -68,7 +68,7 @@ Uma etapa é considerada "CORE pronto" quando:
 | 5 | Mapa de dependências | Plan | `CORE-MAPA.md` v1.0 | ✅ cristalizado (ADR 0026) + plugado no v1 + testado (cego) — 113/113 |
 | 6 | Implementação | frontend/typescript/fullstack | `CORE-IMPL.md` v1.0 | ✅ cristalizado (ADR 0027) + plugado no v1 + testado (2 casos cegos) — 139/139 |
 | 7 | Gate A (revisão) | code-reviewer | `CORE-GATEA.md` v1.0 | ✅ cristalizado (ADR 0028) + plugado no v1 + testado (2 casos cegos) — 164/164 |
-| 8 | Acessibilidade | web-accessibility-checker | — | ⬜ não iniciado |
+| 8 | Acessibilidade | web-accessibility-checker | `CORE-A11Y.md` v1.0 | ✅ cristalizado (ADR 0029) + plugado no v1 + testado (2 casos cegos OPERADOS ao vivo) — 186/186 |
 | 9 | Gate B (ao vivo) | fiscal | — | ⬜ não iniciado |
 | 10 | Aprovação humana | humano | — | ⬜ não iniciado |
 | 11 | Done | sistema | — | ⬜ não iniciado |

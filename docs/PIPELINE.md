@@ -367,13 +367,23 @@ Antes de produzir o mapa, confirma que etapas 1-4 estão completas e aprovadas. 
 
 **O que faz:** Verifica com a tela funcionando — não lendo o código. Foco ao entrar, navegação por teclado, leitura de tela, contraste com dado real. O que o Gate A lê estaticamente, esse gate vê em movimento.
 
-**Entregável:** `aprovado` | lista de itens a corrigir com severidade
+**Entregável:** `aprovado` | `reprovado` + lista de critérios WCAG (cada um coberto/violado/nao_aplicavel com
+evidência operacional) + issues com severidade + o que fica para o screen reader humano (etapa 10).
+
+**Decisão (ADR 0029):** o catálogo WCAG operacional inteiro é injetado e o verificador declara CADA critério —
+a etapa RODA SEMPRE; para telas read-only a maioria sai `nao_aplicavel` com motivo (não pula: pular gera
+falso-verde). Cada `coberto` exige `evidencia_operacional` (a âncora que prova que a tela foi operada —
+seletor focado, tecla, medição do axe). Fonte do catálogo: WCAG 2.2 A/AA + APG do W3C.
 
 **Critério de aceitação:**
-- [ ] Critérios WCAG operacionais cobertos (não só análise estática)
-- [ ] Navegação por teclado testada
-- [ ] Foco e escape testados
-- [ ] Se itens a corrigir: cada um com severidade e ação clara
+- [ ] TODOS os critérios WCAG do catálogo declarados (coberto/violado/nao_aplicavel — nenhum em silêncio)
+- [ ] Cada `coberto` com evidência OPERACIONAL substantiva; cada `nao_aplicavel` com motivo real
+- [ ] Veredicto binário (aprovado/reprovado); reprovado é resultado válido (volta à etapa 6)
+- [ ] Se itens a corrigir: cada um com severidade, critério WCAG e ação clara
+> **O porteiro valida a FORMA da verificação (cobertura, evidência presente, coerência), NÃO que a tela foi
+> de fato operada nem que o achado é verdadeiro** — a autenticidade ao vivo é do Gate B (9), a vivência no
+> leitor de tela real é do humano (10). "Testada" aqui = declarada-com-evidência; a operação real é re-checada
+> adiante. (Limites epistêmicos por seção no CORE-A11Y.)
 
 ---
 

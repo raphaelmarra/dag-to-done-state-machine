@@ -6,7 +6,7 @@ import { describe, it, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import { rmSync, writeFileSync } from "node:fs";
 import { main, carregarEstado, outputPath, featureDir, statePath, estaCompleto } from "../dag.mjs";
-import { PIPELINE, PRIMEIRA_ETAPA, CATALOGO_LENTES } from "../pipeline.config.mjs";
+import { PIPELINE, PRIMEIRA_ETAPA, CATALOGO_LENTES, CATALOGO_WCAG } from "../pipeline.config.mjs";
 
 const FEATURE = "e2e-test";
 
@@ -141,6 +141,20 @@ function outputValido(etapa) {
       out.issues = [];
       out.p0_coberto = "sim";
       out.exigencias_antes_de_mergear = [];
+      break;
+    case "acessibilidade":
+      // Verificação a11y honesta: TODOS os critérios WCAG declarados (cobertura total); aqui o foco/teclado é OK
+      // (coberto com evidência operacional) e os de modal/drag/form não se aplicam (N/A com motivo SUBSTANTIVO —
+      // a fábrica rejeita "n/a"). Sem issue ⟹ aprovado (aprovado⟹0 issue 'alta') e sem violação órfã.
+      out.veredito = "aprovado";
+      out.resumo = "Operei a tela: foco/teclado sadios; dimensões de form/modal/drag não se aplicam a esta feature.";
+      out.criterios = CATALOGO_WCAG.map((W) => (
+        /2\.4\.3|focus order/.test(W.re.source)
+          ? { criterio: W.nome, situacao: "coberto", evidencia_operacional: "Tab percorreu input→botão na ordem visual (activeElement registrado)" }
+          : { criterio: W.nome, situacao: "nao_aplicavel", evidencia_operacional: "feature de correção de contrato sem este padrão de interação; critério não se aplica a este diff" }
+      ));
+      out.issues = [];
+      out.fica_para_humano = ["confirmar com leitor de tela real na etapa 10"];
       break;
     case "gate_b":
       out.veredito = "verificado";

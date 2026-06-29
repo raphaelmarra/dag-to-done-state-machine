@@ -39,9 +39,9 @@ describe("Peça 6 — bloqueio de pré-condição no motor", () => {
   });
 
   it("uma etapa SEM precondicoes nunca bloqueia (não regride as etapas placeholder)", () => {
-    // 'acessibilidade' (etapa 8) ainda é placeholder. (1-7 destiladas.)
-    const g = etapaPorId("acessibilidade");
-    assert.ok(!g.precondicoes, "acessibilidade não declara precondicoes");
+    // 'gate_b' (etapa 9) ainda é placeholder. (1-8 destiladas.)
+    const g = etapaPorId("gate_b");
+    assert.ok(!g.precondicoes, "gate_b não declara precondicoes");
     // o e2e percorre as 13 etapas com init mínimo e passa — confirma que ausência de precondicoes não bloqueia.
   });
 });

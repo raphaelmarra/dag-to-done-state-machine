@@ -28,6 +28,19 @@
 
 ---
 
+## Etapa 8 (Acessibilidade) — o "Gate A do runtime" — cristalizada (2026-06-29)
+
+- **ADR 0029** — Verifica a tela EM MOVIMENTO (foco, teclado, leitura, contraste com dado real), não o código.
+  É o espelho da etapa 7 no eixo runtime: catálogo WCAG operacional (16 critérios, WCAG 2.2+APG) injetado
+  inteiro, o verificador declara cada um coberto/violado/nao_aplicavel + **`evidencia_operacional`** (a âncora
+  que prova que a tela foi operada — o campo decisivo). A 1ª etapa CONDICIONAL: roda sempre + N/A com motivo
+  (não pula — VPAT+CI/CD convergem: pular = falso-verde). Veredito binário; reprovado é sucesso. Fronteira com
+  a etapa 10 (`fica_para_humano`: a IA julga forma, o humano julga vivência). Validado por 2 casos OPERADOS ao
+  vivo (Playwright+axe) — aba CLIs (cobertura plena) + DETALHE read-only (validou a condicionalidade) + 3
+  verificadores (acharam/fecharam: violação órfã por token, coberto com evidência oca). A fábrica de
+  motivo-substantivo foi GENERALIZADA (momento M4 — beneficia a etapa 7). ZERO motor novo; ~85% dado. Dívida
+  A017 (feature sem UI). Atualiza ADR 0011.
+
 ## Etapa 7 (Gate A) — revisão adversarial com catálogo plano — cristalizada (2026-06-29)
 
 - **ADR 0028** — A 1ª etapa REFUTADORA: revisão ADVERSARIAL do diff (tenta refutar, não validar — empírico:

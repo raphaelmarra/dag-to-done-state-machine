@@ -38,6 +38,15 @@
 
 ---
 
+## Ponytail (DietrichGebert) — INSPIRAÇÃO, valor a validar
+
+**O que é:** Skill system de "lazy senior developer" para agentes LLM (MIT, JS+Python). Injeta, antes da geração de código, uma **escada de decisão de 7 degraus** para minimizar código: precisa de código? → reuso? → stdlib? → nativo? → dependência instalada? → one-liner? → só então implementar. Benchmark agêntico (n=4, 12 tickets, Haiku 4.5, template fastapi): ~−54% LOC, 100% safety.
+**O que ressoa:** É o espírito do nosso M1+M2 ("o melhor código é o que você não escreveu"; reuso > reescrita). Nós já *praticamos* isso (regraEvidenciaObrigatoria reusada 6×; etapa 8 = molde da 7; placeholder genérico de 3 linhas) — o ponytail é essa disciplina destilada.
+**O que NÃO fazemos (decisão 2026-06-29):** **não acoplar o plugin.** (a) Ele injeta ruleset GLOBAL a cada turno, em todas as 13 etapas — ruído nas 7 que não escrevem código; atrita com "estado curado por etapa". (b) Hooks Node sempre-ligados sem threat-model documentado (o README não enumera o que leem/escrevem). (c) Escreve em `~/.claude/settings.json` global. **Direção possível (não comprometida):** destilar a escada como regra do CORE-IMPL (etapa 6) — minimalismo só na etapa que escreve código, na nossa voz, project-scoped, verificável pelo porteiro. **MAS:** M4 — "parece útil" ≠ "é útil"; validar o ganho contra um caso real de implementação antes de virar regra. Por ora é só inspiração.
+**Fonte:** github.com/DietrichGebert/ponytail
+
+---
+
 ## Walking Skeleton — Alistair Cockburn
 
 **O que aproveitamos:** Implementação mínima end-to-end que valida a arquitetura antes do volume. Opcional entre Mapa de dependências e Implementação para features de risco alto.

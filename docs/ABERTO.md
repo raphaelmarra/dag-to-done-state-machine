@@ -283,3 +283,31 @@ que um caso teórico não justifica (M4). O limite já está DECLARADO no CORE-I
 **Direção:** quando o Gate A (etapa 7) for destilado e precisar saber o que o porteiro NÃO conferiu, estender
 o veredito com `nao_verificado: [...]` (dimensões puladas) — e a etapa 6 reporta a rastreabilidade pulada ali.
 **Próximo passo:** reavaliar ao destilar a etapa 7 (Gate A). Até lá, o limite vive declarado no CORE.
+**ATUALIZAÇÃO:** a etapa 7 foi destilada SEM precisar disto (catálogo plano, ADR 0028) — o risco segue teórico.
+
+---
+
+## A017 — Etapa 8 sem tela: "tudo N/A" é indistinguível de fuga (falso-verde um nível acima)
+
+**Status:** dívida registrada (não bloqueante) — apontada pelo anti-viés da etapa 8 (backend-architect).
+**Questão:** a etapa 8 (Acessibilidade) RODA SEMPRE (decisão: não pular, N/A com motivo — ADR 0029). Para uma
+feature 100% backend/CLI SEM UI, TODOS os 16 critérios WCAG viram `nao_aplicavel`. O porteiro
+(`regraNaoAplicavelComMotivo`) só checa que cada motivo não é OCO — não que a feature realmente não tem tela.
+O motivo "não há tela nesta feature" passa, e é indistinguível de um agente que FUGIU (operou nada, declarou
+tudo inaplicável com motivos bem-redigidos). É a MESMA classe de falso-verde que a decisão D-1 combateu (o
+falso-verde do *pular*), só que empurrada um nível acima (o falso-verde do *N/A-em-massa numa etapa vácua*).
+**Onde a analogia com a etapa 7 VAZA:** a etapa 7 SEMPRE tem um diff para revisar (toda feature mexe em
+código). A etapa 8 nem sempre tem uma tela para operar. A condicionalidade da etapa 8 é mais profunda que
+"quais critérios se aplicam" — é "esta etapa se aplica de todo?". Resolver "quais critérios" por N/A é correto;
+"a etapa inteira é vácua" foi ABSORVIDO na mesma solução, e essa absorção é o ponto frágil.
+**Por que não virou código agora:** a correção (um sinal binário `tem_interface` derivado do estado — ex.: a
+etapa 6 tocou arquivos `.tsx`/`.vue`? a etapa 4 produziu `estados` de tela?) é uma decisão de FUNDAÇÃO sobre
+COMO derivar "há tela?" de outputs anteriores — e merece o método (M4: contra um caso real de feature sem UI,
+que ainda não temos). Apressá-la repetiria o erro da etapa 7 (eu "simplifiquei" e quebrei a defesa).
+**Direção (na filosofia do projeto, ~0 motor):** um campo de topo `tem_interface` (sim/não) declarado pela
+etapa 8 com evidência (`querySelectorAll de roots de UI vazio`, ou "nenhum arquivo de UI no diff da etapa 6");
++ uma regra-clone de `regraEvidenciaObrigatoria`: se `tem_interface=não`, exige a evidência da AUSÊNCIA de
+tela; senão exige ≥1 critério `coberto`/`violado`. É o mesmo princípio `evidencia_operacional` um nível acima:
+PROVE que não havia o que operar, em vez de só afirmá-lo. NÃO precisa do arquétipo como entrada (D-2 segue certo).
+**Próximo passo:** reavaliar quando aparecer uma feature SEM UI no pipeline (ou ao destilar uma etapa que já
+derive "há tela?" do estado). Até lá, o limite vive declarado no CORE-A11Y (a etapa pressupõe uma tela operável).
