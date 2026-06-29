@@ -95,6 +95,8 @@ function validarForma(valor, forma, etapa, caminho, erros) {
     // Campo de PROVA TEXTUAL (nota/evidencia): um objeto/array aqui escaparia da defesa anti-oco virando
     // "[object Object]" — fecha na ORIGEM (furo residual da 2ª revisão cega da etapa 9). Enum ainda vale se houver.
     if (typeof valor !== "string") { erros.push(`${caminho}: deveria ser string (recebido: ${Array.isArray(valor) ? "lista" : typeof valor})`); return; }
+    // String obrigatória só-de-espaços é tão vazia quanto "" (a checagem de topo `valorVazio` não pega "   ").
+    if (forma.obrigatorio && valor.trim() === "") { erros.push(`${caminho}: obrigatório porém vazio (só espaços)`); return; }
     const enumValido = forma.enum ? resolverEnum(forma, etapa) : null;
     if (enumValido && enumValido.length > 0 && !enumValido.includes(valor)) {
       erros.push(`${caminho}: valor "${valor}" fora do enum [${enumValido.join(", ")}]`);
@@ -1297,9 +1299,25 @@ export const PIPELINE = [
     id: "aprovacao_humana",
     nome: "Aprovação humana",
     agente: "humano",
-    core: "[PLACEHOLDER MVP] O humano usa a tela e aprova explicitamente.",
-    schema: ["aprovado_por"],
-    aceita: (o) => camposPresentes(o, ["aprovado_por"]),
+    // Etapa HITL — gênero NÃO-CORE: o executor é o HUMANO, não um agente LLM. Não há meta-prompt; o `next`
+    // gera um DOSSIÊ derivado do estado (peça 2) e o humano aprova. A garantia é PROCESSUAL (o agente mostra o
+    // dossiê e ESPERA a fala humana real antes do advance — não a fabrica), declarada honesta (dívida A019):
+    // num pipeline dirigido por agente, o motor não prova cripto que um humano aprovou. FAIL-CLOSED: só
+    // "aprovado" avança (é o último checkpoint humano antes do deploy — etapa 12 — e aprovação-antes-do-
+    // side-effect é a regra inviolável do HITL).
+    core: "[PLACEHOLDER — substituído pelo dossiê na peça 2] O humano usa a tela e aprova ou rejeita.",
+    schema: ["aprovado_por", "decisao"],
+    schemaEstrutural: {
+      aprovado_por: { obrigatorio: true, tipo: "string" }, // o nome do humano que aprovou (texto, não objeto)
+      decisao: { obrigatorio: true, enum: ["aprovado", "rejeitado"] }, // binário; rejeitado é válido mas bloqueia
+      observacao: { opcionalNoTopo: true, tipo: "string" }, // opcional — o que o humano disse/pediu (pode faltar)
+    },
+    regrasExtras: [
+      // FAIL-CLOSED: só "aprovado" avança. "rejeitado" BLOQUEIA (retorno 1, a feature PERMANECE em
+      // aprovacao_humana). "volta à etapa 6" é semântica PROCESSUAL (o humano pediu mudança) — o motor não
+      // rebobina o DAG; quem reabre a etapa 6 é o operador. Vale p/ todos os gates fail-closed (idem Gate B).
+      regraCampoIgual("decisao", "aprovado", 'Aprovação humana fail-closed: só "aprovado" avança — "rejeitado" BLOQUEIA (a feature fica parada aqui; reabrir a implementação é decisão do operador)'),
+    ],
   },
   {
     id: "done",
