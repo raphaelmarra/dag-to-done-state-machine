@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa, nomeEtapa, gerarSchemaProsa, avaliarEtapa } from "./pipeline.config.mjs";
+import { PIPELINE, PRIMEIRA_ETAPA, etapaPorId, proximaEtapa, nomeEtapa, gerarSchemaProsa, gerarDossieAprovacao, avaliarEtapa } from "./pipeline.config.mjs";
 
 const RAIZ = dirname(fileURLToPath(import.meta.url));
 const DAG_DIR = join(RAIZ, ".dag");
@@ -213,6 +213,12 @@ function contextoDeSubstituicao(estado, etapa) {
   // MESMO dado que a regra do porteiro consome (CATALOGO_LENTES) é o que o executor vê.
   if (Array.isArray(etapa.catalogoBriefing) && etapa.catalogoBriefing.length > 0) {
     ctx.catalogo_lentes = etapa.catalogoBriefing.map((item) => `- ${item.nome}`).join("\n");
+  }
+  // Dossiê de aprovação (etapa 10 HITL, genérico M1): se a etapa declara `dossie: true`, o motor injeta em
+  // `{dossie_aprovacao}` um resumo LEGÍVEL derivado do estado (o que foi construído + vereditos dos gates + o
+  // que ficou fora). Como `{schema_prosa}`, é conteúdo gerado de fonte única (o estado real), não texto fixo.
+  if (etapa.dossie === true) {
+    ctx.dossie_aprovacao = gerarDossieAprovacao(estado);
   }
   return ctx;
 }

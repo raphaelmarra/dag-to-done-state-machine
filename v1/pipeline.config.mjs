@@ -169,6 +169,82 @@ function gerarSchemaProsa(schemaEstrutural, etapa) {
     .join("\n\n");
 }
 
+// --- Gerador de DOSSIÊ da etapa 10 (Aprovação humana / HITL) -----------------------------------------
+// Deriva do ESTADO (os <etapa>_output promovidos) um resumo LEGÍVEL para o HUMANO ler antes de aprovar — não
+// um briefing-para-LLM (a etapa 10 não tem agente). 3 blocos (decisão do design): (a) o que foi construído,
+// (b) o veredito de cada gate, (c) o que ficou FORA (honestidade). É robusto: outputs ausentes/degenerados
+// viram "(não disponível)" — nunca crasha nem vaza "[object Object]" (a mesma defesa do formatarValor do motor).
+
+// Extrai um texto LEGÍVEL de um campo que pode ser string, ausente, ou aninhado por um caminho. Nunca
+// "[object Object]": objeto/array sem extrator vira "(não disponível)" (o dossiê não inventa nem despeja lixo).
+function textoLegivel(v, fallback = "(não disponível)") {
+  if (v === undefined || v === null || v === "") return fallback;
+  if (typeof v === "string") return v.trim() || fallback;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return fallback; // objeto/array: sem extrator específico, não despeja "[object Object]"
+}
+
+// Lista os rótulos de uma lista-de-objetos por um conjunto de chaves candidatas (risco/descricao/...), tolerando
+// itens string. Vazio → fallback. Genérico: não sabe o nome do campo, tenta as chaves comuns (M1-ish).
+function rotulosDeLista(lista, chaves, fallback = "(nenhum declarado)") {
+  if (!Array.isArray(lista) || lista.length === 0) return [fallback];
+  return lista.map((it) => {
+    if (typeof it === "string") return it.trim() || "(item vazio)";
+    if (it && typeof it === "object") {
+      for (const k of chaves) if (typeof it[k] === "string" && it[k].trim()) return it[k].trim();
+    }
+    return "(item sem rótulo)";
+  });
+}
+
+// O LIMITE epistêmico que o humano PRECISA saber ao aprovar (dívida A018): o Gate B re-avalia a asserção sobre a
+// evidência, mas NÃO prova que o par request/response é autêntico — o agente poderia tê-lo fabricado. A
+// autenticidade última é justamente do humano nesta etapa. DADO (texto fixo): é um invariante do pipeline, não
+// algo a descobrir do contexto.
+const LIMITE_A018 = "O Gate B re-avalia a evidência declarada, mas NÃO re-chama a API nem prova que ela é autêntica (limite A018) — a autenticidade última é SUA, ao usar a tela.";
+
+function gerarDossieAprovacao(estado) {
+  const e = estado ?? {};
+  const design = e.design_output;
+  // resumo_design pode ser objeto {objetivo|resumo|...} OU string direta; tenta os caminhos comuns e degrada
+  // honestamente p/ "(não disponível)" se o design nomear o campo de outro jeito (acoplamento aceito — o schema
+  // do design é controlado pelo pipeline; revisão cega registrou como limite, não furo).
+  const rd = (design && typeof design === "object") ? design.resumo_design : undefined;
+  const objetivo = (design && typeof design === "object")
+    ? textoLegivel((rd && typeof rd === "object" ? (rd.objetivo ?? rd.resumo) : rd) ?? design.resumo)
+    : textoLegivel(design);
+  const veredito = (out) => (out && typeof out === "object") ? textoLegivel(out.veredito) : textoLegivel(out);
+  const gateA = veredito(e.gate_a_output);
+  const gateB = veredito(e.gate_b_output);
+  const a11y = veredito(e.acessibilidade_output);
+
+  // chaves candidatas mesmo aqui: hoje fica_para_humano é lista-de-strings, mas se um Gate B futuro emitir
+  // lista-de-objetos, extrair o conteúdo em vez de apagá-lo (honestidade por omissão — achado da revisão cega).
+  const ficaParaHumano = (e.gate_b_output && typeof e.gate_b_output === "object")
+    ? rotulosDeLista(e.gate_b_output.fica_para_humano, ["ponto", "texto", "descricao", "item"], "(nada declarado pelo Gate B)")
+    : ["(Gate B não disponível)"];
+  const riscos = (design && typeof design === "object")
+    ? rotulosDeLista(design.riscos_premortem, ["risco", "descricao", "o_que_revisar"], "(nenhum risco declarado)")
+    : ["(design não disponível)"];
+
+  return [
+    `## O que foi construído`,
+    `- ${objetivo}`,
+    ``,
+    `## Vereditos dos gates (o caminho que a feature percorreu)`,
+    `- Gate A (revisão de código): **${gateA}**`,
+    `- Gate B (verificação ao vivo): **${gateB}**`,
+    `- Acessibilidade (runtime): **${a11y}**`,
+    ``,
+    `## O que ficou FORA (aprove sabendo disto)`,
+    `- Fica para o seu olho humano (do Gate B):`,
+    ...ficaParaHumano.map((x) => `  - ${x}`),
+    `- Riscos levantados no pre-mortem (do Design):`,
+    ...riscos.map((x) => `  - ${x}`),
+    `- ${LIMITE_A018}`,
+  ].join("\n");
+}
+
 // --- Porteiro genérico (A012): compõe as três camadas de validação numa só (declarativo) -----------
 // 1) presença de campos de topo (schema) · 2) estrutura (schemaEstrutural) · 3) regras EXTRAS da etapa
 // (regrasExtras: lista de (output, etapa, estado)=>{ok, faltando}). Substitui o `aceita` custom imperativo:
@@ -1305,7 +1381,15 @@ export const PIPELINE = [
     // num pipeline dirigido por agente, o motor não prova cripto que um humano aprovou. FAIL-CLOSED: só
     // "aprovado" avança (é o último checkpoint humano antes do deploy — etapa 12 — e aprovação-antes-do-
     // side-effect é a regra inviolável do HITL).
-    core: "[PLACEHOLDER — substituído pelo dossiê na peça 2] O humano usa a tela e aprova ou rejeita.",
+    core: [
+      "Esta é a etapa de APROVAÇÃO HUMANA (HITL). O agente NÃO aprova sozinho: apresente o dossiê abaixo ao",
+      "humano, espere ele USAR a tela e dar o OK explícito (uma fala como \"tá bom\" basta), e só então registre",
+      "o output com `aprovado_por` (o nome de quem aprovou) e `decisao`. Se o humano pedir mudança, registre",
+      "`decisao: \"rejeitado\"` com a `observacao` — a feature fica parada (fail-closed).",
+      "",
+      "{dossie_aprovacao}",
+    ].join("\n"),
+    dossie: true, // sinaliza ao motor: injetar {dossie_aprovacao} derivado do estado (genérico, M1)
     schema: ["aprovado_por", "decisao"],
     schemaEstrutural: {
       aprovado_por: { obrigatorio: true, tipo: "string" }, // o nome do humano que aprovou (texto, não objeto)
@@ -1366,4 +1450,4 @@ export function nomeEtapa(id) {
 
 // Exporta o gerador de prosa do schema (motor injeta {schema_prosa} no briefing) e o validador
 // estrutural (para testes diretos).
-export { gerarSchemaProsa, validarEstrutura, avaliarEtapa, CATALOGO_LENTES, CATALOGO_WCAG };
+export { gerarSchemaProsa, gerarDossieAprovacao, validarEstrutura, avaliarEtapa, CATALOGO_LENTES, CATALOGO_WCAG };
