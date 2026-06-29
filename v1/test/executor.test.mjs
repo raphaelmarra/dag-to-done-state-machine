@@ -49,7 +49,7 @@ describe("Peças 2 e 3 — executor como dado + enum derivado", () => {
   });
 
   it("etapa SEM executor não injeta placeholders de executor (não regride — code-reviewer)", () => {
-    const ctx = contextoDeSubstituicao({ feature: "f" }, etapaPorId("gate_a")); // sem executor
+    const ctx = contextoDeSubstituicao({ feature: "f" }, etapaPorId("acessibilidade")); // sem executor
     assert.ok(!("executor_nome" in ctx), "sem executor → sem executor_nome");
     assert.ok(!("confianca_enum" in ctx), "sem executor → sem confianca_enum");
   });

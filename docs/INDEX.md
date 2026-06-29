@@ -46,7 +46,7 @@
 - Skill global `manter-governanca` (`~/.claude/skills/`) — como manter toda esta estrutura viva.
 
 ## Código (o motor)
-- [`../v1/`](../v1/) — **versão ativa pós-MVP.** Motor `dag.mjs` + `pipeline.config.mjs`; **etapas 1–6 cristalizadas** e plugadas (COREs em `cores/CORE-{DAG,DISCOVERY,GAP,DESIGN,MAPA,IMPL}.md`). Testes: `cd v1 && node --test` (139/139). Na etapa 6 o porteiro passou a receber o `estado` (regras de rastreabilidade âncora↔fonte).
+- [`../v1/`](../v1/) — **versão ativa pós-MVP.** Motor `dag.mjs` + `pipeline.config.mjs`; **etapas 1–7 cristalizadas** e plugadas (COREs em `cores/CORE-{DAG,DISCOVERY,GAP,DESIGN,MAPA,IMPL,GATEA}.md`). Testes: `cd v1 && node --test` (164/164). Etapa 6: o porteiro passou a receber o `estado` (rastreabilidade âncora↔fonte). Etapa 7 (Gate A): revisão adversarial com catálogo de lentes PLANO injetado no briefing (`{catalogo_lentes}`).
 - [`../MVP/`](../MVP/) — Walking Skeleton congelado (marco) + evidência do E2E da aba CLIs.
 
 ## Histórico / processo

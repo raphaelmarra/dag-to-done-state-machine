@@ -28,6 +28,19 @@
 
 ---
 
+## Etapa 7 (Gate A) — revisão adversarial com catálogo plano — cristalizada (2026-06-29)
+
+- **ADR 0028** — A 1ª etapa REFUTADORA: revisão ADVERSARIAL do diff (tenta refutar, não validar — empírico:
+  "valide" derruba a detecção até 93pp). Fecha o anti-viés "réu nunca é juiz" (o réu da etapa 6 encontra seu
+  juiz, um agente DIFERENTE). **Decisão do operador (catálogo PLANO):** injeta TODAS as ~21 lentes (sem
+  classificar arquétipo) e o revisor declara cada uma coberta/descoberta/nao_aplicavel — elimina o gargalo
+  "de onde vem o arquétipo", serve features multi-arquétipo, e o N/A exige motivo SUBSTANTIVO (a defesa
+  central). Veredito binário; REPROVA é SUCESSO (o porteiro NUNCA exige APROVA). Coerência mecânica:
+  REPROVA⟹≥1 exig; APROVA⟹0 exig ∧ P0 coberto ∧ 0 issue 'alta'. Validado por 2 casos (LISTA+MUTACAO; DRAWER,
+  ambos reprovaram) + 3 verificadores (acharam/fecharam um furo que EU introduzi: a regra de motivo-do-N/A
+  perdida ao "simplificar" → tudo-N/A+APROVA passava). 5 regras, todas moldes reusados; placeholder genérico
+  de 3 linhas no motor. Atualiza ADR 0004 (lentes agora em catálogo plano).
+
 ## Etapa 6 (Implementação) — handoff verificável + rastreabilidade — cristalizada (2026-06-29)
 
 - **ADR 0027** — A 1ª etapa que toca CÓDIGO. O executor APLICA o código e roda os checks, mas entrega um

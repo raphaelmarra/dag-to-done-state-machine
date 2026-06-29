@@ -10,6 +10,7 @@ import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
 import { writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { main, outputPath, briefingPath, featureDir, carregarEstado } from "../dag.mjs";
+import { CATALOGO_LENTES } from "../pipeline.config.mjs";
 
 const FEATURE = "encadeamento-test";
 function limpar() { rmSync(featureDir(FEATURE), { recursive: true, force: true }); }
@@ -92,11 +93,22 @@ const OUT_IMPL = {
   ],
   no_gos_respeitados: ["não executa o agente — só renderiza"],
 };
+// Gate A honesto: TODAS as lentes do catálogo declaradas (cobertura total exigida); APROVA com 0 exigências.
+const OUT_GATEA = {
+  veredito: "APROVA",
+  resumo: "Diff ancorado e mínimo; lentes aplicáveis cobertas, demais não se aplicam.",
+  lentes: CATALOGO_LENTES.map((L, i) => (i === 0
+    ? { lente: L.nome, situacao: "coberta", nota: "tratado no diff" }
+    : { lente: L.nome, situacao: "nao_aplicavel", nota: "não se aplica a esta correção de contrato" })),
+  issues: [],
+  p0_coberto: "sim",
+  exigencias_antes_de_mergear: [],
+};
 
-describe("Encadeamento real DAG → … → Mapa → Implementação (fluxo do motor, sem injeção manual)", () => {
+describe("Encadeamento real DAG → … → Implementação → Gate A (fluxo do motor, sem injeção manual)", () => {
   after(() => limpar());
 
-  it("as 6 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
+  it("as 7 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
     limpar();
     // init com o que o motor não promove (entry_point/project_root vêm do operador).
     assert.equal(main(["init", FEATURE, "--entry", "aba CLIs", "--root", "/proj"]), 0);
@@ -150,10 +162,19 @@ describe("Encadeamento real DAG → … → Mapa → Implementação (fluxo do m
     assert.ok(existsSync(briefingPath(FEATURE, "implementacao")), "briefing Implementação gerado");
     escrever("implementacao", OUT_IMPL);
     assert.equal(main(["advance", FEATURE]), 0, "advance Implementação aprova (âncoras cruzam com a fonte real)");
+    assert.ok(carregarEstado(FEATURE).implementacao_output, "motor promoveu implementacao_output");
     assert.equal(carregarEstado(FEATURE).etapaAtual, "gate_a", "avançou para Gate A");
 
-    // Encadeamento provado: 6 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
-    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao"]);
+    // ETAPA 7 (Gate A) — exige as 6 anteriores. O briefing injeta TODAS as lentes; o revisor as declara. O
+    // porteiro NÃO exige APROVA (REPROVA seria sucesso) — aqui APROVA com 0 exigências (coerente).
+    assert.equal(main(["next", FEATURE]), 0, "next Gate A ok (6 pré-condições presentes)");
+    assert.ok(existsSync(briefingPath(FEATURE, "gate_a")), "briefing Gate A gerado");
+    escrever("gate_a", OUT_GATEA);
+    assert.equal(main(["advance", FEATURE]), 0, "advance Gate A aprova (revisão bem-feita, cobertura total)");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "acessibilidade", "avançou para Acessibilidade");
+
+    // Encadeamento provado: 7 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
+    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao", "gate_a"]);
   });
 
   it("PROVA da rastreabilidade no fluxo real: âncora-FANTASMA na etapa 6 BLOQUEIA o advance", () => {

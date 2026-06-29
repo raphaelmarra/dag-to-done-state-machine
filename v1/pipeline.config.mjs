@@ -432,6 +432,128 @@ function regraAncoraRastreavel(output, _etapa, estado) {
   return fantasmas.length ? { ok: false, faltando: fantasmas } : { ok: true, faltando: [] };
 }
 
+// --- Regras da etapa 7 (Gate A — Revisão adversarial) ------------------------------------------------
+// CATÁLOGO DE LENTES (DADO plano no CORE, M1): a bateria COMPLETA de verificação, de TODOS os arquétipos de
+// UI. Decisão (operador): não se decide "arquétipo" — injeta-se o catálogo inteiro e o revisor declara, por
+// lente, se ela COBRE/DESCOBRE/NÃO-SE-APLICA à feature (igual aos 6 gates da etapa 6). Elimina o conceito de
+// arquétipo como entrada; serve features multi-arquétipo (a aba CLIs já era LISTA+MUTACAO). Cada lente tem
+// `nome` (rótulo) e `re` (matching CONCEITUAL — lente é conceito difuso, como estados de UI; NÃO id técnico).
+// Fontes canônicas: USWDS (a11y por componente) + OWASP ASVS (por operação). Adicionar lente = +item, 0 código.
+const CATALOGO_LENTES = [
+  // LISTA
+  { nome: "estado vazio", re: /vazi|empty|nenhum|sem (resultado|item|dado|registro)|zerada|0 result/ },
+  { nome: "estado de erro", re: /erro|error|falh|fail/ },
+  { nome: "paginação/volume", re: /pagina|volume|limit|offset|scroll|lazy|carregar mais/ },
+  { nome: "ordenação", re: /orden|sort|shadow|dedupe|precedência/ }, // não "ordem" solto (casaria "persistência de ordem")
+  // MUTACAO
+  { nome: "validação de input", re: /valida.*input|input.*valida|allow.?list|sanitiz|range|length|formato do (nome|campo)/ },
+  { nome: "confirmação de ação destrutiva", re: /confirma|destrut|delete|exclu|dialog de confirma/ },
+  { nome: "reversibilidade", re: /revers|desfaz|restaur|undo|históric/ }, // não "rollback" (casaria "optimistic update e rollback")
+  { nome: "edge de escrita", re: /edge.*escrit|escrit.*edge|write|fs\b|workspace|permiss.*escrit|cwd/ },
+  { nome: "concorrência", re: /concorr|lost.?update|race|submiss.*dupl|dupl.*submit|idempot/ }, // não "stale" (casaria "dados obsoletos/stale")
+  { nome: "autorização", re: /autoriza|permiss|least privilege|acesso|role|escopo/ },
+  // DRAWER / MODAL
+  { nome: "foco ao abrir", re: /foco|focus|aria-label|labelledby|título do (modal|drawer|dialog)/ },
+  { nome: "escape/fechar por teclado", re: /escape|esc\b|fechar.*teclad|teclad.*fechar/ },
+  { nome: "fechamento acidental", re: /fechamento.*acident|acident.*fechamento|click.?out|outside.?click|backdrop|dados não salvos/ },
+  // DETALHE
+  { nome: "registro inexistente (404)", re: /404|inexistent|não encontrad|removid|deletad.*aberto|fantasma/ },
+  { nome: "campos opcionais ausentes", re: /campo.*(opcional|nul|ausent)|fallback|null.*safe/ },
+  // estados transversais
+  { nome: "estado de loading", re: /loading|carreg|spinner|skeleton|aguard/ },
+  { nome: "dados obsoletos/stale", re: /obsolet|stale|desatualiz|refetch|dados antig/ },
+  // BOARD
+  { nome: "drag-drop e persistência de ordem", re: /drag|drop|arrast|reorden|persist.*ordem|kanban/ },
+  { nome: "optimistic update e rollback", re: /optimist|otimist|rollback.*falh|reverter.*servidor/ },
+  // UPLOAD / DISCO
+  { nome: "validação de arquivo (tipo/tamanho)", re: /mime|magic byte|validação de arquivo|tipo.*arquivo|tamanho|extens/ },
+  { nome: "path traversal e segurança de upload", re: /path.?travers|presigned|sanitiz.*path|vírus|scan|audit.*upload/ },
+];
+
+// Regra L-cob da etapa 7: o revisor declara TODAS as lentes do catálogo (cada uma aparece em `lentes[].lente`,
+// matching conceitual por regex). Lente do catálogo silenciosa = revisão incompleta = REPROVA do porteiro
+// (não da feature). Molde: regraGatesDeclarados (etapa 6) + matching 1-para-1 de regraCatalogoCoberto (etapa 4).
+// O casamento 1-para-1 (Set `usados`) é a defesa ESTRUTURAL contra colisão de regex (achado da revisão cega):
+// cada lente DECLARADA satisfaz no máximo UMA lente do catálogo, então uma declaração ("persistência de ordem")
+// não pode cobrir indevidamente DUAS lentes (ordenação E drag-drop) mesmo que ambos os regex a casassem.
+function regraCatalogoLentesDeclaradas(output) {
+  const declaradas = (output?.lentes ?? []).map((l) => `${l?.lente ?? ""}`.toLowerCase());
+  const usados = new Set();
+  const faltam = [];
+  for (const L of CATALOGO_LENTES) {
+    const idx = declaradas.findIndex((d, i) => !usados.has(i) && L.re.test(d));
+    if (idx === -1) faltam.push(L.nome);
+    else usados.add(idx);
+  }
+  return faltam.length
+    ? { ok: false, faltando: faltam.map((nome) => `lente não considerada na revisão: '${nome}' (declare coberta/descoberta/nao_aplicavel)`) }
+    : { ok: true, faltando: [] };
+}
+
+// Regra V-just da etapa 7: coerência veredito↔exigências E veredito↔p0_coberto. `exigencias_antes_de_mergear`
+// é o PIVÔ FORMAL do veredito (como `evidencia` p/ gate verde na etapa 6). REPROVA SEM exigência = reprova em
+// silêncio (proibido); APROVA COM exigência = contradição (há trabalho ANTES de mergear, logo não dá p/ aprovar
+// o merge). E APROVA com p0_coberto="não" é incoerente (se o crítico não está coberto, não se aprova o merge —
+// achado da revisão cega). São checagens LÓGICAS (não-semânticas) — validam consistência interna, não se o
+// veredito é "justo".
+function regraVeredictoJustificado(output) {
+  const v = output?.veredito;
+  const n = (output?.exigencias_antes_de_mergear ?? []).filter((e) => `${e ?? ""}`.trim()).length;
+  const issuesAltas = (output?.issues ?? []).filter((i) => i?.severidade === "alta").length;
+  if (v === "REPROVA" && n === 0) return { ok: false, faltando: ['veredito "REPROVA" sem exigencias_antes_de_mergear (não se reprova em silêncio)'] };
+  if (v === "APROVA" && n > 0) return { ok: false, faltando: [`veredito "APROVA" com ${n} exigência(s) antes de mergear (contradição: se há exigência, não dá para aprovar o merge)`] };
+  if (v === "APROVA" && output?.p0_coberto === "não") return { ok: false, faltando: ['veredito "APROVA" com p0_coberto "não" (incoerente: o crítico não está coberto — não se aprova o merge)'] };
+  // APROVA com issue 'alta' DECLARADA é incoerência mecânica (você mesmo a marcou alta e aprovou sem exigir
+  // nada) — distinto do sandbagging semântico (rebaixar p/ baixa), que fica fora (achado da revisão cega).
+  if (v === "APROVA" && issuesAltas > 0) return { ok: false, faltando: [`veredito "APROVA" com ${issuesAltas} issue(s) de severidade "alta" (se há defeito alto, vire exigência ou rebaixe — não se aprova com alta em aberto)`] };
+  return { ok: true, faltando: [] };
+}
+
+// Regra L-motivo da etapa 7 (a defesa ANTI-FUGA central do catálogo plano — eu a planejei e perdi ao
+// "simplificar"; o anti-viés a repôs): uma lente `nao_aplicavel` exige um MOTIVO SUBSTANTIVO, não nota-lixo
+// ("n/a", "-", "na", "não"). O schema já barra nota vazia; esta barra a nota oca. Sem ela, marcar tudo N/A com
+// "n/a" + APROVA passa o porteiro — teatro de revisão. O N/A tem de ser decisão consciente, não automática.
+const NOTA_OCA = /^(n\/?a|na|-+|—|n\.?a\.?|não|nao|sem|nenhum|x)$/i;
+function regraNaoAplicavelComMotivo(output) {
+  const ocas = (output?.lentes ?? []).filter(
+    (l) => l?.situacao === "nao_aplicavel" && NOTA_OCA.test(`${l?.nota ?? ""}`.trim())
+  );
+  return ocas.length
+    ? { ok: false, faltando: ocas.map((l) => `lente "${l.lente}" nao_aplicavel com motivo oco ("${l.nota}") — diga POR QUE não se aplica a esta feature`) }
+    : { ok: true, faltando: [] };
+}
+
+// Regra D-I da etapa 7: toda lente DESCOBERTA (= sem cobertura, = problema) é referenciada por ao menos uma
+// issue. Fecha o circuito descoberta→issue→ação; impede a "descoberta órfã" (apontar buraco e não acionar).
+// Matching conceitual (a issue.lente pode instanciar a lente em alvos: "MUTACAO/confirmação (delete)"). Molde:
+// regraCircuitoComportamentoCriterio (etapa 4).
+function regraDescobertaViraIssue(output) {
+  const descobertas = (output?.lentes ?? []).filter((l) => l?.situacao === "descoberta");
+  const lentesDeIssues = (output?.issues ?? []).map((i) => `${i?.lente ?? ""}`.toLowerCase());
+  const orfas = descobertas.filter((d) => {
+    const nome = `${d?.lente ?? ""}`.toLowerCase();
+    // a issue cobre a lente se sua `lente` CONTÉM o nome INTEIRO da lente descoberta (a issue instancia a
+    // lente, possivelmente com alvo: "confirmação de ação destrutiva (delete)" contém "confirmação de ação
+    // destrutiva"). Só esta direção (li.includes(nome)) — a inversa (nome.includes(li)) deixava uma issue
+    // genérica "estado" cobrir 3 descobertas distintas (vazio/erro/loading); furo achado pela revisão cega.
+    return !lentesDeIssues.some((li) => li.includes(nome));
+  });
+  return orfas.length
+    ? { ok: false, faltando: orfas.map((d) => `lente "${d.lente}" declarada DESCOBERTA mas sem issue que a acione (descoberta órfã)`) }
+    : { ok: true, faltando: [] };
+}
+
+// Regra I-acion da etapa 7: toda issue tem localizacao + acao não-vazias (sem isso a etapa 6 não sabe onde
+// mexer nem o quê fazer). Reúso da filosofia de evidência obrigatória, aplicada a 2 campos.
+function regraIssueAcionavel(output) {
+  const erros = [];
+  for (const i of output?.issues ?? []) {
+    if (evidenciaVazia(i?.localizacao)) erros.push(`issue "${i?.id ?? "(sem id)"}" sem localizacao (onde está o defeito)`);
+    if (evidenciaVazia(i?.acao)) erros.push(`issue "${i?.id ?? "(sem id)"}" sem acao (o que fazer — acionável)`);
+  }
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
 // Fábrica de regra reutilizável (A012): "todo item de `listaCampo` cujo `condCampo` == `condValor`
 // DEVE ter `evidCampo` não-vazio". Usada pela etapa 2 ("confirmado ao vivo" exige evidencia_ao_vivo)
 // e pela etapa 3 (todo gap exige evidencia). A honestidade é imposta pelo formato, não pela boa-fé.
@@ -842,10 +964,53 @@ export const PIPELINE = [
     id: "gate_a",
     nome: "Gate A — Revisão",
     agente: "code-reviewer",
-    core: "[fallback] Revisão adversarial com lentes por arquétipo.",
-    corePath: "cores-aba-clis/gate_a.md",
+    // Executor: code-reviewer — REFUTADOR. Tenta achar defeito no diff (não valida, não conserta). É o JUIZ
+    // do "réu" da etapa 6 (fecha o anti-viés do projeto: réu nunca é juiz → aqui entra um agente DIFERENTE).
+    // O enquadramento adversarial é EMPÍRICO (pesquisa: "valide" derruba a detecção até 93pp; "refute" maximiza).
+    executor: {
+      nome: "code-reviewer",
+      capacidade: "revisão ADVERSARIAL — passa o diff sob todas as lentes e tenta refutar; não valida, não conserta",
+      confianca_enum: ["achado confirmado no diff", "risco potencial"],
+    },
+    core: "[fallback] Revisão adversarial: passe o diff sob TODAS as lentes do catálogo. Ver cores/CORE-GATEA.md.",
+    corePath: "cores/CORE-GATEA.md",
+    catalogoBriefing: CATALOGO_LENTES, // injeta as lentes no briefing ({catalogo_lentes}) — fonte única com a regra
+    schemaPlaceholdersExtra: ["catalogo_lentes"], // documenta o placeholder extra (além de schema_prosa)
+    // Pré-condições: as 6 etapas anteriores (precisa do diff da etapa 6). O motor bloqueia se faltar.
+    precondicoes: ["entry_point", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output", "mapa_dependencias_output", "implementacao_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output", "mapa_dependencias_output", "implementacao_output", "next_stage", "concluidas"],
     schema: ["veredito"],
-    regrasExtras: [regraCampoIgual("veredito", "APROVA", 'veredito deve ser "APROVA"')],
+    schemaEstrutural: {
+      veredito: { obrigatorio: true, enum: ["APROVA", "REPROVA"] }, // NÃO exige APROVA — REPROVA é sucesso da etapa
+      resumo: { obrigatorio: true },
+      lentes: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        lente: { obrigatorio: true },
+        situacao: { obrigatorio: true, enum: ["coberta", "descoberta", "nao_aplicavel"] },
+        nota: { obrigatorio: true },  // onde (coberta) / exigência (descoberta) / motivo (nao_aplicavel) — sempre
+      } },
+      issues: { presente: true, tipo: "lista-de-objetos", itemCampos: {
+        id: { obrigatorio: true },
+        severidade: { obrigatorio: true, enum: ["alta", "media", "baixa"] },
+        lente: { obrigatorio: true },
+        localizacao: { obrigatorio: true },  // onde está o defeito (regra extra reforça)
+        descricao: { obrigatorio: true },
+        acao: { obrigatorio: true },          // o conserto prescrito, acionável (regra extra reforça)
+      } },
+      p0_coberto: { obrigatorio: true, enum: ["sim", "não"] },
+      exigencias_antes_de_mergear: { presente: true, tipo: "lista-de-strings" }, // [] válido só quando APROVA
+    },
+    // Regras da etapa 7 (todas reúso de mecanismo — zero dialeto novo): (1) TODAS as lentes do catálogo
+    // declaradas (cobertura total); (2) toda issue tem localizacao+acao acionáveis; (3) veredito coerente com
+    // exigências (REPROVA→≥1, APROVA→0 — pivô formal); (4) descoberta vira issue (circuito). A `nota` de cada
+    // lente (onde/exigência/motivo) já é obrigatória no schema p/ TODAS — não precisa de regra condicional.
+    // NÃO usa `estado` (não cruza arquétipo — o catálogo é injetado inteiro, decisão do operador).
+    regrasExtras: [
+      regraCatalogoLentesDeclaradas,
+      regraNaoAplicavelComMotivo,   // N/A exige motivo SUBSTANTIVO (anti-fuga central — não basta "n/a")
+      regraIssueAcionavel,
+      regraVeredictoJustificado,    // inclui: REPROVA→≥1 exig; APROVA→0 exig + P0 coberto + 0 issue 'alta'
+      regraDescobertaViraIssue,
+    ],
   },
   {
     id: "acessibilidade",
@@ -919,4 +1084,4 @@ export function nomeEtapa(id) {
 
 // Exporta o gerador de prosa do schema (motor injeta {schema_prosa} no briefing) e o validador
 // estrutural (para testes diretos).
-export { gerarSchemaProsa, validarEstrutura, avaliarEtapa };
+export { gerarSchemaProsa, validarEstrutura, avaliarEtapa, CATALOGO_LENTES };

@@ -207,6 +207,13 @@ function contextoDeSubstituicao(estado, etapa) {
   if (etapa.schemaEstrutural) {
     ctx.schema_prosa = gerarSchemaProsa(etapa.schemaEstrutural, etapa);
   }
+  // Catálogo injetável (genérico, M1): se a etapa declara `catalogoBriefing` (lista de {nome}), o motor o
+  // renderiza como prosa em `{catalogo_lentes}`. A etapa 7 injeta TODAS as lentes (decisão: catálogo plano,
+  // sem arquétipo). Qualquer etapa futura com um catálogo a injetar reusa este placeholder. Fonte única: o
+  // MESMO dado que a regra do porteiro consome (CATALOGO_LENTES) é o que o executor vê.
+  if (Array.isArray(etapa.catalogoBriefing) && etapa.catalogoBriefing.length > 0) {
+    ctx.catalogo_lentes = etapa.catalogoBriefing.map((item) => `- ${item.nome}`).join("\n");
+  }
   return ctx;
 }
 

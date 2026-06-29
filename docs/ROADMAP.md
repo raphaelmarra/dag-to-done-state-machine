@@ -3,13 +3,13 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
-> **Onde paramos (2026-06-29):** **6 de 13 etapas completas** no `v1/` — quase metade. Etapas 1 (DAG), 2
-> (Descoberta), 3 (GAP), 4 (Design), 5 (Mapa) e **6 (Implementação, ADR 0027 — handoff verificável +
-> rastreabilidade âncora↔fonte)**. Suíte v1 **139/139**. Encadeamento real das **6 etapas** testado. A etapa 6
-> é a 1ª que toca CÓDIGO e a 1ª a tocar o motor em 5 etapas — mas o toque foi 3 linhas, genéricas e
-> retrocompatíveis (passar `estado` às regras): **resolve A014**, e qualquer etapa futura de validação cruzada
-> o usa de graça. Tese de amortização confirmada (custo marginal baixo). MVP congelado. Próximo: etapa 7
-> (Gate A). Dívidas: A010, A011, A016.
+> **Onde paramos (2026-06-29):** **7 de 13 etapas completas** no `v1/` — mais da metade. Etapas 1 (DAG), 2
+> (Descoberta), 3 (GAP), 4 (Design), 5 (Mapa), 6 (Implementação) e **7 (Gate A, ADR 0028 — revisão adversarial
+> com catálogo de lentes PLANO)**. Suíte v1 **164/164**. Encadeamento real das **7 etapas** testado. A etapa 7
+> é a 1ª REFUTADORA — fecha o anti-viés "réu nunca é juiz" (o réu da etapa 6 encontra seu juiz). Decisão do
+> operador: catálogo plano (injeta todas as lentes, sem arquétipo) — eliminou o gargalo D-2. O anti-viés pegou
+> um furo que o próprio Claude introduziu (regra de motivo-do-N/A perdida). MVP congelado. Próximo: etapa 8
+> (Acessibilidade). Dívidas: A010, A011, A016.
 
 ---
 
@@ -67,7 +67,7 @@ Uma etapa é considerada "CORE pronto" quando:
 | 4 | Design | ui-ux-designer | `CORE-DESIGN.md` v1.0 | ✅ cristalizado (ADR 0025) + plugado + testado (cego) — 95/95 |
 | 5 | Mapa de dependências | Plan | `CORE-MAPA.md` v1.0 | ✅ cristalizado (ADR 0026) + plugado no v1 + testado (cego) — 113/113 |
 | 6 | Implementação | frontend/typescript/fullstack | `CORE-IMPL.md` v1.0 | ✅ cristalizado (ADR 0027) + plugado no v1 + testado (2 casos cegos) — 139/139 |
-| 7 | Gate A (revisão) | code-reviewer | — | ⬜ não iniciado |
+| 7 | Gate A (revisão) | code-reviewer | `CORE-GATEA.md` v1.0 | ✅ cristalizado (ADR 0028) + plugado no v1 + testado (2 casos cegos) — 164/164 |
 | 8 | Acessibilidade | web-accessibility-checker | — | ⬜ não iniciado |
 | 9 | Gate B (ao vivo) | fiscal | — | ⬜ não iniciado |
 | 10 | Aprovação humana | humano | — | ⬜ não iniciado |

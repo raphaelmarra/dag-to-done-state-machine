@@ -315,24 +315,31 @@ Antes de produzir o mapa, confirma que etapas 1-4 estão completas e aprovadas. 
 - Diff da implementação
 - ADRs tomadas no design (para verificar conformidade)
 - Riscos do pre-mortem (para cobrir especificamente)
-- Lentes obrigatórias por arquétipo:
-  - **LISTA** → performance, paginação, estado vazio, estado de erro, ordenação
-  - **MUTACAO** → segurança, validação de input, reversibilidade, edge cases de escrita, concorrência
-  - **DRAWER** → foco ao abrir, escape, estado de loading, dados obsoletos, fechamento acidental
-  - **BOARD** → drag and drop, persistência de ordem, conflito de estado, reordenação parcial
-  - **DETALHE** → dado inexistente (404), permissão insuficiente, campos opcionais ausentes
-  - **DISCO** → encoding, tamanho máximo, tipo de arquivo, path traversal, limpeza pós-uso
+- O **catálogo COMPLETO de lentes** (todas, de todos os arquétipos — decisão ADR 0028: catálogo plano, sem
+  classificar arquétipo). O revisor declara, por lente, se ela está coberta / descoberta / não se aplica:
+  - **LISTA** → estado vazio, estado de erro, paginação/volume, ordenação
+  - **MUTACAO** → validação de input, confirmação de ação destrutiva, reversibilidade, edge de escrita, concorrência, autorização
+  - **DRAWER** → foco ao abrir, escape/fechar por teclado, fechamento acidental
+  - **BOARD** → drag-drop e persistência de ordem, optimistic update e rollback
+  - **DETALHE** → registro inexistente (404), campos opcionais ausentes
+  - **DISCO/UPLOAD** → validação de arquivo (tipo/tamanho), path traversal e segurança de upload
+  - **transversais** → estado de loading, dados obsoletos/stale
+  > Por que TODAS e não só as do arquétipo: features reais são multi-arquétipo (a aba CLIs é LISTA+MUTACAO);
+  > injetar tudo e declarar cada uma elimina o gargalo "de onde vem o arquétipo" e impede o revisor de escolher
+  > um escopo conveniente. `nao_aplicavel` exige motivo (decisão consciente, não esquecimento). Fonte canônica
+  > das lentes: USWDS (a11y por componente) + OWASP ASVS (por operação).
 
 **Entregável:** Veredicto `APROVA` ou `REPROVA` com:
-- Lista de problemas encontrados (se REPROVA) — cada um específico e acionável
-- Lentes cobertas declaradas explicitamente
+- Lista de problemas (issues) encontrados — cada um específico e acionável (localização + ação)
+- A situação de CADA lente do catálogo declarada (coberta/descoberta/nao_aplicavel, com nota)
 - O que ficou fora de cobertura (honestidade sobre limites)
 
 **Critério de aceitação:**
-- [ ] Todas as lentes do arquétipo cobertas
-- [ ] Cobertura declarada (não implícita)
-- [ ] Veredicto claro: APROVA ou REPROVA (sem "depende")
-- [ ] Se REPROVA: motivo específico com localização no código
+- [ ] TODAS as lentes do catálogo declaradas (coberta/descoberta/nao_aplicavel — nenhuma em silêncio)
+- [ ] Cobertura declarada (não implícita); `nao_aplicavel` com motivo
+- [ ] Veredicto claro: APROVA ou REPROVA (sem "depende") — REPROVA é resultado válido
+- [ ] Se REPROVA: ≥1 exigência antes de mergear, com issues localizadas e acionáveis
+- [ ] Coerência: APROVA ⟺ sem exigências e P0 coberto; toda lente descoberta vira issue
 
 ---
 

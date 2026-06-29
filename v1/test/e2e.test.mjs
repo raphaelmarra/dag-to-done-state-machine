@@ -6,7 +6,7 @@ import { describe, it, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import { rmSync, writeFileSync } from "node:fs";
 import { main, carregarEstado, outputPath, featureDir, statePath, estaCompleto } from "../dag.mjs";
-import { PIPELINE, PRIMEIRA_ETAPA } from "../pipeline.config.mjs";
+import { PIPELINE, PRIMEIRA_ETAPA, CATALOGO_LENTES } from "../pipeline.config.mjs";
 
 const FEATURE = "e2e-test";
 
@@ -128,7 +128,19 @@ function outputValido(etapa) {
       out.no_gos_respeitados = ["não executa o agente — só renderiza o prompt (no-go do GAP)"];
       break;
     case "gate_a":
+      // Revisão adversarial honesta: TODAS as lentes do catálogo declaradas (a regra exige cobertura total);
+      // aqui o diff é mínimo e limpo, então APROVA com 0 exigências (o pivô: APROVA⟹exigencias==0). A maioria
+      // das lentes é nao_aplicavel COM motivo (a regra-gêmea exige motivo). Sem issue ⟹ sem descoberta órfã.
       out.veredito = "APROVA";
+      out.resumo = "Diff mínimo e ancorado; as lentes aplicáveis (lista) estão cobertas, as demais não se aplicam.";
+      out.lentes = CATALOGO_LENTES.map((L) => (
+        /vazi|empty|nenhum/.test(L.re.source)
+          ? { lente: L.nome, situacao: "coberta", nota: "tratado no diff (a.tsx exibe estado próprio)" }
+          : { lente: L.nome, situacao: "nao_aplicavel", nota: "feature de correção de contrato; esta dimensão não se aplica ao diff" }
+      ));
+      out.issues = [];
+      out.p0_coberto = "sim";
+      out.exigencias_antes_de_mergear = [];
       break;
     case "gate_b":
       out.veredito = "verificado";

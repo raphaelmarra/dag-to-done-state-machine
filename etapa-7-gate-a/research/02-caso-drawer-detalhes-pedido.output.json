@@ -1,0 +1,35 @@
+{
+  "_meta": "2º caso (cego, generalidade) da etapa 7 — arquétipo DRAWER (≠ LISTA+MUTACAO do caso real da aba CLIs). Produzido por code-reviewer cego que recebeu só o arquétipo + as 5 lentes de DRAWER + o diff a revisar. Valida que o schema do Gate A (veredito/lentes_cobertas/lentes_descobertas/issues/p0_coberto/exigencias) generaliza além do caso real. As 5 lentes de DRAWER aparecem TODAS entre cobertas(2)+descobertas(3) — a regra de cobertura união⊇catálogo se confirma. Veredito REPROVA (saudável). Feature fictícia 'Drawer de detalhes do pedido'. O arquétipo veio NO PROMPT (de fora), não inventado pelo revisor — reforça D-2.",
+  "feature": "drawer-detalhes-pedido",
+  "etapa": "gate_a",
+  "arquetipo": "DRAWER",
+  "veredito": "REPROVA",
+  "resumo": "A implementação cobre o caminho feliz (CA-01 a CA-04) mas falha em 3 das 5 lentes obrigatórias do arquétipo DRAWER: dados obsoletos/stale no refetch (drawer mostra dados do pedido anterior durante a troca, contradiz GAP-01 e R-02), fechamento acidental sem ADR justificando, e foco ao abrir com acessibilidade quebrada (Dialog.Content sem aria-label/Title). Além disso R-01 (dados fantasma de pedido deletado) NÃO mitigado: o hook não trata 404. order===undefined após load quebra o render com TypeError. P0 não coberto.",
+  "lentes_cobertas": [
+    { "lente": "estado de loading", "onde": "CA-02 + U1 (skeleton enquanto isLoading) + U2 (isLoading)", "nota": "Coberta APENAS na primeira carga; insuficiente para a troca de pedido (ver lente stale)." },
+    { "lente": "escape/fechar por teclado", "onde": "U1 — default do Radix Dialog (Escape fecha, dispara onOpenChange(false))", "nota": "Coberta pelo default; herda o problema de fechamento sem confirmação (read-only mitiga por ora)." }
+  ],
+  "lentes_descobertas": [
+    { "lente": "foco ao abrir", "motivo": "Dialog.Content sem aria-label/aria-labelledby/Dialog.Title; foco entra em container anônimo, leitor de tela anuncia 'dialog' sem nome.", "exigencia_revisor": "Adicionar Dialog.Title ('Pedido #{id}') + aria-labelledby OU aria-label no Content; definir onOpenAutoFocus; garantir retorno de foco à linha de origem ao fechar." },
+    { "lente": "dados obsoletos/stale", "motivo": "FURO CENTRAL: ao trocar de pedido, isLoading fica false no refetch (só true na 1ª carga) → drawer exibe dados do pedido ANTERIOR. Reabre R-02 e GAP-01. O diff reconhece ('isFetching distinguiria') mas não expõe isFetching.", "exigencia_revisor": "Expor isFetching; skeleton quando (isLoading || (isFetching && data?.id !== orderId)); nunca renderizar order cujo id ≠ orderId atual. Teste: abrir A, trocar p/ B com refetch pendente, asseverar que nada de A aparece." },
+    { "lente": "fechamento acidental com dados não salvos", "motivo": "Read-only por ora (GAP-02 no-go p/ edição), mas: (1) fechamento por outside-click/Escape ativo sem ADR registrado (decisão implícita não rastreada); (2) onInteractOutside não tratado → clique acidental fecha. Quando edição inline entrar, sem guarda = perda de dados.", "exigencia_revisor": "ADR explícito 'fechamento livre permitido pois read-only'; marcar ponto de extensão p/ dirty-guard futuro." }
+  ],
+  "issues": [
+    { "id": "ISS-01", "severidade": "alta", "lente": "dados obsoletos/stale", "localizacao": "order-detail-drawer.tsx + use-order-detail.ts", "descricao": "Durante a troca de pedido, o drawer exibe dados do anterior (isLoading só true na 1ª carga; isFetching não exposto). Reabre R-02 e GAP-01.", "acao": "Expor isFetching; skeleton quando (isLoading || isFetching) E order?.id !== orderId; bloquear render de order com id divergente." },
+    { "id": "ISS-02", "severidade": "alta", "lente": "dados obsoletos/stale", "localizacao": "use-order-detail.ts", "descricao": "R-01 NÃO mitigado: em 404 (pedido deletado) o hook mantém o último cache, exibindo dados fantasma. O design listou R-01 e ele segue aberto.", "acao": "Tratar 404: removeQueries ou order=null; drawer renderiza 'Pedido não encontrado'. Expor isError/error." },
+    { "id": "ISS-03", "severidade": "alta", "lente": "estado de loading", "localizacao": "order-detail-drawer.tsx", "descricao": "Sem tratamento p/ order===undefined após load. order.items.map/order.total lançam TypeError no caminho não-feliz.", "acao": "Guarda: if (isLoading||isFetching)->skeleton; else if(!order)->vazio; else->conteúdo. Nunca acessar order.* sem verificar." },
+    { "id": "ISS-04", "severidade": "media", "lente": "foco ao abrir", "localizacao": "order-detail-drawer.tsx", "descricao": "Dialog.Content sem aria-label/Title; Radix exige nome acessível. A11y quebrada p/ painel modal.", "acao": "Dialog.Title (+VisuallyHidden) + Dialog.Description ou aria-label. Verificar ausência de warnings do Radix." },
+    { "id": "ISS-05", "severidade": "media", "lente": "fechamento acidental com dados não salvos", "localizacao": "order-detail-drawer.tsx / docs/adr", "descricao": "Fechamento por outside-click/Escape sem ADR justificando, sem guarda p/ edição futura. Decisão implícita não rastreada (viola decidido->ADR).", "acao": "ADR registrando fechamento livre read-only; comentário no onOpenChange marcando extensão p/ dirty-guard." },
+    { "id": "ISS-06", "severidade": "media", "lente": "foco ao abrir", "localizacao": "order-detail-drawer.tsx", "descricao": "Retorno de foco ao fechar depende do trigger montado; em tabela paginada/virtualizada a linha pode desmontar e o foco volta ao body.", "acao": "onCloseAutoFocus com fallback (focar container da tabela). Testar fechamento com a lista alterada." },
+    { "id": "ISS-07", "severidade": "baixa", "lente": "estado de loading", "localizacao": "order-detail-drawer.tsx", "descricao": "CA-04 (rolável): order.items.map sem virtualização nem overflow controlado; pedidos grandes estouram render e Tab fica longo com focus trap.", "acao": "Confirmar overflow-y:auto + max-height; avaliar virtualização p/ listas grandes." }
+  ],
+  "p0_coberto": false,
+  "exigencias_antes_de_mergear": [
+    "Resolver ISS-01: nunca exibir dados de id diferente do orderId atual durante refetch (fecha R-02 e GAP-01).",
+    "Resolver ISS-02: tratar 404/pedido deletado e renderizar 'não encontrado' (fecha R-01 do pre-mortem).",
+    "Resolver ISS-03: guarda para order===undefined antes de order.items.map/order.total (elimina TypeError).",
+    "Resolver ISS-04: nome acessível no Dialog.Content (Title + aria-labelledby ou aria-label).",
+    "Registrar ADR do comportamento de fechamento (ISS-05) e marcar o ponto de extensão do dirty-guard.",
+    "Adicionar testes: troca A->B sem vazar dados de A; 404 com drawer aberto; render com order undefined; ausência de warnings de A11y; retorno de foco ao fechar com a lista alterada."
+  ]
+}
