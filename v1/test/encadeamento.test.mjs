@@ -130,10 +130,10 @@ const OUT_GATEB = {
   fica_para_humano: ["confirmar a janela de acesso ao ambiente de produção"],
 };
 
-describe("Encadeamento real DAG → … → Gate A → Acessibilidade → Gate B (fluxo do motor, sem injeção manual)", () => {
+describe("Encadeamento real DAG → … → Gate B → Aprovação humana (fluxo do motor, sem injeção manual)", () => {
   after(() => limpar());
 
-  it("as 9 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
+  it("as 10 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
     limpar();
     // init com o que o motor não promove (entry_point/project_root vêm do operador).
     assert.equal(main(["init", FEATURE, "--entry", "aba CLIs", "--root", "/proj"]), 0);
@@ -216,8 +216,21 @@ describe("Encadeamento real DAG → … → Gate A → Acessibilidade → Gate B
     assert.ok(carregarEstado(FEATURE).gate_b_output, "motor promoveu gate_b_output");
     assert.equal(carregarEstado(FEATURE).etapaAtual, "aprovacao_humana", "avançou para Aprovação humana (etapa 10)");
 
-    // Encadeamento provado: 9 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
-    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao", "gate_a", "acessibilidade", "gate_b"]);
+    // ETAPA 10 (Aprovação humana / HITL) — exige as 9 anteriores. O next gera o DOSSIÊ derivado do estado real
+    // (resumo do design + vereditos dos 3 gates + fica_para_humano + riscos). O humano aprova → avança para Done.
+    assert.equal(main(["next", FEATURE]), 0, "next Aprovação humana ok (9 pré-condições presentes)");
+    assert.ok(existsSync(briefingPath(FEATURE, "aprovacao_humana")), "briefing (dossiê) Aprovação humana gerado");
+    const dossie = readFileSync(briefingPath(FEATURE, "aprovacao_humana"), "utf8");
+    // o dossiê embute dados REAIS promovidos pelo fluxo (não montados à mão): o veredito do Gate B e um risco do design.
+    assert.match(dossie, /verificado/, "o dossiê traz o veredito real do Gate B promovido");
+    assert.match(dossie, /SE args objeto/, "o dossiê traz um risco real do pre-mortem do design promovido");
+    assert.doesNotMatch(dossie, /\{dossie_aprovacao\}/, "o placeholder foi substituído no fluxo real");
+    escrever("aprovacao_humana", { aprovado_por: "Raphael (Diretor)", decisao: "aprovado", observacao: "usei a aba, fluxo ok" });
+    assert.equal(main(["advance", FEATURE]), 0, "advance Aprovação humana aprova (decisao=aprovado)");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "done", "avançou para Done (etapa 11)");
+
+    // Encadeamento provado: 10 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
+    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao", "gate_a", "acessibilidade", "gate_b", "aprovacao_humana"]);
   });
 
   it("PROVA da rastreabilidade no fluxo real: âncora-FANTASMA na etapa 6 BLOQUEIA o advance", () => {

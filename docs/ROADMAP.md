@@ -3,14 +3,14 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
-> **Onde paramos (2026-06-29):** **9 de 13 etapas completas** no `v1/` — passamos de dois terços. Etapas 1 (DAG),
-> 2 (Descoberta), 3 (GAP), 4 (Design), 5 (Mapa), 6 (Implementação), 7 (Gate A), 8 (Acessibilidade) e **9 (Gate B —
-> verificação ao vivo, ADR 0030 — o JUIZ DA AUTENTICIDADE)**. Suíte v1 **213/213**. Encadeamento real das **9
-> etapas** testado. A etapa 9 é de GÊNERO diferente: verifica a VERDADE (chama a API ao vivo, confronta o real
-> com os critérios do design), não a forma de uma declaração. Veredito QUATERNÁRIO + FAIL-CLOSED (só `verificado`
-> avança; `inconclusivo` exige motivo enumerado — anti-fuga). ZERO motor novo (5 regras reusam moldes 2/6/8). 2
-> rodadas de revisão cega fecharam furos via teste mecânico. MVP congelado. Próximo: etapa 10 (Aprovação humana —
-> gênero não-CORE). Dívidas: A010, A011, A016, A017.
+> **Onde paramos (2026-06-29):** **10 de 13 etapas completas** no `v1/`. Etapas 1 (DAG), 2 (Descoberta), 3 (GAP),
+> 4 (Design), 5 (Mapa), 6 (Implementação), 7 (Gate A), 8 (Acessibilidade), 9 (Gate B) e **10 (Aprovação humana,
+> ADR 0031 — HITL)**. Suíte v1 **227/227**. Encadeamento real das **10 etapas** testado. A etapa 10 é a 1ª de
+> gênero NÃO-CORE (executor = humano): sem meta-prompt, o `next` injeta um DOSSIÊ derivado do estado (construído
+> + vereditos dos gates + o que ficou fora). Porteiro fail-closed binário (só `aprovado` avança). KISS-com-fala-
+> humana: a garantia é PROCESSUAL (o agente mostra o dossiê e espera a fala humana, não a fabrica) — gate
+> cripto seria over-engineering. ZERO mecanismo de validação novo. MVP congelado. Próximo: etapa 11 (Done —
+> gênero sistema). Dívidas: A010, A011, A016, A017, A018, A019.
 
 ---
 
@@ -71,7 +71,7 @@ Uma etapa é considerada "CORE pronto" quando:
 | 7 | Gate A (revisão) | code-reviewer | `CORE-GATEA.md` v1.0 | ✅ cristalizado (ADR 0028) + plugado no v1 + testado (2 casos cegos) — 164/164 |
 | 8 | Acessibilidade | web-accessibility-checker | `CORE-A11Y.md` v1.0 | ✅ cristalizado (ADR 0029) + plugado no v1 + testado (2 casos cegos OPERADOS ao vivo) — 186/186 |
 | 9 | Gate B (ao vivo) | fiscal | `CORE-GATEB.md` v1.0 | ✅ cristalizado (ADR 0030) + plugado no v1 + testado (2 casos cegos opostos + 2 rodadas anti-viés) — 213/213 |
-| 10 | Aprovação humana | humano | — | ⬜ não iniciado |
+| 10 | Aprovação humana | humano | — (HITL, sem CORE) | ✅ cristalizado (ADR 0031) + plugado no v1 + encadeamento das 10 etapas testado + 2 verificadores cegos — 227/227 |
 | 11 | Done | sistema | — | ⬜ não iniciado |
 | 12 | Smoke pós-deploy | devops-engineer | — | ⬜ não iniciado |
 | 13 | Retrospectiva | documentador | — | ⬜ não iniciado |

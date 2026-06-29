@@ -345,3 +345,32 @@ não é o agente.
 chama via curl fora do motor). Até lá, o limite vive DECLARADO no CORE-GATEB §2 e a autenticidade última é do
 humano (etapa 10). Relacionado: A016 (mesma classe — porteiro que aprova sem poder distinguir checado de
 não-checado/fabricado).
+
+---
+
+## A019 — Aprovação humana (etapa 10) é PROCESSUAL, não criptográfica: o agente pode forjar o OK
+
+**Status:** dívida registrada (não bloqueante) — limite da etapa 10 (HITL), declarado no core da etapa
+(pipeline.config.mjs). Irmã de A018 (autenticidade que o motor não consegue provar).
+**Questão:** o pipeline é dirigido por um agente Claude Code. Qualquer comando que o agente PODE rodar, ele
+pode rodar — inclusive escrever o output da etapa 10 com `decisao: "aprovado"` + `aprovado_por: "<nome>"` sem
+que nenhum humano tenha aprovado. O porteiro valida a FORMA (campos presentes, decisão no enum, fail-closed só
+"aprovado" avança) — mas NÃO consegue provar que houve um ato humano real. É a etapa onde o risco se inverte:
+nas etapas 1-9 o risco é o agente fingir trabalho; aqui é o agente fingir a APROVAÇÃO humana.
+**Por que é aceito assim (KISS, decisão do operador):** gate formal pesado (tamper_hash, frase-segredo, cripto)
+é over-engineering para o contexto — a pesquisa de HITL 2026 alerta que gate cerimonioso vira fila/fadiga e que
+um tamper_hash gerado pelo próprio motor (que o agente invoca) não prova nada contra o agente. A garantia real
+e barata é PROCESSUAL: o agente é instruído (no core) a MOSTRAR o dossiê e ESPERAR uma fala humana de OK na
+conversa antes de registrar — e a NÃO fabricar essa fala. A diferença entre isto e "o agente aprova sozinho" é
+uma linha de instrução, e é o que mantém o H do HITL antes do deploy (etapa 12) — a regra inviolável do HITL é
+"aprovação antes do side-effect irreversível".
+**Por que não virou garantia técnica:** provar autenticidade exigiria um canal que o agente NÃO controla — uma
+aprovação fora do repositório (clique/comentário no GitHub PR que o CI lê) ou um segredo que só o humano sabe.
+Ambos saem do "Node puro, zero deps" (ADR 0001) e adicionam infraestrutura externa. Decisão de fundação adiada
+até haver um caso real que justifique (M4) — hoje o operador acompanha a conversa e vê a fala humana.
+**Direção:** quando o pipeline rodar em CI/desacoplado do operador, mover a aprovação para um canal externo
+(GitHub Environments com required reviewers, ou um webhook que o humano aciona) — o motor/CI lê o veredito de
+lá, não do output que o agente escreve. Modelo: "approvals before side effects" + canal fora do alcance do
+agente. Relacionado: A018 (mesma raiz — o motor não autentica o que o agente declara, num fluxo agêntico).
+**Próximo passo:** reavaliar ao levar o pipeline para execução não-supervisionada (CI). Até lá, o limite vive
+DECLARADO no core da etapa 10 e a autenticidade última é o operador humano acompanhando a conversa.

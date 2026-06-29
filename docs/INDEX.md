@@ -30,7 +30,7 @@
   - `0012-analise-de-impacto.md` — change impact analysis, blast radius, slicing. Confronta a fronteira "1 hop" (A4).
   - `0013-modelagem-dependencia-arquitetura.md` — C4, ADP, DDD bounded contexts. Confronta granularidade de nó e fronteira.
   - `0014-ferramentas-reais-dag.md` — Airflow/Nx/Bazel/madge: como tratam ciclo e impacto. O que imitar no CORE-DAG.
-- [`adr/`](adr/) — 30 ADRs (decisões de design, formato MADR, imutáveis). Índice em DECISOES.md.
+- [`adr/`](adr/) — 31 ADRs (decisões de design, formato MADR, imutáveis). Índice em DECISOES.md.
 
 ## Decision log (cronológico — o que foi decidido/aberto/descartado)
 - [`DECISOES.md`](DECISOES.md) — índice dos ADRs (decisões aceitas).
@@ -46,7 +46,7 @@
 - Skill global `manter-governanca` (`~/.claude/skills/`) — como manter toda esta estrutura viva.
 
 ## Código (o motor)
-- [`../v1/`](../v1/) — **versão ativa pós-MVP.** Motor `dag.mjs` + `pipeline.config.mjs`; **etapas 1–9 cristalizadas** e plugadas (COREs em `cores/CORE-{DAG,DISCOVERY,GAP,DESIGN,MAPA,IMPL,GATEA,A11Y,GATEB}.md`). Testes: `cd v1 && node --test` (213/213). Etapa 6: o porteiro recebe o `estado` (rastreabilidade âncora↔fonte). Etapa 7 (Gate A): revisão adversarial com catálogo de lentes PLANO. Etapa 8 (Acessibilidade): o "Gate A do runtime" — catálogo WCAG operacional + `evidencia_operacional`. Etapa 9 (Gate B): verificação ao vivo, veredito QUATERNÁRIO + FAIL-CLOSED (só `verificado` avança).
+- [`../v1/`](../v1/) — **versão ativa pós-MVP.** Motor `dag.mjs` + `pipeline.config.mjs`; **etapas 1–9 cristalizadas com CORE + etapa 10 (HITL, sem CORE)** plugadas (COREs em `cores/CORE-{DAG,DISCOVERY,GAP,DESIGN,MAPA,IMPL,GATEA,A11Y,GATEB}.md`). Testes: `cd v1 && node --test` (227/227). Etapa 6: o porteiro recebe o `estado` (rastreabilidade âncora↔fonte). Etapa 7 (Gate A): revisão adversarial com catálogo de lentes PLANO. Etapa 8 (Acessibilidade): o "Gate A do runtime" — catálogo WCAG operacional + `evidencia_operacional`. Etapa 9 (Gate B): verificação ao vivo, veredito QUATERNÁRIO + FAIL-CLOSED. Etapa 10 (Aprovação humana): 1ª HITL/não-CORE — dossiê derivado do estado + fail-closed binário; garantia PROCESSUAL (A019).
 - [`../MVP/`](../MVP/) — Walking Skeleton congelado (marco) + evidência do E2E da aba CLIs.
 
 ## Histórico / processo

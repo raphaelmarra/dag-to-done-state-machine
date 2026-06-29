@@ -5,6 +5,24 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### 🏁 ETAPA 10 (Aprovação humana) COMPLETA — a 1ª etapa HITL, gênero não-CORE (2026-06-29)
+- **Cristalizada (ADR 0031):** a etapa 10 quebra o molde das etapas 1-9 — o executor é o HUMANO, não um agente
+  LLM, então NÃO há CORE meta-prompt. É o último checkpoint humano antes do deploy.
+- **Dossiê derivado do estado:** o `dag next` injeta `{dossie_aprovacao}` — um resumo LEGÍVEL para o humano (não
+  briefing-para-LLM): o que foi construído (design) + veredito de cada gate (A/B/a11y) + **o que ficou FORA**
+  (fica_para_humano do Gate B + riscos do pre-mortem + o limite A018). Gerado de fonte única (o estado), fail-safe.
+- **Porteiro fail-closed binário:** schema mínimo (`aprovado_por` + `decisao` ∈ {aprovado,rejeitado}); só
+  `aprovado` avança; `rejeitado` é válido mas BLOQUEIA (a feature fica parada — o motor não rebobina o DAG).
+- **KISS-com-fala-humana (decisão do operador, respaldo de pesquisa HITL 2026):** gate formal pesado (tamper_hash/
+  cripto) é over-engineering — num pipeline dirigido por agente o motor não prova autenticidade. A garantia é
+  PROCESSUAL: o core instrui o agente a mostrar o dossiê, ESPERAR a fala humana de OK e NÃO fabricá-la. Mantém o
+  H do HITL (a pesquisa: "approvals before side effects"). Limite declarado como dívida **A019**.
+- **Validada:** 3 peças, cada uma TDD (RED→GREEN) + verificador cego independente (peça 1 sem furo; peça 2
+  resistiu a 24 estados degenerados + ataque de re-substituição de placeholder, 2 fraquezas latentes corrigidas).
+- **Encadeamento real das 10 etapas testado** — o dossiê embute dados PROMOVIDOS pelo fluxo, não montados à mão.
+- **Tese de amortização:** ZERO mecanismo de validação novo (porteiro = 1 `regraCampoIgual`); só 1 ramo de motor
+  declarativo (`dossie:true` → placeholder), espelho de `{schema_prosa}`. ROADMAP 10/13. Suíte **227/227**.
+
 ### 🏁 ETAPA 9 (Gate B — Verificação ao vivo) COMPLETA — o JUIZ DA AUTENTICIDADE (2026-06-29)
 - **Cristalizada (ADR 0030):** CORE-GATEB v1.0 plugado no `v1/`. Executor `fiscal` (chama a API AO VIVO
   read-only, confronta o real com os critérios do design — não lê código, não muta produção). Gênero

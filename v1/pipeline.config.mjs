@@ -1387,6 +1387,11 @@ export const PIPELINE = [
       "o output com `aprovado_por` (o nome de quem aprovou) e `decisao`. Se o humano pedir mudança, registre",
       "`decisao: \"rejeitado\"` com a `observacao` — a feature fica parada (fail-closed).",
       "",
+      "> LIMITE (dívida A019): a garantia desta etapa é PROCESSUAL, não criptográfica. Como o pipeline é",
+      "> dirigido por um agente, o motor não consegue PROVAR que um humano aprovou — ele confia que houve uma",
+      "> fala humana real autorizando. Não invente o OK: se não houve fala humana de aprovação, não registre",
+      "> `aprovado`. A autenticidade última é do próprio ato de o humano usar a tela e dizer que está bom.",
+      "",
       "{dossie_aprovacao}",
     ].join("\n"),
     dossie: true, // sinaliza ao motor: injetar {dossie_aprovacao} derivado do estado (genérico, M1)

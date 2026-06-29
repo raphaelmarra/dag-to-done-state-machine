@@ -132,6 +132,14 @@ describe("Etapa 10 — peça 2: gerador de dossiê", () => {
     assert.match(dossie, /não disponível|n\/d|—/i, "marca o que falta, não inventa");
   });
 
+  it("PEÇA 3: o core declara a instrução-âncora HITL (não aprova sozinho) e o limite processual A019", () => {
+    const d = etapaPorId("aprovacao_humana");
+    assert.match(d.core, /N[ÃA]O aprova sozinho/i, "a instrução-âncora: o agente não se auto-aprova");
+    assert.match(d.core, /espere/i, "espera a fala humana explícita");
+    assert.match(d.core, /A019/, "declara o limite processual (dívida A019)");
+    assert.match(d.core, /n[ãa]o invente o OK/i, "instrui a não fabricar a aprovação");
+  });
+
   it("o briefing gerado por `next` na etapa 10 contém o dossiê (integração)", () => {
     limpar();
     assert.equal(main(["init", FEATURE, "--entry", "X", "--root", "/p"]), 0);

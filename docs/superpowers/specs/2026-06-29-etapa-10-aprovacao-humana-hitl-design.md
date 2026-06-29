@@ -1,6 +1,10 @@
 # Design — Etapa 10 (Aprovação humana / HITL) — KISS
 
-> Status: aprovado (2026-06-29). Próximo: tracker no PLANO-DE-ETAPA → implementação peça-por-peça (TDD + anti-viés cego).
+> **Status: RETIRED — cristalizado no ADR 0031 (2026-06-29).** As 3 peças foram implementadas (TDD + verificador
+> cego), encadeamento das 10 etapas testado, suíte 227/227. Mantido como histórico do design. O racional vive no
+> ADR 0031 e no core da etapa 10 (pipeline.config.mjs). Dívida aberta: A019 (garantia processual).
+>
+> Status histórico: aprovado (2026-06-29). Próximo: tracker no PLANO-DE-ETAPA → implementação peça-por-peça (TDD + anti-viés cego).
 > Etapa 10 do pipeline DAG-to-Done. É a 1ª etapa de gênero NÃO-CORE (executor = humano, não agente LLM).
 
 ## Contexto e princípio

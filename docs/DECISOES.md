@@ -28,6 +28,18 @@
 
 ---
 
+## Etapa 10 (Aprovação humana) — HITL com garantia processual — cristalizada (2026-06-29)
+
+- **ADR 0031** — 1ª etapa de gênero NÃO-CORE (executor = humano). Sem meta-prompt: o `next` injeta um DOSSIÊ
+  derivado do estado (o que foi construído + vereditos dos 3 gates + o que ficou FORA: fica_para_humano +
+  riscos do pre-mortem + limite A018). Porteiro fail-closed binário (só `decisao:"aprovado"` avança; rejeitado
+  bloqueia). **KISS-com-fala-humana:** gate formal pesado (tamper_hash/cripto) é over-engineering — num pipeline
+  dirigido por agente o motor não prova autenticidade; a garantia é PROCESSUAL (o agente mostra o dossiê, espera
+  a fala humana de OK e não a fabrica). Respaldo: pesquisa HITL 2026 ("approvals before side effects"; gate
+  cerimonioso vira fadiga). ZERO mecanismo de validação novo (1 `regraCampoIgual` + 1 ramo `dossie:true`). 3
+  peças TDD + verificador cego (24 estados degenerados; 2 fraquezas corrigidas). Encadeamento das 10 etapas
+  testado. Abre A019 (autenticidade processual, irmã de A018).
+
 ## Etapa 9 (Gate B — Verificação ao vivo) — o JUIZ DA AUTENTICIDADE — cristalizada (2026-06-29)
 
 - **ADR 0030** — Verifica a VERDADE (chama a API ao vivo read-only, confronta o real com os critérios do
