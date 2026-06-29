@@ -5,6 +5,21 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### 🏁 ETAPA 4 (Design) COMPLETA — a primeira etapa CRIATIVA (2026-06-28)
+- **Cristalizada (ADR 0025):** CORE-DESIGN v1.0 plugado no `v1/`. Executor `ui-ux-designer` (designer —
+  produz decisões, não analisa). O desafio: validar criatividade sem julgar "qualidade". Solução: o
+  porteiro valida **ritual** (Three Amigos, pre-mortem ≥3, ≥1 ADR) + **forma** (critério com `then`
+  observável; risco com `o_que_revisar`; estados difíceis em estados distintos; resumo não mente) +
+  **circuito** (comportamento↔critério, sem órfão). O CORE declara o **limite epistêmico por seção**
+  (o "é bom?" e "este then é mesmo observável?" vão ao executor/Gate A).
+- **Catálogo de estados como DADO** (`CATALOGO_ESTADOS_UI` + fábrica `regraCatalogoCoberto`) — M1, não hardcode.
+- **Testada (cego):** um ui-ux-designer cego executou o briefing gerado → 4 comportamentos, 18 critérios
+  testáveis, 5 riscos, 12 estados, 6 ADRs, circuito fechado, ancorado no código real. O porteiro aprovou.
+- **Encadeamento estendido para 4 etapas** (DAG→Descoberta→GAP→Design no fluxo real).
+- **Anti-viés saturado (3 verificadores)** acharam e corrigiram 6 itens (falso-positivo "render"/"carga"
+  como loading; cross-contamination; catálogo hardcoded; critério órfão; adrs sem mínimo; resumo sem coerência).
+- **Tese de amortização:** a etapa 4 (a mais atípica) custou **ZERO mecanismo novo** no motor. ROADMAP 4/13. Suíte **95/95**.
+
 ### Teste de encadeamento das 3 etapas — achou e corrigiu um bug de integração (2026-06-28)
 - **`v1/test/encadeamento.test.mjs`** (novo) — roda o FLUXO REAL do motor encadeando DAG→Descoberta→GAP
   (`next`→output→`advance`), **sem injetar pré-condições à mão** (o motor as promove). Inclui prova

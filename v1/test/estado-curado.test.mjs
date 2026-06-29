@@ -34,9 +34,9 @@ describe("Peça 7 — estado curado por etapa", () => {
   });
 
   it("uma etapa SEM estadoCurado declarado usa o default (não regride)", () => {
-    // 'design' (etapa 4) ainda é placeholder → o motor usa o conjunto default. (dag/descoberta/gap destiladas.)
-    const g = etapaPorId("design");
-    assert.ok(!g.estadoCurado, "design não declara estadoCurado (usa default)");
+    // 'mapa_dependencias' (etapa 5) ainda é placeholder → o motor usa o default. (dag/desc/gap/design destiladas.)
+    const g = etapaPorId("mapa_dependencias");
+    assert.ok(!g.estadoCurado, "mapa_dependencias não declara estadoCurado (usa default)");
     // o e2e (13 etapas) já cobre que o pipeline inteiro continua passando com o default.
   });
 

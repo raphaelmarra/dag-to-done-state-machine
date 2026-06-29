@@ -71,6 +71,24 @@ function outputValido(etapa) {
       out.complexidade = { banda: "média", drivers: { p0: 1, p1: 0, integracoes: 1, incertezas: 1, exige_infra_nova: "não" }, justificativa: "1 P0 de contrato sobre base existente" };
       out.resumo = { total_gaps: 1, p0: 1 };
       break;
+    case "design":
+      // Dossiê de design honesto: 3 amigos→critérios (circuito), critérios com then, ≥3 riscos com
+      // o_que_revisar, estados difíceis (vazio/erro/loading) presentes.
+      out.three_amigos = [{ comportamento: "listar", por_que: "ver comandos", como: "commands/list", criterios: ["CA-01"] }];
+      out.criterios_aceitacao = [{ id: "CA-01", given: "agente válido", when: "abre a aba", then: "exibe a lista, NUNCA spinner infinito" }];
+      out.riscos_premortem = [
+        { id: "R1", risco: "SE args vai objeto ENTÃO quebra", mitigacao: "converter p/ array", o_que_revisar: "payload é array?" },
+        { id: "R2", risco: "SE label diz Executar ENTÃO promessa falsa", mitigacao: "renomear", o_que_revisar: "copy do botão" },
+        { id: "R3", risco: "SE vazio confundido com erro ENTÃO esconde causa", mitigacao: "3 estados", o_que_revisar: "vazio ≠ erro?" },
+      ];
+      out.estados = [
+        { estado: "loading", descricao: "carregando", usuario_pode: "aguardar" },
+        { estado: "erro_de_carga", descricao: "erro/falha na carga", usuario_pode: "tentar de novo" },
+        { estado: "lista_vazia", descricao: "vazio: nenhum comando", usuario_pode: "criar novo" },
+      ];
+      out.adrs = [{ id: "ADR-1", decisao: "run renderiza", motivo: "confirmado ao vivo; executar é no-go" }];
+      out.resumo_design = { comportamentos: 1, criterios: 1, riscos: 3 };
+      break;
     case "gate_a":
       out.veredito = "APROVA";
       break;

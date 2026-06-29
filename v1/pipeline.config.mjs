@@ -225,6 +225,77 @@ function regraAngulosSeImpossivel(output) {
   return { ok: true, faltando: [] };
 }
 
+// Fábrica de regra (E1/E2): a matriz de estados deve COBRIR um catálogo de estados difíceis (cada um
+// presente em um estado DISTINTO — não no mesmo). O catálogo é DADO (passado da config, M1), não fixo
+// na função; cada item tem sinônimos. Corrige: falso-positivo do "render", cross-contamination (um
+// estado satisfazendo vários), e o hardcode (achados da revisão cega). Reusável por qualquer etapa.
+function regraCatalogoCoberto(campoLista, catalogo) {
+  return (output) => {
+    const itens = output?.[campoLista] ?? [];
+    // Casamento 1-para-1: cada item do catálogo precisa de um estado DISTINTO (um estado já usado para
+    // cobrir "vazio" não pode também cobrir "erro"). Isso barra cross-contamination (um único estado
+    // citando as 3 palavras na descrição passaria, indevidamente — achado da revisão cega).
+    const usados = new Set();
+    const faltam = [];
+    for (const cat of catalogo) {
+      const idx = itens.findIndex((e, i) =>
+        !usados.has(i) && cat.re.test(`${e.estado ?? ""} ${e.descricao ?? ""}`.toLowerCase()));
+      if (idx === -1) faltam.push(cat.nome);
+      else usados.add(idx);
+    }
+    return faltam.length
+      ? { ok: false, faltando: faltam.map((n) => `estado difícil ausente: '${n}' (cada um num estado DISTINTO — E1/E2)`) }
+      : { ok: true, faltando: [] };
+  };
+}
+
+// Catálogo de estados difíceis da etapa 4 (DADO — editável sem tocar o mecanismo). "render" NÃO é
+// sinônimo de loading (era falso-positivo: "prompt_renderizado" casava). loading = carga/spinner/aguardando.
+const CATALOGO_ESTADOS_UI = [
+  { nome: "vazio", re: /vazi|empty|nenhum|sem (resultado|comando|item|dado)|lista zerada|0 result/ },
+  { nome: "erro", re: /erro|error|falh|fail/ },
+  { nome: "carregando", re: /carreg|loading|spinner|aguard|buscando/ },
+];
+
+// Regra D-H da etapa 4: o CIRCUITO fecha — todo comportamento aponta `criterios` (IDs) que EXISTEM de
+// fato em criterios_aceitacao. Comportamento que aponta um critério inexistente, ou critério órfão
+// apontado por ninguém, quebra a rastreabilidade que o Gate B usará.
+function regraCircuitoComportamentoCriterio(output) {
+  const comps = output?.three_amigos ?? [];
+  const criterios = output?.criterios_aceitacao ?? [];
+  const idsExistentes = new Set(criterios.map((c) => c.id));
+  const idsApontados = new Set(comps.flatMap((c) => c.criterios ?? []));
+  const erros = [];
+  // (a) todo comportamento aponta critérios que EXISTEM (sem isso, intenção→prova quebrada).
+  for (const c of comps) {
+    for (const id of c.criterios ?? []) {
+      if (!idsExistentes.has(id)) erros.push(`comportamento "${c.comportamento}" aponta critério inexistente "${id}"`);
+    }
+  }
+  // (b) todo critério é apontado por ALGUM comportamento (sem isso, critério órfão — o Gate B não sabe
+  //     a que comportamento ele pertence). Fecha o circuito nos dois sentidos (D-H).
+  for (const c of criterios) {
+    if (!idsApontados.has(c.id)) erros.push(`critério "${c.id}" é órfão: nenhum comportamento o aponta (D-H)`);
+  }
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
+// Regra de coerência do resumo_design (mesmo padrão da etapa 3): o resumo não pode MENTIR sobre as
+// listas — contagens batem com a realidade. Honestidade imposta pelo formato.
+function regraResumoDesignCoerente(output) {
+  const r = output?.resumo_design ?? {};
+  const n = (v) => (typeof v === "number" ? v : parseInt(v, 10));
+  const pares = [
+    ["comportamentos", (output?.three_amigos ?? []).length],
+    ["criterios", (output?.criterios_aceitacao ?? []).length],
+    ["riscos", (output?.riscos_premortem ?? []).length],
+  ];
+  const erros = pares
+    .filter(([k, real]) => n(r[k]) !== real)
+    .map(([k, real]) => `resumo_design.${k} (${r[k]}) ≠ nº real (${real})`);
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
 // Fábrica de regra reutilizável (A012): "todo item de `listaCampo` cujo `condCampo` == `condValor`
 // DEVE ter `evidCampo` não-vazio". Usada pela etapa 2 ("confirmado ao vivo" exige evidencia_ao_vivo)
 // e pela etapa 3 (todo gap exige evidencia). A honestidade é imposta pelo formato, não pela boa-fé.
@@ -479,10 +550,60 @@ export const PIPELINE = [
     id: "design",
     nome: "Design",
     agente: "ui-ux-designer",
-    core: "[fallback] Defina estados, comportamento, critérios e riscos.",
-    corePath: "cores-aba-clis/design.md",
-    schema: ["criterios_aceitacao", "riscos_premortem"],
-    aceita: (o) => camposPresentes(o, ["criterios_aceitacao", "riscos_premortem"]),
+    // Executor: ui-ux-designer — DESIGNER (produz decisões, não analisa). Confiança = origem da decisão.
+    executor: {
+      nome: "ui-ux-designer",
+      capacidade: "decide o comportamento da feature (estados, interação, critérios) ancorado no descoberto; não re-descobre",
+      confianca_enum: ["ancorado em descoberta", "decisão de produto", "a confirmar via spike"],
+    },
+    core: "[fallback] Desenhe o comportamento da feature ancorado no DAG+Descoberta+GAP. Ver cores/CORE-DESIGN.md.",
+    corePath: "cores/CORE-DESIGN.md",
+    // Pré-condições: precisa das 3 etapas anteriores (confronta/decide sobre elas). O motor bloqueia se faltar.
+    precondicoes: ["entry_point", "project_root", "dag_output", "descoberta_output", "gap_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "dag_output", "descoberta_output", "gap_output", "next_stage", "concluidas"],
+    schema: ["resumo_design"],
+    schemaEstrutural: {
+      three_amigos: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        comportamento: { obrigatorio: true },
+        por_que: { obrigatorio: true },      // propósito (lente Negócio)
+        como: { obrigatorio: true },         // mecânica concreta (lente Dev)
+        criterios: { obrigatorio: true, tipo: "lista-de-strings" }, // IDs dos critérios (lente QA)
+      } },
+      criterios_aceitacao: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        id: { obrigatorio: true },
+        given: { obrigatorio: true },
+        when: { obrigatorio: true },
+        then: { obrigatorio: true },         // o resultado OBSERVÁVEL (C1 — o porteiro exige)
+      } },
+      riscos_premortem: { tipo: "lista-de-objetos", minItens: 3, itemCampos: { // ≥3 (pre-mortem)
+        id: { obrigatorio: true },
+        risco: { obrigatorio: true },        // causa → consequência
+        mitigacao: { obrigatorio: true },
+        o_que_revisar: { obrigatorio: true },// a lente do Gate A (R2 — sem isso, ruído no Gate A)
+      } },
+      estados: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        estado: { obrigatorio: true },
+        descricao: { obrigatorio: true },
+        usuario_pode: { obrigatorio: true }, // as ações (matriz estado×ação)
+      } },
+      adrs: { tipo: "lista-de-objetos", minItens: 1, itemCampos: { // ≥1: toda etapa de design decide algo
+        id: { obrigatorio: true },
+        decisao: { obrigatorio: true },
+        motivo: { obrigatorio: true },       // factual + no-go
+      } },
+      resumo_design: { tipo: "objeto", campos: {
+        comportamentos: { obrigatorio: true },
+        criterios: { obrigatorio: true },
+        riscos: { obrigatorio: true },
+      } },
+    },
+    // Regras estruturais da etapa 4: (1) catálogo de estados difíceis coberto, cada um distinto (E1/E2);
+    // (2) o circuito fecha nos dois sentidos — comportamento↔critério (D-H); (3) o resumo não mente.
+    regrasExtras: [
+      regraCatalogoCoberto("estados", CATALOGO_ESTADOS_UI),
+      regraCircuitoComportamentoCriterio,
+      regraResumoDesignCoerente,
+    ],
   },
   {
     id: "mapa_dependencias",

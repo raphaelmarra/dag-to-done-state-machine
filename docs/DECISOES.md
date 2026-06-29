@@ -28,6 +28,14 @@
 
 ---
 
+## Etapa 4 (Design) — validação de etapa criativa — cristalizada (2026-06-28)
+
+- **ADR 0025** — A primeira etapa CRIATIVA. O porteiro valida RITUAL (Three Amigos, pre-mortem ≥3, ≥1
+  ADR) + FORMA (critério com `then`; risco com `o_que_revisar`; estados difíceis distintos; resumo não
+  mente) + CIRCUITO (comportamento↔critério, sem órfão) — não "qualidade" (semântico, vai ao Gate A). O
+  CORE declara o limite epistêmico por seção. Catálogo de estados como DADO (M1). Validado por cego + 3
+  verificadores. Custou ZERO mecanismo no motor — a tese de amortização vale até na etapa mais atípica.
+
 ## Etapa 3 (GAP) + regrasExtras — cristalizada (2026-06-28)
 
 - **ADR 0024** — Etapa 3 (GAP): confronta DAG+API com o que a feature precisa; executor analista

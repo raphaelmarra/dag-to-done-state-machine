@@ -45,11 +45,27 @@ const OUT_GAP = {
   complexidade: { banda: "média", drivers: { p0: 1, p1: 0, integracoes: 1, incertezas: 1, exige_infra_nova: "não" }, justificativa: "1 P0 sobre base existente" },
   resumo: { total_gaps: 1, p0: 1 },
 };
+const OUT_DESIGN = {
+  three_amigos: [{ comportamento: "listar", por_que: "ver comandos", como: "commands/list", criterios: ["CA-01"] }],
+  criterios_aceitacao: [{ id: "CA-01", given: "agente válido", when: "abre", then: "exibe lista, NUNCA spinner infinito" }],
+  riscos_premortem: [
+    { id: "R1", risco: "SE args objeto ENTÃO quebra", mitigacao: "array", o_que_revisar: "payload é array?" },
+    { id: "R2", risco: "SE label Executar ENTÃO promessa falsa", mitigacao: "renomear", o_que_revisar: "copy" },
+    { id: "R3", risco: "SE vazio=erro ENTÃO esconde causa", mitigacao: "3 estados", o_que_revisar: "vazio≠erro?" },
+  ],
+  estados: [
+    { estado: "loading", descricao: "carregando", usuario_pode: "aguardar" },
+    { estado: "erro_de_carga", descricao: "erro na carga", usuario_pode: "retry" },
+    { estado: "lista_vazia", descricao: "vazio: nenhum comando", usuario_pode: "criar" },
+  ],
+  adrs: [{ id: "ADR-1", decisao: "run renderiza", motivo: "ao vivo; executar é no-go" }],
+  resumo_design: { comportamentos: 1, criterios: 1, riscos: 3 },
+};
 
-describe("Encadeamento real DAG → Descoberta → GAP (fluxo do motor, sem injeção manual)", () => {
+describe("Encadeamento real DAG → Descoberta → GAP → Design (fluxo do motor, sem injeção manual)", () => {
   after(() => limpar());
 
-  it("as 3 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
+  it("as 4 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
     limpar();
     // init com o que o motor não promove (entry_point/project_root vêm do operador).
     assert.equal(main(["init", FEATURE, "--entry", "aba CLIs", "--root", "/proj"]), 0);
@@ -77,10 +93,18 @@ describe("Encadeamento real DAG → Descoberta → GAP (fluxo do motor, sem inje
     assert.ok(existsSync(briefingPath(FEATURE, "gap")), "briefing GAP gerado");
     escrever("gap", OUT_GAP);
     assert.equal(main(["advance", FEATURE]), 0, "advance GAP aprova");
+    assert.ok(carregarEstado(FEATURE).gap_output, "motor promoveu gap_output");
     assert.equal(carregarEstado(FEATURE).etapaAtual, "design", "avançou para Design");
 
-    // Encadeamento provado: 3 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
-    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap"]);
+    // ETAPA 4 (Design) — exige dag+descoberta+gap, TODOS promovidos pelas etapas anteriores.
+    assert.equal(main(["next", FEATURE]), 0, "next Design ok (3 pré-condições presentes)");
+    assert.ok(existsSync(briefingPath(FEATURE, "design")), "briefing Design gerado");
+    escrever("design", OUT_DESIGN);
+    assert.equal(main(["advance", FEATURE]), 0, "advance Design aprova");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "mapa_dependencias", "avançou para Mapa de dependências");
+
+    // Encadeamento provado: 4 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
+    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design"]);
   });
 
   it("o output promovido (objeto) aparece LEGÍVEL no briefing da próxima etapa, não '[object Object]'", () => {

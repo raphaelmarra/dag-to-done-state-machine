@@ -3,11 +3,11 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
-> **Onde paramos (2026-06-28):** **3 de 13 etapas completas** no `v1/`. Etapa 1 (DAG, ADR 0020/0021/0022),
-> Etapa 2 (Descoberta, ADR 0023, testada AO VIVO) e **Etapa 3 (GAP, CORE v1.0, ADR 0024)**. Suíte v1
-> **75/75**. A etapa 3 resolveu A012 (regrasExtras declarativo, `comCondicao` deletado, gates migrados) e
-> custou ~16 linhas de mecanismo + 0 de motor — a tese de amortização se mantém na 3ª etapa. MVP congelado.
-> Próximo: etapa 4 (Design). Dívidas: A010 (condensação), A011 (descrições semânticas).
+> **Onde paramos (2026-06-28):** **4 de 13 etapas completas** no `v1/`. Etapas 1 (DAG), 2 (Descoberta, ao
+> vivo), 3 (GAP, resolveu A012) e **4 (Design, ADR 0025 — a 1ª etapa CRIATIVA)**. Suíte v1 **95/95**.
+> Encadeamento real das 4 etapas testado (output de uma vira entrada da próxima). A etapa 4 custou ZERO
+> mecanismo novo no motor — a tese de amortização se mantém até na etapa mais atípica. MVP congelado.
+> Próximo: etapa 5 (Mapa de dependências). Dívidas: A010, A011.
 
 ---
 
@@ -62,7 +62,7 @@ Uma etapa é considerada "CORE pronto" quando:
 | 1 | DAG | Explore* | `CORE-DAG.md` v4.0 | ✅ CORE cristalizado + **etapa completa no v1** (8/8 peças, plugada no motor, 40/40 testes) |
 | 2 | Descoberta da API | fiscal | `CORE-DISCOVERY.md` v1.0 | ✅ cristalizado (ADR 0023) + plugado no v1 + **testado AO VIVO** (51/51) |
 | 3 | GAP | error-detective | `CORE-GAP.md` v1.0 | ✅ cristalizado (ADR 0024) + plugado no v1 + testado (cego) — 75/75 |
-| 4 | Design | ui-ux-designer | — | ⬜ não iniciado |
+| 4 | Design | ui-ux-designer | `CORE-DESIGN.md` v1.0 | ✅ cristalizado (ADR 0025) + plugado + testado (cego) — 95/95 |
 | 5 | Mapa de dependências | Plan | — | ⬜ não iniciado |
 | 6 | Implementação | frontend/typescript/fullstack | — | ⬜ não iniciado |
 | 7 | Gate A (revisão) | code-reviewer | — | ⬜ não iniciado |
