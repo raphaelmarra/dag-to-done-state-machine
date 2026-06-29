@@ -225,4 +225,61 @@ cobre os critérios), estender o motor para passar `estado` às regras — `regr
 adicionar `regraAncoraRastreavel` à etapa 5 de graça. Detectar ciclo explicitamente (Kahn/DFS) com mensagem
 correta ("grafo cíclico — re-divida") entra junto.
 **Próximo passo:** não decidir agora. Reavaliar ao destilar a etapa 7 (Gate A) ou a primeira etapa que precise
-ler o output de outra para validar. Até lá, o limite vive declarado no CORE.
+ler o output de outra para validar. Até lá, o limite vive declarado no CORE. **→ A etapa 6 é o 2º caso
+candidato (ver A015): ela também ancora cada mudança em gap/critério real. Decisão de estender o motor
+fica para a Fase 1 da etapa 6, contra o caso concreto.**
+
+---
+
+## A015 — Etapa 6 (Implementação): executor APLICA + declara prontidão com prova (decidida, a cristalizar)
+
+**Status:** decidida em 2026-06-29 (operador + pesquisa de mercado + 2 verificadores) — a cristalizar na Fase 4 (ADR 0027).
+**Contexto:** a etapa 6 é a 1ª que toca CÓDIGO. As 5 anteriores produzem conhecimento-JSON validado por forma;
+o critério oficial da etapa 6 (PIPELINE.md ~l.291) fala em `tsc/check:contracts/vitest/integrity verdes` —
+coisas que só se sabe RODANDO comando. Mas o porteiro valida forma de JSON, não executa nada.
+**Pesquisa (estado-da-arte 2026, search-specialist):** (1) separar raciocínio-da-mudança da emissão-do-diff
+é vencedor (Aider architect/editor: SOTA 85%); (2) o agente JAMAIS é juiz do próprio trabalho — "tests passed"
+dito pelo agente é não-confiável (reward hacking + ICSE 2026: 28,6% dos patches que passam estão errados);
+a regra de ouro é verificação por sistema DIFERENTE do que gerou o código. Restrição-chave: se o porteiro não
+executa, o agente não pode ser juiz (só ele executaria) → a etapa 6 DECLARA, não JULGA.
+**Decisão (Híbrido — Opção 3, com executor que aplica):**
+- O executor REALMENTE edita os arquivos e roda os checks no loop (auto-correção = maior alavanca de
+  confiabilidade, por toda a evidência empírica). Internamente segue o padrão Aider (raciocina o plano
+  ancorado, depois emite os edits).
+- O output é um **handoff verificável**: plano de diff por arquivo (cada mudança ancorada num gap/critério
+  real, herança do caso real do MVP que FECHA 100% — Explore confirmou), golden_path Given/When/Then,
+  riscos de regressão, MAIS um bloco `prontidao`: cada gate (tsc/contracts/vitest/integrity/placeholder/
+  hardcode) declarado com estado ∈ {verde, vermelho, nao_aplicavel}; **`verde` EXIGE evidência colada**
+  (exit code/log) — mesmíssimo mecanismo da etapa 2 (`regraEvidenciaObrigatoria`: "confirmado ao vivo" só
+  passa com `evidencia_ao_vivo`). O porteiro valida forma + rastreabilidade + prova-anexada; NUNCA "é verdade".
+- **Divisão de trabalho sem duplicar:** 6 declara (com prova) · 7 (Gate A) REFUTA o diff (outro agente,
+  lentes por arquétipo) · 11 (Done) COMPROVA (re-roda `dag verify`/`check ci`, status derivado, tamper_hash).
+  O autor nunca assina o próprio veredito de verdade.
+**Limite honesto:** o bloco `prontidao` é declaração, não prova-de-verdade — um agente pode colar evidência
+falsa. Mitigado por Gate A (refuta) + Done (re-roda). Risco residual idêntico ao já aceito na etapa 2.
+**Custo de motor:** ZERO se a rastreabilidade âncora→fonte ficar como hoje (forma só). SE a Fase 1 decidir
+cruzar âncora com a fonte real (A014), aí estende o motor 1× para passar `estado` às regras — e a etapa 5
+ganha `regraAncoraRastreavel` de brinde. Decisão na Fase 1.
+**Próximo passo:** rotina 0→4 em `etapa-6-implementacao/`. Cristalizar como ADR 0027.
+**ATUALIZAÇÃO (Fase 1-3):** RESOLVIDA — decidido B-restrito; motor estendido (`estado` às regras,
+retrocompatível); `regraAncoraRastreavel` cruza âncora↔fonte; A014 resolvida junto. Cristalizada no ADR 0027.
+
+---
+
+## A016 — `nao_verificavel` da rastreabilidade aprova em silêncio (rastro para o Gate A)
+
+**Status:** dívida registrada (não bloqueante) — apontada pelo anti-viés da etapa 6 (backend-architect).
+**Questão:** `regraAncoraRastreavel` (etapa 6), quando não acha NENHUM id ancorável nos outputs anteriores
+(`idsValidos.size === 0`), retorna `{ok:true, faltando:[]}` — idêntico a "verifiquei e está tudo certo". O
+Gate A (etapa 7), que herda o veredito, não sabe que a dimensão "rastreabilidade" foi PULADA, não APROVADA —
+pode assumir falsa cobertura. É a mesma classe da A013 (porteiro que aprova sem distinguir "ok" de "não-checado").
+**Por que o risco é hoje TEÓRICO:** após a correção W2 (varredura recursiva), `idsValidos.size === 0` só
+ocorre se gap/design/mapa não produziram NENHUM requisito com id em nenhuma profundidade — impossível no
+fluxo real (os schemas das etapas 3/4/5 exigem `gaps[].id`/`criterios_aceitacao[].id`/`unidades[].id`). O
+estado é construído pelo motor (promove os `*_output` ao aprovar cada etapa), não pelo executor.
+**Por que não virou código agora:** deixar rastro exigiria o veredito carregar um campo de "dimensões não
+verificadas" — mudar o contrato `{ok, faltando}` que as 13 etapas e o motor consomem. É mudança de fundação
+que um caso teórico não justifica (M4). O limite já está DECLARADO no CORE-IMPL §2 (conceito `nao_verificavel`).
+**Direção:** quando o Gate A (etapa 7) for destilado e precisar saber o que o porteiro NÃO conferiu, estender
+o veredito com `nao_verificado: [...]` (dimensões puladas) — e a etapa 6 reporta a rastreabilidade pulada ali.
+**Próximo passo:** reavaliar ao destilar a etapa 7 (Gate A). Até lá, o limite vive declarado no CORE.

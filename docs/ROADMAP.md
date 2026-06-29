@@ -3,11 +3,13 @@
 > Marcos do projeto: o motor (código) + os 13 COREs (conteúdo). Status REAL, não otimista.
 > Cada etapa tem um DoD (Definition of Done). Manter via skill `manter-governanca`.
 
-> **Onde paramos (2026-06-28):** **5 de 13 etapas completas** no `v1/`. Etapas 1 (DAG), 2 (Descoberta, ao
-> vivo), 3 (GAP, resolveu A012), 4 (Design, 1ª criativa) e **5 (Mapa de dependências, ADR 0026 — grafo de
-> tarefas com paralelo PROVADO)**. Suíte v1 **113/113**. Encadeamento real das **5 etapas** testado (output
-> de uma vira entrada da próxima). A etapa 5 custou ZERO mecanismo novo no motor — a tese de amortização
-> se mantém na 5ª etapa. MVP congelado. Próximo: etapa 6 (Implementação). Dívidas: A010, A011, A014.
+> **Onde paramos (2026-06-29):** **6 de 13 etapas completas** no `v1/` — quase metade. Etapas 1 (DAG), 2
+> (Descoberta), 3 (GAP), 4 (Design), 5 (Mapa) e **6 (Implementação, ADR 0027 — handoff verificável +
+> rastreabilidade âncora↔fonte)**. Suíte v1 **139/139**. Encadeamento real das **6 etapas** testado. A etapa 6
+> é a 1ª que toca CÓDIGO e a 1ª a tocar o motor em 5 etapas — mas o toque foi 3 linhas, genéricas e
+> retrocompatíveis (passar `estado` às regras): **resolve A014**, e qualquer etapa futura de validação cruzada
+> o usa de graça. Tese de amortização confirmada (custo marginal baixo). MVP congelado. Próximo: etapa 7
+> (Gate A). Dívidas: A010, A011, A016.
 
 ---
 
@@ -64,7 +66,7 @@ Uma etapa é considerada "CORE pronto" quando:
 | 3 | GAP | error-detective | `CORE-GAP.md` v1.0 | ✅ cristalizado (ADR 0024) + plugado no v1 + testado (cego) — 75/75 |
 | 4 | Design | ui-ux-designer | `CORE-DESIGN.md` v1.0 | ✅ cristalizado (ADR 0025) + plugado + testado (cego) — 95/95 |
 | 5 | Mapa de dependências | Plan | `CORE-MAPA.md` v1.0 | ✅ cristalizado (ADR 0026) + plugado no v1 + testado (cego) — 113/113 |
-| 6 | Implementação | frontend/typescript/fullstack | — | ⬜ não iniciado |
+| 6 | Implementação | frontend/typescript/fullstack | `CORE-IMPL.md` v1.0 | ✅ cristalizado (ADR 0027) + plugado no v1 + testado (2 casos cegos) — 139/139 |
 | 7 | Gate A (revisão) | code-reviewer | — | ⬜ não iniciado |
 | 8 | Acessibilidade | web-accessibility-checker | — | ⬜ não iniciado |
 | 9 | Gate B (ao vivo) | fiscal | — | ⬜ não iniciado |

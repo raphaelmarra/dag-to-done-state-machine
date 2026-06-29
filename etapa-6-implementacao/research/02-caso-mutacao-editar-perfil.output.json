@@ -1,0 +1,57 @@
+{
+  "_meta": "2º caso (cego, generalidade) da etapa 6 — arquétipo MUTACAO + greenfield. Produzido por typescript-pro que REALMENTE escreveu 4 arquivos no sandbox, rodou tsc --noEmit (exit 0) e 6 asserções de runtime. Valida que o schema da etapa 6 (arquivos_alterados/golden_path/riscos/prontidao) generaliza além da aba CLIs. Feature fictícia 'Editar perfil' — Next.js+RHF+Zod+TanStack Query. As âncoras (GAP-101.., CA-201.., U1..U4) são do briefing do caso, não de um output real de etapa anterior.",
+  "feature": "editar-perfil",
+  "etapa": "implementacao",
+  "resumo": "Implementação da feature 'Editar perfil' (arquétipo MUTACAO) em 4 unidades: schema Zod compartilhado client/server como ponto único de normalização (U1), form RHF+Zod com contador de bio, preview de normalização de email e submit bloqueado durante save (U2), roteamento tipado de erro 409→inline / 400→por-campo / unknown→toast (U3), e optimistic update via TanStack Query com rollback exato por snapshot (U4). Núcleo confirmado: as 4 unidades foram escritas e passam tsc --noEmit (strict, exit 0) e 6 asserções de runtime das regras load-bearing. Inferido: nomes de campos do corpo de erro 400 do backend (fieldErrors) e o formato exato do payload de /users — modelados defensivamente.",
+  "arquivos_alterados": [
+    {
+      "arquivo": "src/lib/schemas/user.ts",
+      "mudanca": "NOVO módulo. updateUserSchema (z.object): name string trim min(1) max(120); email string trim min(1) .email() .transform(normalizeEmail); bio string .max(BIO_MAX=500) .transform(trim). normalizeEmail(raw)=raw.trim().toLowerCase() helper único (espelho do backend, R-202). UpdateUserInput=z.input, UpdateUserPayload=z.output. parseUpdateUser(data:unknown) para o handler PATCH mapear ZodError→400.",
+      "ancora": ["U1", "ADR-201", "GAP-102", "GAP-103", "CA-202", "CA-203", "R-202"],
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/lib/api.ts",
+      "mudanca": "NOVO módulo (transporte U3/U4). UpdateUserError UNIÃO DISCRIMINADA por 'kind': email_conflict(409)/validation(400,fieldErrors)/unknown. ApiError extends Error carrega o detail tipado. updateUser(id,payload) PATCH /api/users/:id: ok→User; 409→ApiError email_conflict; 400→fieldErrors; outros→unknown. O discriminante força não colapsar 409 e 400 (R-203).",
+      "ancora": ["U3", "GAP-101", "R-203", "CA-201"],
+      "confianca": "inferido"
+    },
+    {
+      "arquivo": "src/hooks/use-update-user.ts",
+      "mudanca": "NOVO useUpdateUser() useMutation<User, ApiError, UpdateUserVars, MutationContext>. onMutate: cancelQueries(usersKey), snapshot previousUsers, setQueryData escreve o editado na lista (map por id) → reflete já. onError: restaura snapshot exato → rollback. onSettled: invalidateQueries → verdade do server sobrescreve. usersKey=['users'].",
+      "ancora": ["U4", "ADR-202", "CA-204", "GAP-104", "R-201"],
+      "confianca": "confirmado"
+    },
+    {
+      "arquivo": "src/components/users/edit-profile-form.tsx",
+      "mudanca": "NOVO EditProfileForm. useForm<UpdateUserInput> resolver=zodResolver(updateUserSchema) (MESMO schema do server, ADR-201). Bio: watch→contador bioCount/BIO_MAX aria-live, bioOver→aria-invalid. Email: watch→normalizeEmail preview 'Será salvo como: …'. onError roteia por err.detail.kind: email_conflict→setError('email',shouldFocus) INLINE, validation→setError por campo, unknown→root.serverError. busy=isSubmitting||isPending → disabled+spinner (anti double-submit). SEM campo de role (GAP-105).",
+      "ancora": ["U2", "U3", "CA-201", "CA-202", "CA-203", "CA-205", "R-202", "R-203", "GAP-101", "GAP-105"],
+      "confianca": "confirmado"
+    }
+  ],
+  "golden_path_test": {
+    "given": "Um usuário {id:'u1', name:'Ana', email:'a@x.com', bio:'old'} já no cache de ['users'], e existe outro usuário com email 'taken@x.com'. O form está aberto editando u1.",
+    "when": "O usuário digita email '  Taken@X.com ' e uma bio de 480 chars, vê preview 'Será salvo como: taken@x.com' e contador '480/500', clica Salvar (botão disabled com spinner); o PATCH retorna 409.",
+    "then": "(1) durante a request o botão está disabled com spinner; (2) a lista /users mostra otimisticamente 'taken@x.com' e reverte para 'a@x.com' (rollback); (3) erro inline 'Este e-mail já está em uso' sob o campo email (data-testid='email-error'), com foco, e NENHUM toast genérico; (4) o botão volta a habilitar.",
+    "verifica": ["CA-201", "CA-202", "CA-203", "CA-204", "CA-205"]
+  },
+  "riscos_de_regressao": [
+    "U4 usa queryKey ['users']; se /users cacheia sob outra key (ex. ['users', filtros]), o optimistic e o invalidate não atingem a lista e CA-204 falha silenciosamente — alinhar usersKey é pré-condição.",
+    "R-201: se a lista estava num estado intermediário (outra mutation in-flight) quando o PATCH falha, restaurar o snapshot pode descartar atualizações concorrentes; cancelQueries mitiga, mas mutations paralelas no mesmo key seguem frágeis.",
+    "R-202: normalizeEmail no client tem de ser byte-a-byte igual ao backend; se o backend remove pontos/+tags ou normaliza unicode, a divergência volta. Mitigação: helper único; exige o handler PATCH importar ESTE módulo.",
+    "R-203: o tratamento de 400 depende de body.fieldErrors; se o backend retorna outro formato ({errors:[…]}/{message}), o ramo validation não popula campos — shape inferido, precisa confirmação.",
+    "exactOptionalPropertyTypes ligado no sandbox; em projetos sem a flag o onSaved?(callback) pode compilar diferente — não quebra, mas o rigor de tipo não é garantido fora.",
+    "Consumidores do form antigo que esperavam toast genérico em 409/400 deixam de receber (agora inline/por-campo) — mudança intencional, pode surpreender."
+  ],
+  "prontidao": [
+    { "gate": "tsc", "estado": "verde", "evidencia": "npx tsc --noEmit em sandbox real (TS 5.5, strict + noUncheckedIndexedAccess + exactOptionalPropertyTypes), deps instaladas → 'TypeScript: No errors found', TSC_EXIT=0." },
+    { "gate": "check:contracts", "estado": "nao_aplicavel", "evidencia": "Não há script check:contracts nem contrato OpenAPI versionado no escopo; o 'contrato' aqui é o updateUserSchema (U1), coberto por tsc + runtime. Se o projeto-alvo tiver check:contracts, rodar contra o schema compartilhado." },
+    { "gate": "vitest", "estado": "nao_aplicavel", "evidencia": "Vitest não configurado no sandbox e nenhum teste pedido como entregável desta etapa (o golden_path é a spec p/ a etapa de teste). Substituto: verify.mjs com 6 asserções PASS, 0 FAIL, VERIFY_EXIT=0 — email '  A@X.com '→'a@x.com'; bio 501 rejeitada; bio 500 aceita; email inválido rejeitado; optimistic escreveu; rollback restaurou snapshot." },
+    { "gate": "integrity-check", "estado": "nao_aplicavel", "evidencia": "integrity-check é gate da state machine deste meta-repo, não do sandbox da feature; nenhum artefato da máquina foi tocado. Os 4 arquivos não têm imports quebrados (tsc exit 0) e cada mudança tem âncora." },
+    { "gate": "placeholders", "estado": "verde", "evidencia": "Zero TODO/FIXME/placeholder nos 4 arquivos. Comentários presentes são justificativas de decisão (ordem de transform, R-201/202/203), não pendências." },
+    { "gate": "hardcode", "estado": "verde", "evidencia": "Sem dado hardcoded: BIO_MAX=500 é constante exportada reusada em schema+UI+mensagem (M1); URL usa template; id/valores vêm de props/contexto. Strings fixas são só rótulos pt-BR (i18n futuro), não dados de negócio." }
+  ],
+  "no_gos_respeitados": [
+    "GAP-105 (trocar próprio role/permissões) NÃO violado: EditProfileForm coleta só {name,email,bio}; updateUserSchema não tem campo role, então payload forjado é rejeitado no parse server-side; UpdateUserPayload não inclui role (barreira de TIPO, não só UI). Nenhum elemento de role nos 4 arquivos."
+  ]
+}

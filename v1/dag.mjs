@@ -338,8 +338,10 @@ function cmdAdvance(feature) {
   }
 
   // 3. PORTEIRO: precisa passar no critério de aceitação da etapa. Usa o avaliador genérico (A012:
-  // schema + estrutura + regrasExtras); `aceita` custom só se a etapa ainda o definir (compat).
-  const veredito = typeof etapa.aceita === "function" ? etapa.aceita(output) : avaliarEtapa(etapa, output);
+  // schema + estrutura + regrasExtras); `aceita` custom só se a etapa ainda o definir (compat). O `estado`
+  // (com os <etapa>_output anteriores promovidos) é passado para regras de RASTREABILIDADE (A015): a etapa 6
+  // cruza cada âncora com os ids reais das etapas 3/4/5.
+  const veredito = typeof etapa.aceita === "function" ? etapa.aceita(output) : avaliarEtapa(etapa, output, estado);
   if (!veredito.ok) {
     const faltando = veredito.faltando?.length
       ? `campos ausentes/vazios: ${veredito.faltando.join(", ")}`

@@ -101,6 +101,32 @@ function outputValido(etapa) {
       out.walking_skeleton = { necessario: "não", justificativa: "a aba já roda end-to-end (DAG confirma); trabalho é correção incremental" };
       out.ancoragem_no_gos = ["nenhuma unidade executa o agente (só renderiza)"];
       break;
+    case "implementacao":
+      // Handoff honesto: cada mudança ancorada em ids REAIS das etapas anteriores (G1/CA-01/R1/U1 — existem
+      // nos outputs gap/design/mapa acima, senão regraAncoraRastreavel reprova); golden_path com then
+      // observável + verifica; riscos com alvo; os 6 gates declarados (verde→evidência, n/a→motivo).
+      out.resumo = "Corrige o contrato args (objeto→array) e a paginação; ancorado nos gaps/critérios reais.";
+      out.arquivos_alterados = [
+        { arquivo: "a.tsx", mudanca: "args: enviar array posicional na ordem de command.arguments[], nunca objeto", ancora: ["G1", "CA-01", "U1"], confianca: "confirmado" },
+        { arquivo: "c.tsx", mudanca: "limit/offset como STRING; consumir hasMore/nextOffset", ancora: ["U2"], confianca: "inferido", nota: "shape de pagination não confirmado ao vivo para >50 itens" },
+      ];
+      out.golden_path_test = {
+        given: "agente válido com 1 comando #arch e campo 'pergunta'='teste'",
+        when: "usuário clica em Renderizar prompt",
+        then: "chama commands/run com args:['teste'] (ARRAY) e a UI exibe data.prompt; sem ValidationError",
+        verifica: ["CA-01"],
+      };
+      out.riscos_de_regressao = ["ArgsForm é consumido também por app-run-section.tsx (mesmo diretório) — manter fallback se result não tiver 'prompt'"];
+      out.prontidao = [
+        { gate: "tsc", estado: "verde", evidencia: "tsc --noEmit → exit 0, 0 erros" },
+        { gate: "check:contracts", estado: "nao_aplicavel", evidencia: "projeto não tem script check:contracts; contrato coberto por tsc" },
+        { gate: "vitest", estado: "verde", evidencia: "vitest run → 4 passed, exit 0" },
+        { gate: "integrity-check", estado: "nao_aplicavel", evidencia: "gate da state machine, não da feature" },
+        { gate: "placeholders", estado: "verde", evidencia: "zero TODO/FIXME nos arquivos alterados" },
+        { gate: "hardcode", estado: "verde", evidencia: "sem dado hardcoded; limites vêm de constante de domínio" },
+      ];
+      out.no_gos_respeitados = ["não executa o agente — só renderiza o prompt (no-go do GAP)"];
+      break;
     case "gate_a":
       out.veredito = "APROVA";
       break;

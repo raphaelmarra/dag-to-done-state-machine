@@ -72,11 +72,31 @@ const OUT_MAPA = {
   walking_skeleton: { necessario: "não", justificativa: "a aba já roda end-to-end" },
   ancoragem_no_gos: ["nenhuma unidade executa o agente"],
 };
+// Handoff que ancora em ids REAIS dos outputs promovidos (GAP-1 do OUT_GAP, CA-01 do OUT_DESIGN, U1 do OUT_MAPA)
+// — a regraAncoraRastreavel cruza com o estado real, então âncora-fantasma aqui quebraria o encadeamento.
+const OUT_IMPL = {
+  resumo: "Aplica U1 (args→array) ancorado nos gaps/critérios reais; corrige o contrato confirmado.",
+  arquivos_alterados: [
+    { arquivo: "a.tsx", mudanca: "args: array posicional na ordem de command.arguments[], nunca objeto", ancora: ["GAP-1", "CA-01", "U1"], confianca: "confirmado" },
+  ],
+  golden_path_test: { given: "agente válido, comando #arch, campo preenchido", when: "clica Renderizar prompt",
+    then: "chama commands/run com args:['teste'] (ARRAY) e exibe data.prompt; sem ValidationError", verifica: ["CA-01"] },
+  riscos_de_regressao: ["ArgsForm é consumido por app-run-section.tsx — manter fallback se result não tiver 'prompt'"],
+  prontidao: [
+    { gate: "tsc", estado: "verde", evidencia: "tsc --noEmit → exit 0" },
+    { gate: "check:contracts", estado: "nao_aplicavel", evidencia: "sem script no projeto" },
+    { gate: "vitest", estado: "verde", evidencia: "vitest run → 3 passed, exit 0" },
+    { gate: "integrity-check", estado: "nao_aplicavel", evidencia: "gate da máquina, não da feature" },
+    { gate: "placeholders", estado: "verde", evidencia: "zero TODO nos arquivos" },
+    { gate: "hardcode", estado: "verde", evidencia: "sem dado hardcoded" },
+  ],
+  no_gos_respeitados: ["não executa o agente — só renderiza"],
+};
 
-describe("Encadeamento real DAG → Descoberta → GAP → Design → Mapa (fluxo do motor, sem injeção manual)", () => {
+describe("Encadeamento real DAG → … → Mapa → Implementação (fluxo do motor, sem injeção manual)", () => {
   after(() => limpar());
 
-  it("as 5 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
+  it("as 6 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
     limpar();
     // init com o que o motor não promove (entry_point/project_root vêm do operador).
     assert.equal(main(["init", FEATURE, "--entry", "aba CLIs", "--root", "/proj"]), 0);
@@ -120,10 +140,35 @@ describe("Encadeamento real DAG → Descoberta → GAP → Design → Mapa (flux
     assert.ok(existsSync(briefingPath(FEATURE, "mapa_dependencias")), "briefing Mapa gerado");
     escrever("mapa_dependencias", OUT_MAPA);
     assert.equal(main(["advance", FEATURE]), 0, "advance Mapa aprova");
+    assert.ok(carregarEstado(FEATURE).mapa_dependencias_output, "motor promoveu mapa_dependencias_output");
     assert.equal(carregarEstado(FEATURE).etapaAtual, "implementacao", "avançou para Implementação");
 
-    // Encadeamento provado: 5 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
-    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias"]);
+    // ETAPA 6 (Implementação) — exige as 5 anteriores. E a regraAncoraRastreavel CRUZA as âncoras de OUT_IMPL
+    // com os ids reais de gap/design/mapa PROMOVIDOS — prova que a rastreabilidade funciona no fluxo real
+    // (não em estado montado à mão). Âncora-fantasma aqui reprovaria o advance.
+    assert.equal(main(["next", FEATURE]), 0, "next Implementação ok (5 pré-condições presentes)");
+    assert.ok(existsSync(briefingPath(FEATURE, "implementacao")), "briefing Implementação gerado");
+    escrever("implementacao", OUT_IMPL);
+    assert.equal(main(["advance", FEATURE]), 0, "advance Implementação aprova (âncoras cruzam com a fonte real)");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "gate_a", "avançou para Gate A");
+
+    // Encadeamento provado: 6 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
+    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao"]);
+  });
+
+  it("PROVA da rastreabilidade no fluxo real: âncora-FANTASMA na etapa 6 BLOQUEIA o advance", () => {
+    // Percorre até a etapa 6 e tenta avançar com uma âncora que NÃO existe nos outputs promovidos.
+    limpar();
+    assert.equal(main(["init", FEATURE, "--entry", "X", "--root", "/p"]), 0);
+    for (const [id, out] of [["dag", OUT_DAG], ["descoberta", OUT_DESC], ["gap", OUT_GAP], ["design", OUT_DESIGN], ["mapa_dependencias", OUT_MAPA]]) {
+      assert.equal(main(["next", FEATURE]), 0);
+      escrever(id, out);
+      assert.equal(main(["advance", FEATURE]), 0);
+    }
+    assert.equal(main(["next", FEATURE]), 0);
+    const fantasma = { ...OUT_IMPL, arquivos_alterados: [{ ...OUT_IMPL.arquivos_alterados[0], ancora: ["GAP-INEXISTENTE"] }] };
+    escrever("implementacao", fantasma);
+    assert.equal(main(["advance", FEATURE]), 1, "âncora-fantasma reprova no fluxo real (cruza com gap/design/mapa promovidos)");
   });
 
   it("o output promovido (objeto) aparece LEGÍVEL no briefing da próxima etapa, não '[object Object]'", () => {

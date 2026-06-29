@@ -161,11 +161,16 @@ function gerarSchemaProsa(schemaEstrutural, etapa) {
 
 // --- Porteiro genérico (A012): compõe as três camadas de validação numa só (declarativo) -----------
 // 1) presença de campos de topo (schema) · 2) estrutura (schemaEstrutural) · 3) regras EXTRAS da etapa
-// (regrasExtras: lista de (output)=>{ok, faltando}). Substitui o `aceita` custom imperativo por etapa:
+// (regrasExtras: lista de (output, etapa, estado)=>{ok, faltando}). Substitui o `aceita` custom imperativo:
 // uma etapa declara `schema`/`schemaEstrutural`/`regrasExtras` e o motor avalia. Regra além de
 // presença/estrutura ("se confianca==X então Y obrigatório") vira UMA função reutilizável, não um
 // dialeto solto. Mantém o contrato {ok, faltando} que o motor consome.
-function avaliarEtapa(etapa, output) {
+//
+// `estado` (3º arg, A015/A014): o estado acumulado da feature (com os <etapa>_output das etapas anteriores
+// já promovidos). A maioria das regras o IGNORA (validam só o output da etapa). Mas regras de RASTREABILIDADE
+// — "toda âncora aponta um id que EXISTE nos outputs anteriores" — precisam cruzar com a fonte (a etapa 6 é
+// o 1º caso). Retrocompatível: regras de aridade 2 funcionam intactas (recebem o 3º arg e o descartam).
+function avaliarEtapa(etapa, output, estado) {
   if (Array.isArray(etapa.schema)) {
     const presenca = camposPresentes(output, etapa.schema);
     if (!presenca.ok) return presenca;
@@ -174,8 +179,14 @@ function avaliarEtapa(etapa, output) {
     const estrutura = validarEstrutura(output, etapa.schemaEstrutural, etapa);
     if (!estrutura.ok) return estrutura;
   }
+  // `estado` é passado às regras como fonte READ-ONLY (regras de rastreabilidade leem os <etapa>_output
+  // anteriores). Congelamos uma CÓPIA RASA — nunca o original (o motor ainda precisa mutar o estado real
+  // depois, p.ex. promover <etapa>_output). A cópia rasa basta: impede a regra de re-atribuir chaves de topo
+  // do estado; mutação profunda de um output é improvável e o ganho não justifica um deep-freeze. (Hardening
+  // da revisão cega — a 1ª versão congelava o original e quebrava a promoção de output.)
+  const estadoRO = estado && typeof estado === "object" ? Object.freeze({ ...estado }) : estado;
   for (const regra of etapa.regrasExtras ?? []) {
-    const r = regra(output, etapa);
+    const r = regra(output, etapa, estadoRO);
     if (!r.ok) return r;
   }
   return { ok: true, faltando: [] };
@@ -357,6 +368,68 @@ function regraOrdemTopologica(output) {
     }
   }
   return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
+// --- Regras da etapa 6 (Implementação) ---------------------------------------------------------------
+// Catálogo de GATES do critério oficial (PIPELINE.md). DADO (M1, editável sem tocar o mecanismo): trocar
+// de stack troca os gates (tsc→mypy, vitest→pytest). O porteiro força DECLARAR cada um (mesmo como
+// `nao_aplicavel` com motivo) — transporta "tsc/contracts/vitest/integrity/placeholder/hardcode" para a
+// etapa SEM rodá-los. Qual é VERDE é variável da demanda; quais são DECLARADOS é o invariante.
+const CATALOGO_GATES = ["tsc", "check:contracts", "vitest", "integrity-check", "placeholders", "hardcode"];
+
+// Regra G-cob da etapa 6: o bloco `prontidao` declara TODOS os gates do catálogo (por nome exato no campo
+// `gate`). Cobertura por nome — não regex/sinônimo (ao contrário de estados de UI): gate é identificador
+// técnico, não conceito difuso. Gate omitido = prestação de contas incompleta = reprova. (A4: registrar
+// que não se aplica, em vez de omitir.)
+function regraGatesDeclarados(output) {
+  const declarados = new Set((output?.prontidao ?? []).map((p) => p?.gate));
+  const faltam = CATALOGO_GATES.filter((g) => !declarados.has(g));
+  return faltam.length
+    ? { ok: false, faltando: faltam.map((g) => `gate não declarado em prontidao: "${g}" (declare estado + evidência, mesmo que nao_aplicavel)`) }
+    : { ok: true, faltando: [] };
+}
+
+// Padrão de id ancorável: PREFIXO-MAIÚSCULO seguido de dígito (GAP-001, CA-04, ADR-002, U1, R1, R-201...).
+// Só ids nesse formato entram no universo de âncoras válidas — barra ids espúrios (ex.: estados[].id="estado-loading"
+// de UI, que não é requisito). É a CONVENÇÃO do pipeline, não um nome de campo fixo (M1 preservado: a regra
+// não sabe que vêm de "gaps"/"criterios_aceitacao"; sabe a FORMA de uma âncora). Achado da revisão cega (W1).
+const RE_ID_ANCORA = /^[A-Z]+-?\d+$/;
+
+// Coleta RECURSIVA de ids ancoráveis em qualquer profundidade de um valor (W2 da revisão cega: a varredura
+// rasa desligava `temFonte` se a fonte aninhasse os requisitos, deixando fantasma passar). Desce por arrays
+// e objetos; junta todo `item.id` que casa RE_ID_ANCORA. Retorna se achou ALGUM id ancorável (temFonte).
+function coletarIdsAncoraveis(valor, acc) {
+  if (Array.isArray(valor)) {
+    for (const v of valor) coletarIdsAncoraveis(v, acc);
+  } else if (valor && typeof valor === "object") {
+    if (typeof valor.id === "string" && RE_ID_ANCORA.test(valor.id)) acc.add(valor.id);
+    for (const v of Object.values(valor)) coletarIdsAncoraveis(v, acc);
+  }
+}
+
+// Regra A-rastr da etapa 6 (D-1, B-restrito — A014/A015): toda âncora de `arquivos_alterados` aponta um id
+// que EXISTE nos outputs das etapas anteriores (gap/design/mapa, promovidos no estado). Integridade
+// REFERENCIAL (o id existe?), NÃO pertinência (é a âncora certa? → Gate A). DINÂMICA (M1): varre o estado
+// coletando ids no formato de âncora (RE_ID_ANCORA) em qualquer profundidade; não hardcoda nomes de campo.
+// Fonte ausente (nenhum id ancorável no estado) → `nao_verificavel`: não reprova (não dá para cruzar sem
+// fonte), distinto de âncora-fantasma (id não encontrado quando há fonte) = reprova.
+function regraAncoraRastreavel(output, _etapa, estado) {
+  // 1. Monta o SET de ids válidos varrendo (recursivo) os <etapa>_output do estado (genérico, M1).
+  const idsValidos = new Set();
+  for (const [chave, valor] of Object.entries(estado ?? {})) {
+    if (!chave.endsWith("_output")) continue;
+    coletarIdsAncoraveis(valor, idsValidos);
+  }
+  // 2. Sem fonte indexável: não dá para verificar — não reprova (limite honesto declarado no CORE).
+  if (idsValidos.size === 0) return { ok: true, faltando: [] };
+  // 3. Cada âncora de cada mudança deve existir no set. Reporta as fantasmas.
+  const fantasmas = [];
+  for (const m of output?.arquivos_alterados ?? []) {
+    for (const a of m?.ancora ?? []) {
+      if (!idsValidos.has(a)) fantasmas.push(`âncora "${a}" (em ${m?.arquivo ?? "mudança"}) não existe em nenhum output anterior`);
+    }
+  }
+  return fantasmas.length ? { ok: false, faltando: fantasmas } : { ok: true, faltando: [] };
 }
 
 // Fábrica de regra reutilizável (A012): "todo item de `listaCampo` cujo `condCampo` == `condValor`
@@ -715,10 +788,55 @@ export const PIPELINE = [
     id: "implementacao",
     nome: "Implementação",
     agente: "frontend/typescript/fullstack",
-    core: "[fallback] Plano de implementação conforme o mapa.",
-    corePath: "cores-aba-clis/implementacao.md",
-    schema: ["arquivos_alterados"],
-    aceita: (o) => camposPresentes(o, ["arquivos_alterados"]),
+    // Executor: dev que APLICA o código E roda os checks (auto-correção), e entrega um handoff verificável
+    // com PROVA por gate. Ele faz de juiz de si só para virar o gate verde; o veredito de verdade não é dele
+    // (Gate A refuta, Done re-roda). confianca = se aplicou SABENDO (confirmado) ou SUPONDO (inferido).
+    executor: {
+      nome: "frontend/typescript/fullstack",
+      capacidade: "aplica o código conforme o mapa, roda os checks no loop, e entrega um plano de diff ancorado + prontidão com prova; não é o juiz final",
+      confianca_enum: ["confirmado", "inferido"],
+    },
+    core: "[fallback] Aplique o código conforme o mapa e entregue o handoff ancorado com prova. Ver cores/CORE-IMPL.md.",
+    corePath: "cores/CORE-IMPL.md",
+    // Pré-condições: as 5 etapas anteriores (o mapa pronto pressupõe todas). O motor bloqueia se faltar.
+    precondicoes: ["entry_point", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output", "mapa_dependencias_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output", "mapa_dependencias_output", "next_stage", "concluidas"],
+    schema: ["resumo"],
+    schemaEstrutural: {
+      resumo: { obrigatorio: true },
+      arquivos_alterados: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        arquivo: { obrigatorio: true },
+        mudanca: { obrigatorio: true },                                  // o diff conceitual preciso
+        ancora: { obrigatorio: true, tipo: "lista-de-strings" },         // ≥1 (INV-1: sem mudança órfã)
+        confianca: { obrigatorio: true, enum: ["confirmado", "inferido"] },
+        nota: {},  // opcional no topo; obrigatória só p/ "inferido" (regra extra). Declarada p/ aparecer na prosa (paridade A013).
+      } },
+      golden_path_test: { tipo: "objeto", campos: {
+        given: { obrigatorio: true },
+        when: { obrigatorio: true },
+        then: { obrigatorio: true },                                     // observável (INV-2)
+        verifica: { obrigatorio: true, tipo: "lista-de-strings" },       // ids dos critérios exercitados
+      } },
+      riscos_de_regressao: { obrigatorio: true, tipo: "lista-de-strings" }, // ≥1 (INV-3: alvo concreto)
+      prontidao: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        gate: { obrigatorio: true },
+        estado: { obrigatorio: true, enum: ["verde", "vermelho", "nao_aplicavel"] },
+        evidencia: { obrigatorio: true },                               // verde→prova; n/a→motivo (regras extras)
+      } },
+      no_gos_respeitados: { presente: true, tipo: "lista-de-strings" },  // [] válido = não havia no-go
+    },
+    // Regras da etapa 6: TODO estado de gate carrega sua justificativa em `evidencia` — "verde"→prova,
+    // "nao_aplicavel"→motivo, "vermelho"→o erro encontrado (3 irmãs via a fábrica da etapa 2; réu-não-é-juiz,
+    // e fecham a fuga "marco tudo N/A e passo"). Mais: (4) os 6 gates do critério oficial declarados; (5)
+    // confiança "inferido" exige nota; (6) toda âncora existe na fonte (B-restrito, cruza com o estado).
+    regrasExtras: [
+      regraEvidenciaObrigatoria("prontidao", "gate", "estado", "verde", "evidencia"),
+      regraEvidenciaObrigatoria("prontidao", "gate", "estado", "nao_aplicavel", "evidencia"),
+      regraEvidenciaObrigatoria("prontidao", "gate", "estado", "vermelho", "evidencia"),
+      regraGatesDeclarados,
+      regraEvidenciaObrigatoria("arquivos_alterados", "arquivo", "confianca", "inferido", "nota"),
+      regraAncoraRastreavel,
+    ],
   },
   {
     id: "gate_a",

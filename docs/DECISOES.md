@@ -28,6 +28,18 @@
 
 ---
 
+## Etapa 6 (Implementação) — handoff verificável + rastreabilidade — cristalizada (2026-06-29)
+
+- **ADR 0027** — A 1ª etapa que toca CÓDIGO. O executor APLICA o código e roda os checks, mas entrega um
+  HANDOFF VERIFICÁVEL (diff ancorado + golden_path + riscos + `prontidao`: cada gate com prova — verde→exit/
+  log, n/a→motivo, vermelho→erro) e o porteiro valida forma + rastreabilidade + prova-anexada, NUNCA "é
+  verdade" (Gate A refuta, Done re-roda). **Resolve A014/A015:** o motor foi estendido 1× (`estado` às regras,
+  retrocompatível) para a `regraAncoraRastreavel` cruzar cada âncora com os ids reais das etapas anteriores
+  (B-restrito, dinâmica M1, recursiva). Decidido com pesquisa (o agente jamais é juiz do próprio trabalho).
+  Validado por 2 casos (LISTA + MUTACAO, este com o agente cego rodando tsc exit 0) + 3 verificadores (acharam/
+  fecharam: varredura rasa deixando fantasma passar, ids espúrios, vermelho sem evidência, nota fora do schema).
+  Reusou a fábrica `regraEvidenciaObrigatoria` 3×. Tese de amortização confirmada (3 linhas de motor, genéricas).
+
 ## Etapa 5 (Mapa de dependências) — grafo de tarefas com paralelo provado — cristalizada (2026-06-28)
 
 - **ADR 0026** — O mapa é um GRAFO de tarefas: a disciplina do DAG da etapa 1 aplicada a unidades de
