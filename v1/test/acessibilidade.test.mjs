@@ -76,6 +76,14 @@ describe("Etapa 8 — Acessibilidade (o Gate A do runtime)", () => {
     assert.ok(d.schemaEstrutural.criterios && d.schemaEstrutural.veredito);
   });
 
+  it("REPROVA quando evidencia_operacional é um OBJETO em vez de texto (prova é textual)", () => {
+    // Furo residual da 2ª revisão cega (espelho do gate_a): objeto vira "[object Object]" e escaparia da
+    // defesa anti-oco. Fechado na ORIGEM: evidencia_operacional é tipo "string".
+    const v = a11yAprovado();
+    v.criterios[0].evidencia_operacional = { a: 1 };
+    assert.equal(prepararEAvaliar(v), 1, "evidencia_operacional objeto deve REPROVAR (deveria ser texto)");
+  });
+
   // --- INVARIANTES de consistência do catálogo (lições da etapa 7) ---
 
   it("INVARIANTE: todo critério WCAG casa o próprio nome", () => {

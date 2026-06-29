@@ -74,6 +74,14 @@ describe("Etapa 7 — Gate A (Revisão adversarial)", () => {
     assert.ok(d.schemaEstrutural.lentes && d.schemaEstrutural.veredito);
   });
 
+  it("REPROVA quando a nota de uma lente é um OBJETO em vez de texto (motivo é prova textual)", () => {
+    // Furo residual da 2ª revisão cega: a rejeição de objeto no `oco` estava guardada por valorNA===null (só
+    // etapa 9). Aqui (etapa 7) {a:1} virava "[object Object]" e escapava. Fechado na ORIGEM: `nota` é tipo "string".
+    const rev = revisaoAprova();
+    rev.lentes[0].nota = { a: 1 };
+    assert.equal(prepararEAvaliar(rev), 1, "nota objeto deve REPROVAR (deveria ser texto)");
+  });
+
   // --- INVARIANTE de consistência do catálogo (pegou um bug real na construção) ---
 
   it("INVARIANTE: toda lente do catálogo casa o próprio nome (senão a lente nunca se reconhece)", () => {

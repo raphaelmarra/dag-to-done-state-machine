@@ -1,6 +1,12 @@
 # _WIP — Construção da Etapa 9 (Gate B — Verificação ao vivo)
 
-> Rotina 0→4. Status: **em execução (autônoma)**. SEM output real no MVP (só o CORE `gate_b.md`). Logo: construir
+> **Status: RETIRED — cristalizado no ADR 0030 (2026-06-29).** A etapa 9 está completa e plugada no `v1/`
+> (suíte 213/213). As Fases 0–4 foram concluídas: pesquisa + 2 casos cegos opostos (Fase 1), CORE + código
+> (Fase 2), testes + 2 rodadas de anti-viés saturado que fecharam furos via teste mecânico (Fase 3),
+> cristalização ADR 0030 + governança (Fase 4). Mantido como histórico de construção — não editar. O racional
+> destilado vive no ADR 0030 e no `CORE-GATEB.md`.
+>
+> Rotina 0→4. Status histórico: **em execução (autônoma)**. SEM output real no MVP (só o CORE `gate_b.md`). Logo: construir
 > 2 casos cegos. Pesquisa é PRÉ-REQUISITO (o veredito quaternário é decisão não-óbvia). Pesquisa: verificação
 > E2E contra produção + veredito de incerteza honesta (rodando).
 

@@ -28,6 +28,19 @@
 
 ---
 
+## Etapa 9 (Gate B — Verificação ao vivo) — o JUIZ DA AUTENTICIDADE — cristalizada (2026-06-29)
+
+- **ADR 0030** — Verifica a VERDADE (chama a API ao vivo read-only, confronta o real com os critérios do
+  design), não a forma de uma declaração — gênero diferente das etapas 7/8. **Veredito QUATERNÁRIO**
+  (`verificado/diverge/inconclusivo/precisa-humano`) que DERIVA das situações por-critério, e **FAIL-CLOSED**:
+  só `verificado` avança; os outros 3 são outputs válidos mas BLOQUEIAM (a feature não está pronta / não pôde
+  ser confirmada). `inconclusivo` exige motivo de enum fechado (anti-fuga — o "motivo obrigatório do SKIP").
+  Evidência substantiva por critério (request+response+asserção) + cobertura de TODO critério do design
+  (cruza o estado, id ancorado por palavra inteira). Executor `fiscal` (parente da etapa 2). Validado por 2
+  casos cegos opostos (chamadas REAIS + `diverge`) + 2 rodadas de revisão cega que fecharam furos via teste
+  mecânico (evidência oca por substring/sufixo/objeto/número). ZERO motor novo; 5 regras reusam moldes 2/6/8.
+  Abre A016 (autenticidade da evidência não-forjável).
+
 ## Etapa 8 (Acessibilidade) — o "Gate A do runtime" — cristalizada (2026-06-29)
 
 - **ADR 0029** — Verifica a tela EM MOVIMENTO (foco, teclado, leitura, contraste com dado real), não o código.

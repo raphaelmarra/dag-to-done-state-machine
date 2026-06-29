@@ -91,6 +91,14 @@ function validarForma(valor, forma, etapa, caminho, erros) {
     valor.forEach((s, i) => {
       if (typeof s !== "string") erros.push(`${caminho}[${i}]: deveria ser string (recebido: ${typeof s})`);
     });
+  } else if (forma.tipo === "string") {
+    // Campo de PROVA TEXTUAL (nota/evidencia): um objeto/array aqui escaparia da defesa anti-oco virando
+    // "[object Object]" — fecha na ORIGEM (furo residual da 2ª revisão cega da etapa 9). Enum ainda vale se houver.
+    if (typeof valor !== "string") { erros.push(`${caminho}: deveria ser string (recebido: ${Array.isArray(valor) ? "lista" : typeof valor})`); return; }
+    const enumValido = forma.enum ? resolverEnum(forma, etapa) : null;
+    if (enumValido && enumValido.length > 0 && !enumValido.includes(valor)) {
+      erros.push(`${caminho}: valor "${valor}" fora do enum [${enumValido.join(", ")}]`);
+    }
   } else {
     // escalar: valida enum se houver E não estiver vazio. Enum vazio (ex.: executor ausente) =
     // SEM restrição (não reprova tudo silenciosamente — fail-open, coerente com "lacuna visível").
@@ -199,6 +207,12 @@ function evidenciaVazia(v) {
   if (typeof v === "string") return v.trim() === "";
   if (typeof v === "object") return Object.keys(v).length === 0;
   return true; // número/bool não é evidência
+}
+
+// Escapa metacaracteres de regex num literal (ids como "CA-1", "GAP-001" são seguros, mas robustez antes
+// de tudo: um id com "." ou "(" não deve virar metacaractere). Usado na ancoragem de id por palavra inteira.
+function escaparRegex(s) {
+  return `${s}`.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
 }
 
 // Fábrica de regra (A012): "o campo `campo` do output deve ser exatamente `valor`". Migra os gates
@@ -516,7 +530,13 @@ function regraVeredictoJustificado(output) {
 // Motivo OCO: evidência/nota sem substância. Um item legítimo diz POR QUE (não se aplica) ou PROVA (operou).
 // Inclui as fugas comuns: "n/a", "-", "não", e os assentimentos vazios "ok"/"sim"/"feito"/"verificado" (que
 // afirmam sem provar — o pior caso num "coberto", a afirmação mais forte do agente). Achado D1/W1 da revisão.
-const NOTA_OCA = /^(n\/?a|na|-+|—|n\.?a\.?|não|nao|sem|nenhum|x|ok|sim|feito|done|pass|passou|verificado|checado|✓|✔)$/i;
+// 2ª revisão cega (etapa 9): + irmãos de "n/a" (nd/n.d), placeholders de "ainda não fiz" (tbd/todo/wip/pendente),
+// abreviações de 1 letra (s/y/t/f), "?" e número EM QUALQUER FORMATO (não só \d+: "-1"/"12.5"/"1e3" também são
+// número solto, que não é prova). A normalização de pontuação de borda (em `oco`) fecha a fuga "ok." → "ok".
+const NUM_SOLTO = "[+-]?\\d+(?:[.,]\\d+)?(?:e[+-]?\\d+)?"; // inteiro/decimal/notação científica, com sinal
+const NOTA_OCA = new RegExp(
+  `^(n\\/?a|na|n\\/?d|nd|n\\.?a\\.?|não|nao|sem|nenhum|x|ok|sim|yes|s|y|t|f|feito|done|pass|passou|true|false|` +
+  `tbd|todo|wip|pendente|verificado|verified|checado|✓|✔|${NUM_SOLTO})$`, "i");
 
 // Fábrica (A012 — generalizada ao 2º caso, etapa 8): "todo item de `listaCampo` cujo `situCampo` == `valorNA`
 // exige um `motivoCampo` SUBSTANTIVO (não-oco)". A defesa anti-fuga do catálogo declarado (etapa 7: lentes;
@@ -525,10 +545,20 @@ const NOTA_OCA = /^(n\/?a|na|-+|—|n\.?a\.?|não|nao|sem|nenhum|x|ok|sim|feito|
 // só "coberto" com "ok" passaria teatro (achado D1 da revisão cega: a defesa anti-teatro vale p/ toda situação).
 function regraNaoAplicavelComMotivo(listaCampo, idCampo, situCampo, valorNA, motivoCampo) {
   const aplica = (it) => valorNA === null || it?.[situCampo] === valorNA;
+  // Oco = (a) vazio-de-verdade OU OBJETO/ARRAY — só no modo valorNA===null ("evidência ao vivo é prova TEXTUAL":
+  // um objeto vira "[object Object]" e fugia do NOTA_OCA — furo 1 da 2ª revisão cega); OU (b) texto sem substância.
+  // (b) normaliza pontuação/emoji de borda ANTES de casar NOTA_OCA — senão "ok." escapa do ^ok$ por um ponto
+  // (furo 2). Sobrar "" após normalizar (era só pontuação, ex.: "-"/"??"/".") também é oco. Evidência real
+  // ("GET /x → 200. Confere.") tem texto no meio → não casa. Achados C1 (1ª) + furos 1/2/3 (2ª revisão cega).
+  const SINAL_BORDA = /^[\s.,;:!?…·•\-—–_*~"'`✓✔✗✘•·]+|[\s.,;:!?…·•\-—–_*~"'`✓✔✗✘•·]+$/g;
+  const ocoTexto = (v) => {
+    const norm = `${v ?? ""}`.trim().replace(SINAL_BORDA, "");
+    return norm === "" || NOTA_OCA.test(norm);
+  };
+  const oco = (v) =>
+    (valorNA === null && (evidenciaVazia(v) || (v && typeof v === "object"))) || ocoTexto(v);
   return (output) => {
-    const ocas = (output?.[listaCampo] ?? []).filter(
-      (it) => aplica(it) && NOTA_OCA.test(`${it?.[motivoCampo] ?? ""}`.trim())
-    );
+    const ocas = (output?.[listaCampo] ?? []).filter((it) => aplica(it) && oco(it?.[motivoCampo]));
     const rotulo = valorNA === null ? "com evidência oca" : `${valorNA} com motivo oco`;
     return ocas.length
       ? { ok: false, faltando: ocas.map((it) => `"${it?.[idCampo] ?? "(item)"}" ${rotulo} ("${it?.[motivoCampo]}") — dê uma evidência/motivo SUBSTANTIVO`) }
@@ -696,7 +726,14 @@ function regraCriteriosDoDesignCobertos(output, _etapa, estado) {
     .map((c) => c?.id).filter((id) => typeof id === "string");
   if (ids.length === 0) return { ok: true, faltando: [] }; // sem fonte de ids — não verificável (limite declarado)
   const enderecados = (output?.criterios ?? []).map((c) => `${c?.criterio ?? ""}`.toLowerCase());
-  const faltam = ids.filter((id) => !enderecados.some((e) => e.includes(id.toLowerCase())));
+  // Ancoragem no id INTEIRO, não substring: "ca-12" NÃO endereça "ca-1" (furo C1 da revisão cega — a mesma
+  // classe que a etapa 8 corrigiu: ver regraViolacaoViraIssue). O id casa só se delimitado — não estendido por
+  // um caractere de id (dígito/letra/hífen) à direita. Ex.: "CA-1" casa "CA-1: x" e "ca-1)" mas não "CA-12".
+  const enderecaId = (texto, id) => {
+    const re = new RegExp(`(^|[^a-z0-9-])${escaparRegex(id)}(?![a-z0-9-])`, "i");
+    return re.test(texto);
+  };
+  const faltam = ids.filter((id) => !enderecados.some((e) => enderecaId(e, id)));
   return faltam.length
     ? { ok: false, faltando: faltam.map((id) => `critério do design "${id}" não foi endereçado na verificação ao vivo`) }
     : { ok: true, faltando: [] };
@@ -1134,7 +1171,7 @@ export const PIPELINE = [
       lentes: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         lente: { obrigatorio: true },
         situacao: { obrigatorio: true, enum: ["coberta", "descoberta", "nao_aplicavel"] },
-        nota: { obrigatorio: true },  // onde (coberta) / exigência (descoberta) / motivo (nao_aplicavel) — sempre
+        nota: { obrigatorio: true, tipo: "string" },  // onde (coberta) / exigência (descoberta) / motivo (nao_aplicavel) — sempre; string (anti-objeto, 2ª rev. cega)
       } },
       issues: { presente: true, tipo: "lista-de-objetos", itemCampos: {
         id: { obrigatorio: true },
@@ -1186,7 +1223,7 @@ export const PIPELINE = [
       criterios: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         criterio: { obrigatorio: true },
         situacao: { obrigatorio: true, enum: ["coberto", "violado", "nao_aplicavel"] },
-        evidencia_operacional: { obrigatorio: true }, // âncora(coberto)/observado(violado)/motivo(nao_aplicavel)
+        evidencia_operacional: { obrigatorio: true, tipo: "string" }, // âncora(coberto)/observado(violado)/motivo(nao_aplicavel) — string (anti-objeto, 2ª rev. cega)
       } },
       issues: { presente: true, tipo: "lista-de-objetos", itemCampos: {
         id: { obrigatorio: true },
@@ -1239,7 +1276,7 @@ export const PIPELINE = [
       criterios: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
         criterio: { obrigatorio: true },
         situacao: { obrigatorio: true, enum: ["confere", "diverge", "inconclusivo", "precisa-humano"] },
-        evidencia: { obrigatorio: true }, // request+response real / ESPERADO-vs-REAL / prova-da-tentativa
+        evidencia: { obrigatorio: true, tipo: "string" }, // request+response real / ESPERADO-vs-REAL / prova-da-tentativa — string (anti-objeto, 2ª rev. cega)
         motivo: {}, // enum exigido SÓ se inconclusivo (regra extra) — opcional no topo
       } },
       fica_para_humano: { presente: true, tipo: "lista-de-strings" }, // a fronteira p/ a etapa 10 (humano)

@@ -5,6 +5,32 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### 🏁 ETAPA 9 (Gate B — Verificação ao vivo) COMPLETA — o JUIZ DA AUTENTICIDADE (2026-06-29)
+- **Cristalizada (ADR 0030):** CORE-GATEB v1.0 plugado no `v1/`. Executor `fiscal` (chama a API AO VIVO
+  read-only, confronta o real com os critérios do design — não lê código, não muta produção). Gênero
+  DIFERENTE das etapas 7/8: verifica a VERDADE, não a forma de uma declaração.
+- **Veredito QUATERNÁRIO + FAIL-CLOSED:** por critério `confere/diverge/inconclusivo/precisa-humano`; o
+  veredito global DERIVA das situações (a incerteza de qualquer critério rebaixa o todo) e **só
+  `verificado` avança** — diverge/inconclusivo/precisa-humano são outputs válidos mas BLOQUEIAM (volta à
+  etapa 6/escala). `inconclusivo` exige motivo de enum fechado (anti-fuga). Respaldo: NUnit/Pact/can-i-deploy.
+- **Evidência substantiva + cobertura cruzando o estado:** cada critério carrega prova (request+response+
+  asserção); todo `criterios_aceitacao[].id` do design é endereçado (ancorado por id INTEIRO, não substring).
+- **Validada (rotina 0→4):** pesquisa + 2 casos cegos OPOSTOS (aba CLIs com chamadas REAIS; API de produtos
+  exercitando `diverge`) cobriram os 4 vereditos. **Anti-viés em 2+1 rodadas de revisão cega** acharam e
+  FECHARAM, cada um virando teste mecânico (RED→GREEN): evidência oca não-textual passando; cobertura por
+  SUBSTRING (`CA-1`⊂`CA-12`); anti-oco contornável por sufixo de pontuação (`"ok."`), objeto e número
+  não-inteiro; e o furo RESIDUAL objeto-como-prova nas etapas 7/8 — **fechado na origem** com `tipo:"string"`
+  no validador estrutural.
+- **Tese de amortização:** ZERO mecanismo de motor novo (5 regras reusam moldes das etapas 2/6/8); só 2
+  primitivas (`escaparRegex`, tipo `"string"`). Encadeamento real das 9 etapas testado. ROADMAP 9/13. Suíte **213/213**.
+
+> **Dívida de governança recuperada:** as etapas 5–8 foram cristalizadas (ADRs 0026–0029) e plugadas, mas não
+> haviam sido registradas neste CHANGELOG. Resumo: **5 (Mapa de deps, ADR 0026)** — grafo de tarefas, paralelo
+> PROVADO por disjunção de arquivos + ordem topológica. **6 (Implementação, ADR 0027)** — handoff verificável +
+> rastreabilidade âncora↔fonte (cruza o estado). **7 (Gate A, ADR 0028)** — revisão adversarial, catálogo de
+> lentes PLANO (todas declaradas). **8 (Acessibilidade, ADR 0029)** — "Gate A do runtime", catálogo WCAG
+> operacional + evidência operacional. Detalhes nos ADRs respectivos.
+
 ### 🏁 ETAPA 4 (Design) COMPLETA — a primeira etapa CRIATIVA (2026-06-28)
 - **Cristalizada (ADR 0025):** CORE-DESIGN v1.0 plugado no `v1/`. Executor `ui-ux-designer` (designer —
   produz decisões, não analisa). O desafio: validar criatividade sem julgar "qualidade". Solução: o

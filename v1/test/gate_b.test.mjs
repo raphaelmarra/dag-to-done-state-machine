@@ -164,6 +164,51 @@ describe("Etapa 9 — Gate B (Verificação ao vivo)", () => {
     assert.equal(prepararEAvaliar(gb), 1);
   });
 
+  it("REPROVA nota-lixo contornada por SUFIXO de pontuação/emoji ('ok.', 'feito ✓', '??')", () => {
+    // Furo 2 da 2ª revisão cega: a âncora ^...$ deixava 'ok.' escapar (um ponto anula a defesa C1).
+    // Normalizar pontuação/sinais de borda ANTES do teste fecha a fuga trivial.
+    // Só casos resolvíveis MECANICAMENTE (token oco + pontuação de borda). "sim, confere" tem vírgula no MEIO
+    // e estrutura de frase — distingui-lo de prova real exige semântica, fora do alcance do porteiro (limite
+    // epistêmico declarado). O Gate A/humano pega o assentimento semântico; aqui barramos só a fuga mecânica.
+    for (const oco of ["ok.", "ok!", "feito ✓", "??", "OK!", "-", "verificado.", "n/a!"]) {
+      const gb = gbVerificado(); gb.criterios[0].evidencia = oco;
+      assert.equal(prepararEAvaliar(gb), 1, `nota-lixo "${oco}" deve REPROVAR`);
+    }
+  });
+
+  it("REPROVA placeholders de 'ainda não fiz' e abreviações de assentimento ('tbd', 'nd', 'S', '?')", () => {
+    // Furo 2: irmãos de 'n/a' não cobertos. São afirmações sem prova — mesma classe que C1 quis matar.
+    for (const oco of ["tbd", "TODO", "wip", "pendente", "nd", "N/D", "S", "Y", "?"]) {
+      const gb = gbVerificado(); gb.criterios[0].evidencia = oco;
+      assert.equal(prepararEAvaliar(gb), 1, `placeholder/assentimento "${oco}" deve REPROVAR`);
+    }
+  });
+
+  it("REPROVA evidência que é só um NÚMERO em qualquer formato ('12.5', '-1', '200')", () => {
+    // Furo 3: a regex só pegava \d+ ('200'/'0'), deixando '12.5'/'-1'/'1e3' passar. Número solto não é prova.
+    for (const oco of ["200", "0", "12.5", "-1", "1e3"]) {
+      const gb = gbVerificado(); gb.criterios[0].evidencia = oco;
+      assert.equal(prepararEAvaliar(gb), 1, `número solto "${oco}" deve REPROVAR`);
+    }
+  });
+
+  it("REPROVA evidência que é um OBJETO (não-vazio) em vez de prova textual ({x:1})", () => {
+    // Furo 1 (crítico): {x:1} virava "[object Object]", não casava NOTA_OCA, e evidenciaVazia só pega {}.
+    // Evidência ao vivo é prova textual (request+response+asserção); um objeto qualquer não é substantivo.
+    for (const oco of [{ x: 1 }, { z: "" }, [1, 2]]) {
+      const gb = gbVerificado(); gb.criterios[0].evidencia = oco;
+      assert.equal(prepararEAvaliar(gb), 1, `objeto como evidência (${JSON.stringify(oco)}) deve REPROVAR`);
+    }
+  });
+
+  it("ACEITA evidência textual legítima curta mas real (não over-blocking)", () => {
+    // Guarda contra falso-positivo: prova real curta deve PASSAR. A defesa anti-teatro não pode comer evidência boa.
+    for (const real of ["GET /x → 200, 1 item. Confere.", "200 OK; items[0].id='a'. Asserção: carrega.", "verificado: 200, 1 item"]) {
+      const gb = gbVerificado(); gb.criterios[0].evidencia = real;
+      assert.equal(prepararEAvaliar(gb), 0, `evidência real "${real}" deve PASSAR`);
+    }
+  });
+
   // --- Inconclusivo com motivo enumerado ---
 
   it("REPROVA inconclusivo SEM motivo do enum", () => {
@@ -194,6 +239,20 @@ describe("Etapa 9 — Gate B (Verificação ao vivo)", () => {
     const gb = gbVerificado();
     gb.criterios = [gb.criterios[0]]; // remove CA-02 — mas o design exige CA-01 E CA-02
     assert.equal(prepararEAvaliar(gb), 1, "critério do design não endereçado deve REPROVAR");
+  });
+
+  it("REPROVA quando o id que sumiu é SUBSTRING de um id endereçado (CA-1 ⊂ CA-12)", () => {
+    // Furo C1 da revisão cega da etapa 9 (mesma classe da etapa 8): com `includes`, "ca-12" CONTÉM "ca-1",
+    // então o CA-1 do design (que NÃO foi endereçado) era dado como coberto pelo CA-12. A cobertura deve
+    // ancorar no id INTEIRO, não em substring. Design exige CA-1 e CA-12; o Gate B só endereça CA-12 → REPROVA.
+    const design = { criterios_aceitacao: [{ id: "CA-1" }, { id: "CA-12" }] };
+    const gb = gbVerificado();
+    gb.criterios = [
+      { criterio: "CA-12: paginação acima de 50", situacao: "confere",
+        evidencia: "Request real: list {limit:'51'} → 200, 51 itens. Asserção: a página enche.", motivo: null },
+    ];
+    assert.equal(prepararEAvaliar(gb, design), 1, "CA-1 não endereçado (só CA-12) deve REPROVAR — substring não conta");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "gate_b", "permanece em gate_b");
   });
 
   it("SEM ids no design_output, a cobertura NÃO reprova (limite honesto)", () => {
