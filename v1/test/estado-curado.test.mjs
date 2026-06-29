@@ -34,8 +34,8 @@ describe("Peça 7 — estado curado por etapa", () => {
   });
 
   it("uma etapa SEM estadoCurado declarado usa o default (não regride)", () => {
-    // 'gate_b' (etapa 9) ainda é placeholder → o motor usa o default. (1-8 destiladas.)
-    const g = etapaPorId("gate_b");
+    // 'aprovacao_humana' (etapa 10) ainda é placeholder; o motor usa o default. (1-9 destiladas.)
+    const g = etapaPorId("aprovacao_humana");
     assert.ok(!g.estadoCurado, "acessibilidade não declara estadoCurado (usa default)");
     // o e2e (13 etapas) já cobre que o pipeline inteiro continua passando com o default.
   });

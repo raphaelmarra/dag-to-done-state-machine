@@ -157,8 +157,18 @@ function outputValido(etapa) {
       out.fica_para_humano = ["confirmar com leitor de tela real na etapa 10"];
       break;
     case "gate_b":
+      // Verificação ao vivo honesta: cada critério do design (CA-01, do design_output acima) endereçado com
+      // evidência REAL substantiva; todos CONFEREM → veredito global "verificado" (fail-closed: só verificado
+      // avança). Coerência global↔por-critério: como todos conferem, o global é verificado.
       out.veredito = "verificado";
-      out.evidencia = ["evidencia-x"];
+      out.resumo = "Confrontei os critérios com a API ao vivo; o comportamento real bate com o design.";
+      out.criterios = [
+        { criterio: "CA-01: ao abrir, a lista carrega e nunca mostra spinner infinito",
+          situacao: "confere",
+          evidencia: "Request real: POST commands/list {agent:'main'} → 200, data.items com 1 comando. Asserção: a lista carrega ao vivo, sem spinner infinito.",
+          motivo: null },
+      ];
+      out.fica_para_humano = ["confirmar a janela de acesso ao ambiente; testar com >50 itens (paginação)"];
       break;
     case "done":
       out.verify_ok = true;

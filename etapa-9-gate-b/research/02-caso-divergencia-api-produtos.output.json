@@ -1,0 +1,26 @@
+{
+  "_meta": "2º caso CEGO do Gate B — exercita o veredito DIVERGE (o real contradiz o design). Produzido por fiscal cego que confrontou 5 critérios com a resposta real da API. 3 conferem (com request+response+asserção), 2 divergem (CA-04 limit ignorado: 15>10; CA-05 id inexistente retorna 200+null em vez de 404). Fail-closed: ≥1 diverge → veredito global diverge → feature volta à etapa 6. O fica_para_humano captura a severidade/blast-radius (julgamento humano). Feature fictícia 'API de busca de produtos'. Valida que o schema serve ao caso diverge e que o veredito global deriva das situações por-critério.",
+  "feature": "api-busca-produtos",
+  "etapa": "gate_b",
+  "veredito": "diverge",
+  "resumo": "A verificação ao vivo confirma 3 dos 5 critérios (CA-01, CA-02, CA-03) com evidência real, mas revela 2 divergências bloqueantes: o parâmetro limit é ignorado (CA-04) e um id inexistente retorna 200 com corpo nulo em vez de 404 (CA-05). Por fail-closed, com ≥1 divergência confirmada por chamada real, o veredito global é 'diverge': a feature NÃO está pronta e retorna à etapa 6. As divergências são contradições diretas entre o contrato prometido e o comportamento observado da API.",
+  "criterios": [
+    { "criterio": "CA-01: GET /products?q=<termo> retorna 200 com array items de produtos que casam o termo", "situacao": "confere",
+      "evidencia": { "request_real": "GET /products?q=notebook", "response_observado": "200, body: { items: [ {id:1, nome:\"Notebook X\", preco:3500, disponivel:true}, {id:2, nome:\"Notebook Y\", preco:4200, disponivel:false} ] }", "assercao": "Status 200; a chave de envelope é exatamente `items` (array); os 2 elementos casam o termo 'notebook' nos nomes. Satisfaz." } },
+    { "criterio": "CA-02: cada produto em items tem { id, nome, preco, disponivel }", "situacao": "confere",
+      "evidencia": { "request_real": "GET /products?q=notebook", "response_observado": "items[0]={id:1,nome:\"Notebook X\",preco:3500,disponivel:true}; items[1]={id:2,...,disponivel:false}", "assercao": "Os 4 campos presentes com tipos coerentes em AMBOS (disponivel:false ≠ ausência). Ressalva: cobre só o shape dos 2 itens observados, não todo produto possível." } },
+    { "criterio": "CA-03: busca sem resultado retorna 200 com items:[] (não erro)", "situacao": "confere",
+      "evidencia": { "request_real": "GET /products?q=xyz123inexistente", "response_observado": "200, body: { items: [], total: 0 }", "assercao": "Status 200 (não 4xx); items=[] e total:0 corrobora vazio LEGÍTIMO, não erro mascarado. 'API disse vazio' comprovado, não 'não falei com a API'. Satisfaz." } },
+    { "criterio": "CA-04: GET /products?q=<termo>&limit=10 respeita o limite (máx 10 itens)", "situacao": "diverge",
+      "evidencia": { "request_real": "GET /products?q=fone&limit=10", "response_observado": "200, body: { items: [ ...15 produtos... ] }", "esperado_design": "items com no máximo 10 elementos (length<=10)", "real_api": "items com 15 elementos — limit=10 IGNORADO pelo backend", "assercao": "DIVERGE. ESPERADO: trunca em 10. REAL: 15 itens com limit=10 explícito (15>10). Discrepância mensurável; o backend não aplica o limite. Falha no backend, não no frontend." } },
+    { "criterio": "CA-05: id inexistente GET /products/99999 retorna 404 (não 200 com corpo vazio)", "situacao": "diverge",
+      "evidencia": { "request_real": "GET /products/99999", "response_observado": "200, body: { id:null, nome:null, preco:null, disponivel:null }", "esperado_design": "HTTP 404 para id inexistente", "real_api": "HTTP 200 com produto 'fantasma' de campos todos null", "assercao": "DIVERGE. ESPERADO: 404. REAL: 200 com corpo null — EXATAMENTE o anti-padrão que o critério queria evitar. Risco: consumidor que cheque só `response.ok` trata o fantasma como válido e quebra (ex.: preco.toFixed em null). O status mente sobre a existência. Falha no backend." } }
+  ],
+  "fica_para_humano": [
+    "Severidade/bloqueio de CA-04 (limit ignorado): blocker de release ou workaround de slice no cliente até o fix? Decisão de produto/risco.",
+    "Severidade de CA-05 (200+null vs 404): impacto real nos consumidores — há frontend que depende de `response.ok`? Mapear blast radius antes da prioridade.",
+    "Contrato canônico de 'não encontrado' p/ /products/{id}: 404 puro ou 404 com body de erro estruturado? O design só especificou o status.",
+    "CA-04 é cap diferente do servidor ou ausência total de suporte ao param? Define se o fix é trivial (slice) ou paginação completa.",
+    "Não cobertos: limit=0/negativo/não-numérico, ordenação/estabilidade, e o shape do 404 quando implementado — teste humano/QA."
+  ]
+}

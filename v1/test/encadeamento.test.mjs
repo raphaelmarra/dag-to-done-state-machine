@@ -116,11 +116,24 @@ const OUT_A11Y = {
   issues: [],
   fica_para_humano: ["confirmar com leitor de tela real na etapa 10"],
 };
+// Gate B honesto: endereça CA-01 (o único critério do OUT_DESIGN promovido). A regraCriteriosDoDesignCobertos
+// cruza com design_output.criterios_aceitacao[].id — não endereçar CA-01 reprovaria. veredito=verificado, todos
+// conferem com evidência real (request+response), avança para a etapa 10 (fail-closed: só verificado passa).
+const OUT_GATEB = {
+  veredito: "verificado",
+  resumo: "Confrontei CA-01 com a API ao vivo (read-only): a lista carrega de fato; confere.",
+  criterios: [
+    { criterio: "CA-01: abre e exibe a lista, nunca spinner infinito", situacao: "confere",
+      evidencia: "Request real: POST /api/ravi/commands/list {agent:'main'} → 200, data.items com 1 item ({id:'arch'}). Asserção: a lista carrega ao vivo, sem spinner preso.",
+      motivo: null },
+  ],
+  fica_para_humano: ["confirmar a janela de acesso ao ambiente de produção"],
+};
 
-describe("Encadeamento real DAG → … → Gate A → Acessibilidade (fluxo do motor, sem injeção manual)", () => {
+describe("Encadeamento real DAG → … → Gate A → Acessibilidade → Gate B (fluxo do motor, sem injeção manual)", () => {
   after(() => limpar());
 
-  it("as 8 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
+  it("as 9 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
     limpar();
     // init com o que o motor não promove (entry_point/project_root vêm do operador).
     assert.equal(main(["init", FEATURE, "--entry", "aba CLIs", "--root", "/proj"]), 0);
@@ -194,8 +207,17 @@ describe("Encadeamento real DAG → … → Gate A → Acessibilidade (fluxo do 
     assert.equal(main(["advance", FEATURE]), 0, "advance Acessibilidade aprova (verificação bem-feita, cobertura total)");
     assert.equal(carregarEstado(FEATURE).etapaAtual, "gate_b", "avançou para Gate B");
 
-    // Encadeamento provado: 8 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
-    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao", "gate_a", "acessibilidade"]);
+    // ETAPA 9 (Gate B) — exige as 8 anteriores. O fiscal confronta CA-01 (do design_output PROMOVIDO) com a API
+    // ao vivo. A regraCriteriosDoDesignCobertos cruza com os ids reais; veredito=verificado avança (fail-closed).
+    assert.equal(main(["next", FEATURE]), 0, "next Gate B ok (8 pré-condições presentes)");
+    assert.ok(existsSync(briefingPath(FEATURE, "gate_b")), "briefing Gate B gerado");
+    escrever("gate_b", OUT_GATEB);
+    assert.equal(main(["advance", FEATURE]), 0, "advance Gate B aprova (verificado ao vivo, CA-01 endereçado)");
+    assert.ok(carregarEstado(FEATURE).gate_b_output, "motor promoveu gate_b_output");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "aprovacao_humana", "avançou para Aprovação humana (etapa 10)");
+
+    // Encadeamento provado: 9 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
+    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias", "implementacao", "gate_a", "acessibilidade", "gate_b"]);
   });
 
   it("PROVA da rastreabilidade no fluxo real: âncora-FANTASMA na etapa 6 BLOQUEIA o advance", () => {

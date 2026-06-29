@@ -646,6 +646,62 @@ function regraViolacaoViraIssue(output) {
     : { ok: true, faltando: [] };
 }
 
+// --- Regras da etapa 9 (Gate B — Verificação ao vivo) -----------------------------------------------
+// A etapa 9 é de GÊNERO diferente do Gate A/8: verifica a VERDADE (chama a API ao vivo), não a forma de uma
+// declaração. Veredito QUATERNÁRIO (verificado/diverge/inconclusivo/precisa-humano) e FAIL-CLOSED: só
+// "verificado" avança (a frase-âncora: o agente nunca é sua própria autoridade de verdade; o porteiro audita
+// a evidência). Motivos enumerados de inconclusivo (lista fechada — o "motivo obrigatório do SKIP" do TAP).
+const MOTIVOS_INCONCLUSIVO = ["ambiente-indisponivel", "endpoint-fora-do-proxy", "timeout", "sem-credencial-readonly", "pre-condicao-de-dado-ausente"];
+
+// Regra B-mot da etapa 9: todo critério `inconclusivo` exige um `motivo` do enum fechado (não texto livre, não
+// vazio). É o ônus de prova que impede "marco tudo inconclusivo e passo": inconclusivo sem motivo enumerado é
+// output malformado. (A `evidencia` substantiva — a prova-da-tentativa — já é exigida pela regra de evidência.)
+function regraInconclusivoComMotivo(output) {
+  const erros = [];
+  for (const c of output?.criterios ?? []) {
+    if (c?.situacao !== "inconclusivo") continue;
+    if (!MOTIVOS_INCONCLUSIVO.includes(c?.motivo)) {
+      erros.push(`critério "${c?.criterio ?? "(item)"}" inconclusivo sem motivo do enum (use: ${MOTIVOS_INCONCLUSIVO.join("|")})`);
+    }
+  }
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
+// Regra B-coer da etapa 9: o veredito GLOBAL deriva das situações por-critério, e FAIL-CLOSED. A verdade é
+// composta: só "verificado" se TODOS os critérios CONFEREM; ≥1 diverge → o global tem de ser "diverge"; senão
+// ≥1 precisa-humano → "precisa-humano"; senão ≥1 inconclusivo → "inconclusivo". O porteiro REJEITA um veredito
+// global mais otimista que as situações permitem (ex.: "verificado" com um critério que diverge) — é o coração
+// do fail-closed: a incerteza/divergência de QUALQUER critério rebaixa o todo, nunca o inverso.
+function regraVeredictoGlobalCoerente(output) {
+  const sits = (output?.criterios ?? []).map((c) => c?.situacao);
+  const esperado =
+    sits.some((s) => s === "diverge") ? "diverge" :
+    sits.some((s) => s === "precisa-humano") ? "precisa-humano" :
+    sits.some((s) => s === "inconclusivo") ? "inconclusivo" :
+    "verificado"; // só quando TODOS conferem
+  const v = output?.veredito;
+  if (v !== esperado) {
+    return { ok: false, faltando: [`veredito global "${v}" incoerente com as situações dos critérios (esperado "${esperado}" — fail-closed: a divergência/incerteza de qualquer critério rebaixa o todo)`] };
+  }
+  return { ok: true, faltando: [] };
+}
+
+// Regra B-cob da etapa 9: todo critério de aceitação do design (etapa 4) é ENDEREÇADO na verificação — nenhum
+// em silêncio. CRUZA o estado: extrai os ids de `design_output.criterios_aceitacao[]` e exige que cada um
+// apareça em `criterios[].criterio`. Molde regraAncoraRastreavel (etapa 6) — usa o 3º arg `estado`. Limite
+// honesto: se o design_output não tem ids extraíveis (string/ausente), não dá para cobrar — não reprova.
+function regraCriteriosDoDesignCobertos(output, _etapa, estado) {
+  const design = estado?.design_output;
+  const ids = (design && typeof design === "object" ? (design.criterios_aceitacao ?? []) : [])
+    .map((c) => c?.id).filter((id) => typeof id === "string");
+  if (ids.length === 0) return { ok: true, faltando: [] }; // sem fonte de ids — não verificável (limite declarado)
+  const enderecados = (output?.criterios ?? []).map((c) => `${c?.criterio ?? ""}`.toLowerCase());
+  const faltam = ids.filter((id) => !enderecados.some((e) => e.includes(id.toLowerCase())));
+  return faltam.length
+    ? { ok: false, faltando: faltam.map((id) => `critério do design "${id}" não foi endereçado na verificação ao vivo`) }
+    : { ok: true, faltando: [] };
+}
+
 // Fábrica de regra reutilizável (A012): "todo item de `listaCampo` cujo `condCampo` == `condValor`
 // DEVE ter `evidCampo` não-vazio". Usada pela etapa 2 ("confirmado ao vivo" exige evidencia_ao_vivo)
 // e pela etapa 3 (todo gap exige evidencia). A honestidade é imposta pelo formato, não pela boa-fé.
@@ -1160,10 +1216,45 @@ export const PIPELINE = [
     id: "gate_b",
     nome: "Gate B — Verificação ao vivo",
     agente: "fiscal",
-    core: "[fallback] Execute os cenários com dado real.",
-    corePath: "cores-aba-clis/gate_b.md",
-    schema: ["veredito", "evidencia"],
-    regrasExtras: [regraCampoIgual("veredito", "verificado", 'veredito deve ser "verificado"')],
+    // Executor: fiscal — JUIZ DA AUTENTICIDADE. Chama a API AO VIVO (read-only) e confronta o real com os
+    // critérios do design. NÃO lê código, NÃO muta produção. Re-verifica o que a etapa 6 declarou e a 8 afirmou
+    // ter operado. Parente da etapa 2 (Descoberta): mesma verificação ao vivo, mesma evidência obrigatória.
+    executor: {
+      nome: "fiscal",
+      capacidade: "chama a API ao vivo (read-only) e confronta o comportamento real com os critérios; não lê código, não muta produção",
+      confianca_enum: ["verificado ao vivo", "inconclusivo (não deu para checar)"],
+    },
+    core: "[fallback] Confronte o comportamento real (API ao vivo) com cada critério do design. Ver cores/CORE-GATEB.md.",
+    corePath: "cores/CORE-GATEB.md",
+    // Pré-condições: as 8 etapas anteriores (precisa dos critérios do design + a acessibilidade). O motor bloqueia.
+    precondicoes: ["entry_point", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output", "mapa_dependencias_output", "implementacao_output", "gate_a_output", "acessibilidade_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "design_output", "gap_output", "gate_a_output", "acessibilidade_output", "next_stage", "concluidas"],
+    schema: ["veredito"],
+    schemaEstrutural: {
+      // QUATERNÁRIO (não binário): verificado/diverge/inconclusivo/precisa-humano. FAIL-CLOSED: só "verificado"
+      // avança (regra extra exige). diverge/inconclusivo/precisa-humano são outputs VÁLIDOS mas bloqueiam (a
+      // feature não está pronta / não pôde ser confirmada — volta à etapa 6 ou escala).
+      veredito: { obrigatorio: true, enum: ["verificado", "diverge", "inconclusivo", "precisa-humano"] },
+      resumo: { obrigatorio: true },
+      criterios: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        criterio: { obrigatorio: true },
+        situacao: { obrigatorio: true, enum: ["confere", "diverge", "inconclusivo", "precisa-humano"] },
+        evidencia: { obrigatorio: true }, // request+response real / ESPERADO-vs-REAL / prova-da-tentativa
+        motivo: {}, // enum exigido SÓ se inconclusivo (regra extra) — opcional no topo
+      } },
+      fica_para_humano: { presente: true, tipo: "lista-de-strings" }, // a fronteira p/ a etapa 10 (humano)
+    },
+    // Regras da etapa 9 (reúso/molde — zero dialeto novo): (1) cada critério tem evidência SUBSTANTIVA (a
+    // fábrica da etapa 8 com valorNA=null — evidência oca "ok" reprova em qualquer situação); (2) inconclusivo
+    // exige motivo do enum; (3) o veredito global é coerente com as situações (fail-closed); (4) todo critério
+    // do design é endereçado (cruza o estado); (5) FAIL-CLOSED: só "verificado" passa o porteiro (avança).
+    regrasExtras: [
+      regraNaoAplicavelComMotivo("criterios", "criterio", "situacao", null, "evidencia"), // evidência substantiva sempre
+      regraInconclusivoComMotivo,
+      regraVeredictoGlobalCoerente,
+      regraCriteriosDoDesignCobertos,
+      regraCampoIgual("veredito", "verificado", 'Gate B fail-closed: só "verificado" avança — diverge/inconclusivo/precisa-humano BLOQUEIAM (a feature não está pronta ou não pôde ser confirmada ao vivo)'),
+    ],
   },
   {
     id: "aprovacao_humana",
