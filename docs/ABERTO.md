@@ -311,3 +311,37 @@ tela; senão exige ≥1 critério `coberto`/`violado`. É o mesmo princípio `ev
 PROVE que não havia o que operar, em vez de só afirmá-lo. NÃO precisa do arquétipo como entrada (D-2 segue certo).
 **Próximo passo:** reavaliar quando aparecer uma feature SEM UI no pipeline (ou ao destilar uma etapa que já
 derive "há tela?" do estado). Até lá, o limite vive declarado no CORE-A11Y (a etapa pressupõe uma tela operável).
+
+---
+
+## A018 — Autenticidade da evidência ao vivo do Gate B: o porteiro não pode autenticar o request/response
+
+**Status:** dívida registrada (não bloqueante) — limite epistêmico central da etapa 9 (Gate B), declarado no
+CORE-GATEB §2. É o gap mais sério da etapa 9 e merece dívida PRÓPRIA (o ADR 0030 antes apontava A016, que é
+sobre a rastreabilidade da etapa 6 — classe parecida, mas objeto diferente).
+**Questão:** o Gate B inteiro depende da `evidencia` (request real + response real + asserção) que o `fiscal`
+anexa a cada critério `confere`. O porteiro RE-AVALIA a asserção SOBRE essa evidência (determinístico, barato,
+sem re-chamar a API) e exige que ela seja substantiva (não-oca). Mas ele **NÃO re-chama a API e NÃO prova que
+o par request/response é AUTÊNTICO** — um LLM "prevê como seria o output da tool e apresenta como fato
+consumado". Em tese, o agente poderia FABRICAR um par request/response plausível e o porteiro não o
+distinguiria de uma chamada real. É a frase-âncora da etapa virada do avesso: o porteiro audita a evidência,
+mas não a sua veracidade última.
+**Por que o risco é PARCIALMENTE mitigado hoje:** (1) **fail-closed** — só `verificado` avança, e a evidência
+fabricada teria de ser internamente coerente com TODOS os critérios + o veredito global; mentir aumenta a
+superfície de incoerência que o porteiro pega. (2) A etapa 10 (humano) re-verifica a autenticidade — é
+explicitamente a fronteira declarada (`fica_para_humano`). Mas a mitigação é de incentivo/processo, não
+estrutural: nada no motor IMPEDE a fabricação.
+**Por que não virou código agora:** a correção real é **captura independente do agente** — um proxy read-only
+(ou runtime) que intercepte a chamada e entregue ao porteiro o par request/response que o motor mesmo
+observou, não o que o agente DIGITOU. Isso é infraestrutura que o motor (Node puro, zero deps, ADR 0001) não
+tem hoje e cuja adição é decisão de fundação (toca o contrato de como a evidência chega ao porteiro). Um caso
+teórico não justifica (M4) — precisa de um caso real onde a fabricação seja plausível e custosa.
+**Direção (na filosofia do projeto):** um "Tool Receipt" não-forjável — o proxy assina/carimba a evidência que
+ELE capturou, e a regra do Gate B passa a exigir que a `evidencia` carregue esse carimbo (em vez de texto
+livre do agente). Modelo: `can-i-deploy` (consulta evidência registrada por terceiro) + Pact (o broker é a
+autoridade, não o consumidor). NÃO precisa o agente ser confiável — precisa a evidência ser capturada por quem
+não é o agente.
+**Próximo passo:** reavaliar quando houver um proxy/runtime de verificação disponível ao motor (hoje o `fiscal`
+chama via curl fora do motor). Até lá, o limite vive DECLARADO no CORE-GATEB §2 e a autenticidade última é do
+humano (etapa 10). Relacionado: A016 (mesma classe — porteiro que aprova sem poder distinguir checado de
+não-checado/fabricado).

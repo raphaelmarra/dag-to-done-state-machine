@@ -6,7 +6,7 @@
   verificação ao vivo; reusa `regrasExtras` (ADR 0024), a fábrica de evidência substantiva
   `regraNaoAplicavelComMotivo` (ADR 0029, generalizada na etapa 8), o cruzamento âncora↔estado de
   `regraAncoraRastreavel` (ADR 0027); fecha o ciclo "declaração → verdade" que os limites epistêmicos das
-  etapas 6/8 empurraram para cá; abre A016 (autenticidade da evidência não-forjável).
+  etapas 6/8 empurraram para cá; abre A018 (autenticidade da evidência ao vivo não-forjável; parente de A016).
 
 ## Contexto e Problema
 As etapas 7 (Gate A) e 8 (Acessibilidade) validam a FORMA de uma declaração-com-prova: o porteiro vê o
@@ -71,9 +71,11 @@ furo virou teste mecânico (RED→GREEN) antes da correção. Suíte v1 **213/21
 **A tese de amortização sustenta-se no gênero mais distante:** ZERO mecanismo de motor novo; as 5 regras
 reusam moldes/fábricas das etapas 2/6/8 — as únicas primitivas novas são `escaparRegex` (ancorar id por
 palavra inteira) e o tipo `"string"` no validador estrutural (fecha o furo objeto-como-prova). O enum de motivos e o catálogo de vereditos são DADO. **Limites epistêmicos declarados
-(dívida A016):** o porteiro re-avalia a asserção sobre a evidência capturada (determinístico, barato, sem
-re-chamar a API), mas NÃO re-chama a API nem prova que a evidência é AUTÊNTICA — captura independente do
-agente (proxy/runtime) seria o ideal, mas o motor não a tem hoje; isso vai ao humano da etapa 10. A defesa
+(dívida A018):** o porteiro re-avalia a asserção sobre a evidência capturada (determinístico, barato, sem
+re-chamar a API), mas NÃO re-chama a API nem prova que a evidência é AUTÊNTICA — o agente poderia FABRICAR o
+par request/response e o porteiro não o distinguiria (mitigado por fail-closed + etapa 10, não estruturalmente).
+Captura independente do agente (proxy/runtime com "Tool Receipt" não-forjável) seria o ideal, mas o motor não
+a tem hoje; a autenticidade última vai ao humano da etapa 10. A defesa
 anti-oco é mecânica (forma), não semântica: barra a fuga por token/pontuação/objeto/número, mas um
 assentimento com estrutura de frase ("sim, confere") está fora do alcance do porteiro — é o Gate A/humano
 que pega o vazio semântico. **Encadeamento real das 9 etapas testado.** Próximo: etapas 10–13 (Aprovação
