@@ -89,6 +89,14 @@ Três testes:
 > 3. **Dialeto de validação:** esta etapa precisou de regra custom no `aceita`? Então cheque se já é
 >    hora de padronizar em `regrasExtras` declarativo (A012) — antes que os gates fragmentem o padrão.
 
+> **⚠️ REGRA DO ENCADEAMENTO (a partir da etapa 3 — toda etapa nova é testada ENCADEADA).** Cada etapa
+> nova ganha um teste que roda o FLUXO REAL do motor (`next`→escrever output→`advance`) encadeando-a
+> com as anteriores, **sem injetar pré-condições à mão** — o motor as promove (`<etapa>_output`). Por
+> quê: o e2e geral usa `advance` direto e MASCARA bugs de integração; o encadeamento real os expõe. Já
+> se pagou na 1ª aplicação (etapa 3): revelou que `dag_output` era promovido como objeto e virava
+> `[object Object]` no briefing da etapa seguinte — o executor recebia lixo no lugar do insumo. Inclua
+> sempre uma **prova negativa** (pular a promoção da etapa anterior DEVE bloquear esta). Ver `encadeamento.test.mjs`.
+
 ### FASE 4 — Cristalizar (governança)
 - WIP → oficial; versão anterior arquivada (não deletada).
 - Cada decisão estrutural validada → **um ADR** (motivo ancorado em pesquisa + caso).

@@ -173,7 +173,9 @@ function substituirPlaceholders(texto, estado) {
     const v = estado[chave];
     if (typeof v === "string" && v !== "") return v;
     if (typeof v === "number") return String(v);
-    return match;
+    // Objeto/array (ex.: dag_output promovido): serializa legível, nunca "[object Object]".
+    if (v && typeof v === "object") return "\n```json\n" + JSON.stringify(v, null, 2) + "\n```\n";
+    return match; // sem valor → mantém o placeholder (lacuna visível)
   });
   // Divide preservando só código inline (`...`); índices ímpares = inline a NÃO tocar.
   return texto
@@ -212,13 +214,22 @@ function contextoDeSubstituicao(estado, etapa) {
 // histórico — nenhuma das 12 outras etapas regride).
 const ESTADO_CURADO_DEFAULT = ["entry_point", "description", "project_root", "next_stage", "concluidas"];
 
+// Formata um valor do estado para texto LEGÍVEL no briefing. Objetos/arrays (ex.: dag_output promovido
+// pelo motor, que é o output inteiro da etapa anterior) viram JSON formatado — NUNCA "[object Object]"
+// (bug achado pelo teste de encadeamento: o executor da próxima etapa recebia lixo no lugar do insumo).
+function formatarValor(v) {
+  if (v === undefined || v === null || v === "") return "(vazio)";
+  if (typeof v === "object") return "\n```json\n" + JSON.stringify(v, null, 2) + "\n```";
+  return String(v);
+}
+
 // Formata um campo do estado curado para a linha do briefing (trata lista e vazio).
 function linhaEstadoCurado(estado, campo) {
   const v = estado[campo];
   if (campo === "concluidas") {
     return `- concluidas: ${Array.isArray(v) && v.length ? v.join(", ") : "(nenhuma)"}`;
   }
-  return `- ${campo}: ${v === undefined || v === null || v === "" ? "(vazio)" : v}`;
+  return `- ${campo}: ${formatarValor(v)}`;
 }
 
 function montarBriefing(estado, etapa) {

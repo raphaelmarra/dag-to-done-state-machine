@@ -5,6 +5,18 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+### Teste de encadeamento das 3 etapas — achou e corrigiu um bug de integração (2026-06-28)
+- **`v1/test/encadeamento.test.mjs`** (novo) — roda o FLUXO REAL do motor encadeando DAG→Descoberta→GAP
+  (`next`→output→`advance`), **sem injetar pré-condições à mão** (o motor as promove). Inclui prova
+  negativa (pular a promoção bloqueia a próxima). Diferente do e2e geral, que usa `advance` direto e
+  mascara integração.
+- **Pagou-se na 1ª execução:** revelou um bug que o e2e nunca pegaria — o `dag_output` era promovido
+  como OBJETO e virava `[object Object]` no briefing da etapa seguinte (o executor recebia lixo no
+  lugar do mapa do DAG). **Corrigido:** o motor serializa objetos/arrays como JSON legível no briefing
+  (`substituirPlaceholders` + `linhaEstadoCurado`). Teste trava o regresso.
+- **Regra nova no método:** toda etapa nova é testada ENCADEADA com as anteriores (METODOLOGIA Fase 3).
+- Suíte v1 **78/78**.
+
 ### 🏁 ETAPA 3 (GAP) COMPLETA + regrasExtras (A012 resolvida) (2026-06-28)
 - **Cristalizada (ADR 0024):** CORE-GAP v1.0 plugado no `v1/`. Executor `error-detective` (analista —
   confronta o já descoberto, não re-descobre). Honestidade estrutural: o porteiro REPROVA gap sem
