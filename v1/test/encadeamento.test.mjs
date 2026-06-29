@@ -61,11 +61,22 @@ const OUT_DESIGN = {
   adrs: [{ id: "ADR-1", decisao: "run renderiza", motivo: "ao vivo; executar é no-go" }],
   resumo_design: { comportamentos: 1, criterios: 1, riscos: 3 },
 };
+const OUT_MAPA = {
+  unidades: [
+    { id: "U1", nome: "args array", objetivo: "converter", arquivos: ["a.tsx", "b.tsx"], ancora: ["GAP-1"], depende_de: [] },
+    { id: "U2", nome: "paginação", objetivo: "string", arquivos: ["c.tsx"], ancora: ["GAP-4"], depende_de: [] },
+    { id: "U3", nome: "render", objetivo: "exibir", arquivos: ["a.tsx"], ancora: ["GAP-2"], depende_de: ["U1"] },
+  ],
+  ordem: ["U1", "U2", "U3"],
+  paralelizavel: [{ grupo: ["U1", "U2"], justificativa: "U1 a/b.tsx; U2 c.tsx — disjuntos" }],
+  walking_skeleton: { necessario: "não", justificativa: "a aba já roda end-to-end" },
+  ancoragem_no_gos: ["nenhuma unidade executa o agente"],
+};
 
-describe("Encadeamento real DAG → Descoberta → GAP → Design (fluxo do motor, sem injeção manual)", () => {
+describe("Encadeamento real DAG → Descoberta → GAP → Design → Mapa (fluxo do motor, sem injeção manual)", () => {
   after(() => limpar());
 
-  it("as 4 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
+  it("as 5 etapas reais se encadeiam: cada pré-condição é PRODUZIDA pela etapa anterior", () => {
     limpar();
     // init com o que o motor não promove (entry_point/project_root vêm do operador).
     assert.equal(main(["init", FEATURE, "--entry", "aba CLIs", "--root", "/proj"]), 0);
@@ -101,10 +112,18 @@ describe("Encadeamento real DAG → Descoberta → GAP → Design (fluxo do moto
     assert.ok(existsSync(briefingPath(FEATURE, "design")), "briefing Design gerado");
     escrever("design", OUT_DESIGN);
     assert.equal(main(["advance", FEATURE]), 0, "advance Design aprova");
+    assert.ok(carregarEstado(FEATURE).design_output, "motor promoveu design_output");
     assert.equal(carregarEstado(FEATURE).etapaAtual, "mapa_dependencias", "avançou para Mapa de dependências");
 
-    // Encadeamento provado: 4 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
-    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design"]);
+    // ETAPA 5 (Mapa) — exige as 4 anteriores, TODAS promovidas pelas etapas anteriores.
+    assert.equal(main(["next", FEATURE]), 0, "next Mapa ok (4 pré-condições presentes)");
+    assert.ok(existsSync(briefingPath(FEATURE, "mapa_dependencias")), "briefing Mapa gerado");
+    escrever("mapa_dependencias", OUT_MAPA);
+    assert.equal(main(["advance", FEATURE]), 0, "advance Mapa aprova");
+    assert.equal(carregarEstado(FEATURE).etapaAtual, "implementacao", "avançou para Implementação");
+
+    // Encadeamento provado: 5 etapas percorridas pelo fluxo real, cada uma destravada pela anterior.
+    assert.deepEqual(carregarEstado(FEATURE).concluidas, ["dag", "descoberta", "gap", "design", "mapa_dependencias"]);
   });
 
   it("o output promovido (objeto) aparece LEGÍVEL no briefing da próxima etapa, não '[object Object]'", () => {

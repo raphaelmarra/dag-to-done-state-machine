@@ -296,6 +296,69 @@ function regraResumoDesignCoerente(output) {
   return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
 }
 
+// Regra P1 da etapa 5 (o coração): cada grupo PARALELO deve ter arquivos DISJUNTOS — a interseção dos
+// arquivos das unidades do grupo é vazia. Paralelo é PROVADO mecanicamente, não afirmado. (Limite
+// honesto P4: cobre o conflito TEXTUAL; o semântico é aresta do DAG, herdado — fora do escopo do porteiro.)
+function regraParaleloDisjunto(output) {
+  const porId = new Map((output?.unidades ?? []).map((u) => [u.id, u]));
+  const erros = [];
+  for (const g of output?.paralelizavel ?? []) {
+    const ids = g.grupo ?? [];
+    const vistos = new Map(); // arquivo -> primeira unidade que o tocou
+    for (const id of ids) {
+      const u = porId.get(id);
+      if (!u) { erros.push(`paralelizavel aponta unidade inexistente "${id}"`); continue; }
+      // sem arquivos NÃO é "disjunto de tudo": é falta de prova. Paralelo sem arquivo declarado não se prova.
+      if (!(u.arquivos?.length)) erros.push(`paralelo inválido [${ids.join(", ")}]: "${id}" não declara arquivos (paralelo não provado)`);
+      for (const arq of u.arquivos ?? []) {
+        if (vistos.has(arq)) {
+          const dono = vistos.get(arq);
+          erros.push(dono === id
+            ? `unidade "${id}" lista o arquivo "${arq}" duplicado`
+            : `paralelo inválido [${ids.join(", ")}]: "${id}" e "${dono}" compartilham "${arq}" (não são disjuntos)`);
+        } else {
+          vistos.set(arq, id);
+        }
+      }
+      // também não pode haver dependência mútua dentro do grupo (P3)
+      for (const dep of u.depende_de ?? []) {
+        if (ids.includes(dep)) erros.push(`paralelo inválido [${ids.join(", ")}]: "${id}" depende de "${dep}" (mesmo grupo)`);
+      }
+    }
+  }
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
+// Regra O1 da etapa 5: a `ordem` é topologicamente válida (toda unidade vem DEPOIS das que ela depende)
+// e cobre TODAS as unidades exatamente. Sem ciclo (uma unidade não pode depender de si via ordem).
+function regraOrdemTopologica(output) {
+  const unidades = output?.unidades ?? [];
+  const ordem = output?.ordem ?? [];
+  const ids = new Set(unidades.map((u) => u.id));
+  const erros = [];
+  // a ordem cobre todas as unidades (e nada a mais)
+  const setOrdem = new Set(ordem);
+  for (const u of unidades) if (!setOrdem.has(u.id)) erros.push(`unidade "${u.id}" ausente da ordem`);
+  for (const id of ordem) if (!ids.has(id)) erros.push(`ordem inclui unidade inexistente "${id}"`);
+  // ids duplicados na ordem mascarariam a checagem topológica (Map.get pega a ÚLTIMA posição) → reprova
+  if (setOrdem.size !== ordem.length) {
+    const dup = ordem.filter((id, i) => ordem.indexOf(id) !== i);
+    erros.push(`ordem tem id(s) repetido(s): ${[...new Set(dup)].map((d) => `"${d}"`).join(", ")} (cada unidade aparece 1×)`);
+  }
+  // toda dependência aparece ANTES na ordem (topológica). posicao = PRIMEIRA ocorrência (não a última).
+  const posicao = new Map();
+  ordem.forEach((id, i) => { if (!posicao.has(id)) posicao.set(id, i); });
+  for (const u of unidades) {
+    for (const dep of u.depende_de ?? []) {
+      if (!ids.has(dep)) { erros.push(`unidade "${u.id}" depende de "${dep}" inexistente`); continue; }
+      if (posicao.get(dep) >= posicao.get(u.id)) {
+        erros.push(`ordem inválida: "${u.id}" depende de "${dep}" mas vem antes/junto (não topológica)`);
+      }
+    }
+  }
+  return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
+}
+
 // Fábrica de regra reutilizável (A012): "todo item de `listaCampo` cujo `condCampo` == `condValor`
 // DEVE ter `evidCampo` não-vazio". Usada pela etapa 2 ("confirmado ao vivo" exige evidencia_ao_vivo)
 // e pela etapa 3 (todo gap exige evidencia). A honestidade é imposta pelo formato, não pela boa-fé.
@@ -609,10 +672,44 @@ export const PIPELINE = [
     id: "mapa_dependencias",
     nome: "Mapa de dependências",
     agente: "Plan",
-    core: "[fallback] Organize unidades de implementação e ordem.",
-    corePath: "cores-aba-clis/mapa_dependencias.md",
-    schema: ["unidades", "ordem"],
-    aceita: (o) => camposPresentes(o, ["unidades", "ordem"]),
+    // Executor: Plan — PLANEJADOR (organiza trabalho em unidades/ordem/paralelo; não implementa).
+    executor: {
+      nome: "Plan",
+      capacidade: "organiza a implementação em unidades ancoradas, ordem e paralelo provado; planeja, não implementa",
+      confianca_enum: ["ancorado em gap/critério", "decisão de plano"],
+    },
+    core: "[fallback] Organize a implementação em unidades ancoradas, ordem e paralelo provado. Ver cores/CORE-MAPA.md.",
+    corePath: "cores/CORE-MAPA.md",
+    // Pré-condições: as 4 etapas anteriores (Definition of Ready). O motor bloqueia se faltar.
+    precondicoes: ["entry_point", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output"],
+    estadoCurado: ["entry_point", "description", "project_root", "dag_output", "descoberta_output", "gap_output", "design_output", "next_stage", "concluidas"],
+    schema: ["walking_skeleton"],
+    schemaEstrutural: {
+      unidades: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+        id: { obrigatorio: true },
+        nome: { obrigatorio: true },
+        objetivo: { obrigatorio: true },         // prescritivo (U4)
+        arquivos: { obrigatorio: true, tipo: "lista-de-strings" }, // exatos (U3 — habilita o teste de paralelismo)
+        ancora: { obrigatorio: true, tipo: "lista-de-strings" },   // ≥1 (U2 — rastreabilidade)
+        depende_de: { presente: true, tipo: "lista-de-strings" },  // pode ser vazia (sem bloqueio)
+      } },
+      ordem: { obrigatorio: true, tipo: "lista-de-strings" },      // ids na sequência topológica
+      paralelizavel: { presente: true, tipo: "lista-de-objetos", itemCampos: {
+        grupo: { obrigatorio: true, tipo: "lista-de-strings" },
+        justificativa: { obrigatorio: true },     // a prova de arquivos disjuntos
+      } },
+      walking_skeleton: { tipo: "objeto", campos: {
+        necessario: { obrigatorio: true, enum: ["sim", "não"] }, // mesmo vocabulário binário do resto do arquivo
+        justificativa: { obrigatorio: true },     // ancorada em fato (W3)
+      } },
+      ancoragem_no_gos: { presente: true, tipo: "lista-de-strings" }, // rastreamento negativo
+    },
+    // Regras estruturais da etapa 5: (1) paralelo PROVADO — pares paralelos têm arquivos disjuntos
+    // (P1, mecânico); (2) ordem topologicamente válida — respeita depende_de e cobre todas as unidades (O1).
+    regrasExtras: [
+      regraParaleloDisjunto,
+      regraOrdemTopologica,
+    ],
   },
   {
     id: "implementacao",

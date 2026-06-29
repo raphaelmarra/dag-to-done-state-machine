@@ -89,6 +89,18 @@ function outputValido(etapa) {
       out.adrs = [{ id: "ADR-1", decisao: "run renderiza", motivo: "confirmado ao vivo; executar é no-go" }];
       out.resumo_design = { comportamentos: 1, criterios: 1, riscos: 3 };
       break;
+    case "mapa_dependencias":
+      // Mapa honesto: unidades com arquivos+âncora; ordem topológica; paralelo provado (arquivos disjuntos).
+      out.unidades = [
+        { id: "U1", nome: "args array", objetivo: "converter para array em x.tsx", arquivos: ["a.tsx", "b.tsx"], ancora: ["GAP-1", "CA-04"], depende_de: [] },
+        { id: "U2", nome: "paginação", objetivo: "limit/offset string em y.tsx", arquivos: ["c.tsx"], ancora: ["GAP-4"], depende_de: [] },
+        { id: "U3", nome: "render", objetivo: "exibir prompt", arquivos: ["a.tsx"], ancora: ["GAP-2"], depende_de: ["U1"] },
+      ];
+      out.ordem = ["U1", "U2", "U3"];
+      out.paralelizavel = [{ grupo: ["U1", "U2"], justificativa: "U1 toca a/b.tsx; U2 toca c.tsx — disjuntos" }];
+      out.walking_skeleton = { necessario: "não", justificativa: "a aba já roda end-to-end (DAG confirma); trabalho é correção incremental" };
+      out.ancoragem_no_gos = ["nenhuma unidade executa o agente (só renderiza)"];
+      break;
     case "gate_a":
       out.veredito = "APROVA";
       break;

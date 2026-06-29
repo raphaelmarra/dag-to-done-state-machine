@@ -46,7 +46,7 @@
 - Skill global `manter-governanca` (`~/.claude/skills/`) — como manter toda esta estrutura viva.
 
 ## Código (o motor)
-- [`../v1/`](../v1/) — **versão ativa pós-MVP.** Motor `dag.mjs` + `pipeline.config.mjs`; etapa 1 roda o CORE-DAG v4.0 (cores/CORE-DAG.md). Testes: `cd v1 && node --test` (8/8).
+- [`../v1/`](../v1/) — **versão ativa pós-MVP.** Motor `dag.mjs` + `pipeline.config.mjs`; **etapas 1–5 cristalizadas** e plugadas (COREs em `cores/CORE-{DAG,DISCOVERY,GAP,DESIGN,MAPA}.md`). Testes: `cd v1 && node --test` (113/113).
 - [`../MVP/`](../MVP/) — Walking Skeleton congelado (marco) + evidência do E2E da aba CLIs.
 
 ## Histórico / processo

@@ -39,9 +39,9 @@ describe("Peça 6 — bloqueio de pré-condição no motor", () => {
   });
 
   it("uma etapa SEM precondicoes nunca bloqueia (não regride as etapas placeholder)", () => {
-    // 'mapa_dependencias' (etapa 5) ainda é placeholder. (dag/descoberta/gap/design destiladas.)
-    const g = etapaPorId("mapa_dependencias");
-    assert.ok(!g.precondicoes, "mapa_dependencias não declara precondicoes");
+    // 'implementacao (etapa 6) ainda é placeholder. (dag/descoberta/gap/design destiladas.)
+    const g = etapaPorId("implementacao");
+    assert.ok(!g.precondicoes, "implementacao não declara precondicoes");
     // o e2e percorre as 13 etapas com init mínimo e passa — confirma que ausência de precondicoes não bloqueia.
   });
 });

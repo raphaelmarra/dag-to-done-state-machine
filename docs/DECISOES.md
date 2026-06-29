@@ -28,6 +28,16 @@
 
 ---
 
+## Etapa 5 (Mapa de dependências) — grafo de tarefas com paralelo provado — cristalizada (2026-06-28)
+
+- **ADR 0026** — O mapa é um GRAFO de tarefas: a disciplina do DAG da etapa 1 aplicada a unidades de
+  trabalho (unidade=nó, `depende_de`=aresta, ordem=topo-sort). O porteiro PROVA o paralelo por arquivos
+  disjuntos (`regraParaleloDisjunto`) + valida ordem topológica (`regraOrdemTopologica`, pega ciclo sem
+  travar) + exige âncora e arquivos por unidade + Walking Skeleton decidido com fato. Executor `Plan`
+  (planeja, não implementa). Concretiza ADR 0010. Validado por cego + 3 verificadores (acharam/fecharam:
+  ordem com id duplicado mascarando violação, unidade sem arquivos como "disjunta", enum misto). Limite
+  declarado: âncora↔fonte não é cruzada (exigiria estado no porteiro — ABERTO A014). 0 mecanismo de motor.
+
 ## Etapa 4 (Design) — validação de etapa criativa — cristalizada (2026-06-28)
 
 - **ADR 0025** — A primeira etapa CRIATIVA. O porteiro valida RITUAL (Three Amigos, pre-mortem ≥3, ≥1

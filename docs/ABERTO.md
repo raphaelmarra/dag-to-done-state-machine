@@ -196,3 +196,33 @@ bidirecional, sem nova divergência. Suíte 56/56. Novo flag genérico `presente
 obrigatória mas vazio OK) — reusável pelas etapas 2–13.
 **Lição:** revisitar etapas antigas com lentes novas acha dívida real. A regra entrou no método
 (METODOLOGIA Fase 3, as 3 checagens). Vale reaplicar a lente de paridade a cada etapa nova destilada.
+
+---
+
+## A014 — Rastreabilidade âncora↔fonte: regra precisaria do ESTADO no porteiro (exige mudança de fundação)
+
+**Status:** dívida registrada (não bloqueante) — achada pelo anti-viés da etapa 5 (auditor-v2 + backend-architect, convergentes).
+**Questão:** A etapa 5 prega "trabalho sem âncora não existe" (U2): cada unidade aponta `ancora`/`depende_de`/
+`ancoragem_no_gos` para ids de etapas anteriores (gaps do GAP, critérios/ADRs do Design, no-gos do GAP). Hoje
+o porteiro valida que esses campos EXISTEM e têm forma, e que a ordem é topológica internamente — mas NÃO
+cruza os ids com a fonte real. `ancora: ["GAP-INEXISTENTE-999"]` passa; um ciclo escondido por omitir
+`depende_de` passa. A etapa 4 fecha um circuito análogo (`regraCircuitoComportamentoCriterio`), mas ali
+os dois lados estão DENTRO do mesmo output (comportamento↔critério no design_output). A etapa 5 cruzaria
+contra output de OUTRA etapa.
+**Por que não virou código agora (decisão consciente):** a regra `regra(output, etapa)` recebe só o output
+da etapa atual (`pipeline.config.mjs:178`). Cruzar com `gap_output`/`design_output` (promovidos no `state.json`)
+exige passar o ESTADO às `regrasExtras` — mudar a assinatura do porteiro no motor (`dag.mjs`) + tocar as 13
+etapas. Isso é mudança de FUNDAÇÃO, e:
+- viola M4 (não cristalizar fundação sem 2º caso que a justifique — só a etapa 5 pede isto hoje);
+- seria a 1ª etapa a custar código de MOTOR, quebrando a tese de amortização (provada em 5 etapas);
+- a honestidade do limite já está declarada ao executor (CORE-MAPA §4 O3 reforçado: "o porteiro só enxerga
+  o que você DECLARA; `depende_de` deve refletir as arestas reais do DAG").
+**Impacto:** Médio — abre espaço a âncora órfã / ciclo omitido que o porteiro não pega; mitigado por (a) o
+executor é o Plan (planeja a partir das saídas reais que recebe no briefing), (b) o Gate A (etapa 7) revisa
+o plano adversarialmente, (c) o limite é declarado, não silencioso.
+**Direção:** quando um 2º caso pedir cruzamento-entre-outputs (provável: um gate que confere se o implementado
+cobre os critérios), estender o motor para passar `estado` às regras — `regra(output, etapa, estado)` — e então
+adicionar `regraAncoraRastreavel` à etapa 5 de graça. Detectar ciclo explicitamente (Kahn/DFS) com mensagem
+correta ("grafo cíclico — re-divida") entra junto.
+**Próximo passo:** não decidir agora. Reavaliar ao destilar a etapa 7 (Gate A) ou a primeira etapa que precise
+ler o output de outra para validar. Até lá, o limite vive declarado no CORE.
