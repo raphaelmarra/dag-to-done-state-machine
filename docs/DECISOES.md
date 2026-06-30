@@ -28,6 +28,19 @@
 
 ---
 
+## Etapa 0 (Censo de Fontes) — construída ISOLADA, pendente de inserção — proposed (2026-06-30)
+
+- **ADR 0032** — Resolve PARCIALMENTE a A020 (cegueira de fonte, achado-ouro do E2E). Etapa antes do DAG que
+  estabelece o território: HITL híbrida em 4 movimentos (humano declara → agente confronta com busca independente
+  dupla e marcada por `proveniencia` → diff explícito → humano julga, fail-closed). Porteiro reusa
+  `regraEvidenciaObrigatoria` (fonte ao vivo exige evidência) + nova `regraCensoConfrontado` (nenhuma fonte fica
+  `a_decidir`; descarte exige motivo) + `regraCampoIgual` fail-closed (só `censo_completo` avança). `tipo` de fonte
+  é campo ABERTO (M1). **Status `proposed`, não `accepted`:** a etapa está FORA do array `PIPELINE`
+  (`ETAPA_CENSO_FONTES` exportada isolada — decisão do operador de não tocar os 227 testes agora), exercitada por
+  teste direto contra o porteiro real (8 casos; suíte 235/235). ZERO motor novo. **Falta para cristalizar (M4/ADR
+  0016):** (1) inserir em `PIPELINE[0]` (vira `PRIMEIRA_ETAPA`; DAG consome `censo_output`) + adaptar ~3 testes que
+  assumem `dag` como 1ª; (2) validar contra 2º caso real (E2E #3). Até lá, A020 permanece ABERTA.
+
 ## Etapa 10 (Aprovação humana) — HITL com garantia processual — cristalizada (2026-06-29)
 
 - **ADR 0031** — 1ª etapa de gênero NÃO-CORE (executor = humano). Sem meta-prompt: o `next` injeta um DOSSIÊ
