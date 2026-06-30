@@ -1,0 +1,9 @@
+# Execuções de E2E real (auditáveis localmente, NÃO versionadas — contêm dados de sistemas vivos)
+e2e-run-*/
+
+# Estado de instâncias do motor (handoff por arquivo, efêmero)
+v1/.dag/
+MVP/.dag/
+
+# Scratch
+*.tmp
