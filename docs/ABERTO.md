@@ -524,3 +524,19 @@ arquitetura da skill (4) → pré-mortem ANTES de escrever (5) → escrever a sk
 domínio (7) → cristalizar (8). **Achado-âncora da Fase 0:** o movimento "destilar racional → nomear → pesquisar o nome
 → expandir o cenário" (o que dobrou o CORE-DAG v3→v4) é TÁCITO no `METODOLOGIA-CORE.md` — o plano o formaliza. Status:
 APROVADO, NÃO INICIADO (nenhuma fase executada).
+
+**EXECUTADO — Fases 0–6 + 8 concluídas; Fase 7 (validação) PULADA por decisão do operador (2026-06-30).** A skill
+**`criar-state-machine` foi ESCRITA e está registrada no ambiente** (`~/.claude/skills/criar-state-machine/`: SKILL.md
+ponteiro 5.7 KB + `recursos/` [meta-método de 8 passos, menu-anatomia, checklist-pré-requisitos] + `scaffold-motor/
+LEIA-ME.md`). Cristalizada como **ADR 0033 `proposed`** (NÃO `accepted` — fiel a M4). Artefatos versionados:
+`research/0015` (síntese + 7 movimentos táticos M-T1..M-T7), `research/0016` (estado-da-arte: Meta-Prompting/DSPy/SECI/
+CTA/Golden Path/ExpeL), `_WIP-inventario-invariante-vs-dominio.md` (M3), `_WIP-meta-metodo-core-do-core.md` (o "CORE do
+CORE", 8 passos), `_WIP-arquitetura-skill-state-machine.md`, `_RETRO-premortem-skill.md` (2 verificadores convergentes,
+11 achados). **Achados-chave do processo:** (a) a ordem do batismo+expansão estava INVERTIDA no método antigo
+(corrigida); (b) o passo 4 (verificação de ajuste) nasceu do anti-viés da Grounded Theory (não force o achado no
+termo); (c) o pré-mortem pegou que a arquitetura prometia "fábricas extraídas de graça" inexistentes — reduzido o
+escopo (extração virou dívida, não pré-requisito). **O que FALTA para `accepted` e para fechar a A022:** (1) a Fase 7
+(validar replicando num 2º domínio — o operador fará em OUTRO CENÁRIO; é o único teste que tira o método de "proposta
+promissora"); (2) dívidas técnicas declaradas (extrair F3/F4/F6/F7; separar HITL genérico do de domínio;
+`regraOrdemTopologica` pressupõe DAG). Até a Fase 7, a skill é proposta promissora n=1 — e ela mesma o declara (aviso
+de maturidade no topo do SKILL.md + aceite obrigatório na Fase A).

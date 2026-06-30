@@ -28,6 +28,19 @@
 
 ---
 
+## Skill replicável `criar-state-machine` — escrita, NÃO validada — proposed (2026-06-30)
+
+- **ADR 0033** — Entrega a frente A022 (empacotar o método de criar state machines numa skill replicável p/ qualquer
+  domínio). A skill EXISTE em `~/.claude/skills/criar-state-machine/` (SKILL.md ponteiro + recursos + scaffold). Destilada
+  por 6 fases delegadas a agentes dedicados (Explore/task-decomposition-expert/search-specialist → Plan ×2 →
+  auditor-v2+code-reviewer → builder), bottom-up de 32 ADRs + estado-da-arte (Meta-Prompting/DSPy/SECI/CTA) + pré-mortem
+  adversarial. **Coração:** o "CORE do CORE" — meta-método de 8 passos para destilar o CORE de uma etapa, com a ordem do
+  batismo+expansão CORRIGIDA e um passo 4 NOVO (verificação de ajuste, anti-viés da Grounded Theory). **Status `proposed`,
+  não `accepted`:** a validação (Fase 7 — replicar num 2º domínio) foi PULADA por decisão do operador (validará em outro
+  cenário); cristalizar como validada seria o falso-verde que o projeto combate (n=1, "parece genérico ≠ é genérico"). A
+  própria skill DECLARA o n=1 (aviso de maturidade + aceite obrigatório). Pré-mortem se pagou: pegou "fábricas extraídas
+  de graça" inexistentes antes da escrita. **Falta p/ accepted:** Fase 7 + dívidas técnicas declaradas.
+
 ## Etapa 0 (Censo de Fontes) — construída ISOLADA, pendente de inserção — proposed (2026-06-30)
 
 - **ADR 0032** — Resolve PARCIALMENTE a A020 (cegueira de fonte, achado-ouro do E2E). Etapa antes do DAG que
