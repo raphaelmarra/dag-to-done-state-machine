@@ -401,3 +401,24 @@ que o contrato documentava (e gerou um no-go falso no design).
 **Próximo passo:** brainstorm da Etapa 0 (é decisão de fundação — muda o início do pipeline). É o trabalho de
 maior valor pendente. Relacionado: é a 3ª vez que uma cegueira de escopo/fonte morde (ver também os 2 achados
 crus em `e2e-run-2-tools/contexto-vivo/`, locais).
+
+**ATUALIZAÇÃO (2026-06-30) — Etapa 0 CONSTRUÍDA e testada, ISOLADA (ainda não no fluxo).** Brainstorm conduzido
+com o operador; 4 decisões de fundação tomadas:
+1. **Quem dirige:** *humano declara → agente confronta → humano julga* (o agente é o cético da completude, exatamente
+   quem faltava no pipeline).
+2. **O que é "fonte":** MVP em origens de dados, mas `tipo` é CAMPO ABERTO (sem enum) — cresce para consumidores/
+   sistemas-afetados sem reescrever a etapa (M1).
+3. **Alcance da busca:** DUPLA e marcada — estática (read-only por construção) + viva (sonda o ambiente read-only),
+   cada fonte com `proveniencia` ∈ {declarada-pelo-humano, lida-no-codigo, sondada-ao-vivo} (espelha o confianca_enum
+   da etapa 1 e o veredito quaternário da etapa 9).
+4. **Porteiro:** confronto provado + veredito humano fail-closed — reusa `regraEvidenciaObrigatoria` (fonte ao vivo
+   exige evidência colada, classe A017/A018) + nova `regraCensoConfrontado` (nenhuma fonte fica "a_decidir"; descarte
+   exige motivo) + `regraCampoIgual("veredito_humano","censo_completo")` (só completo avança; faltam_fontes BLOQUEIA).
+**Estado:** `ETAPA_CENSO_FONTES` em `v1/pipeline.config.mjs` (exportada FORA do array `PIPELINE` — decisão do operador
+de não tocar os 227 testes agora). Teste `v1/test/censo-fontes.test.mjs` (8 casos) exercita o porteiro real; suíte
+**235/235 verde**. ZERO mecanismo novo de motor (reusa avaliarEtapa/regras existentes).
+**O que FALTA para fechar a A020 (e virar ADR de cristalização):** (a) inserir a etapa em `PIPELINE[0]` (vira a nova
+`PRIMEIRA_ETAPA`; o DAG passa a consumir `censo_output`) e adaptar os ~3 testes que assumem 'dag' como 1ª etapa
+(placeholder, encadeamento, e2e — trocar contagens hardcoded por `PIPELINE.length`); (b) validar contra um 2º caso
+real (M4) — idealmente o E2E #3 com a intenção corrigida; (c) o secundário (CORE-DISCOVERY ler contrato tipado antes
+de sondar) segue pendente. Até (a)+(b), a etapa vive isolada e a dívida A020 permanece ABERTA.

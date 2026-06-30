@@ -864,6 +864,38 @@ function regraComplexidadeCoerente(output) {
   return erros.length ? { ok: false, faltando: erros } : { ok: true, faltando: [] };
 }
 
+// --- Regra de confronto da Etapa 0 (Censo de Fontes) -------------------------------------------
+// Anti-fuga (classe A017): não basta o agente PREENCHER os campos. O censo só é honesto se TODA fonte
+// que a busca independente encontrou e que o humano NÃO declarou (proveniência != "declarada-pelo-humano")
+// estiver RESOLVIDA no veredito — ou foi incorporada ao escopo, ou foi explicitamente descartada com motivo.
+// Uma fonte achada "solta" (encontrada mas nunca confrontada) é exatamente a cegueira que matou o E2E: a
+// máquina viu a fonte paralela mas ninguém decidiu sobre ela. O motor não julga COMPLETUDE (isso é do humano,
+// fail-closed) — ele exige que o DIFF não tenha buracos silenciosos. `fontes` é a lista única; cada item tem
+// `proveniencia` (como foi achada) e `resolucao` (no_escopo|descartada|a_decidir). 'a_decidir' bloqueia: força
+// o confronto a fechar antes do veredito humano. Espelha regraDescobertaViraIssue/regraViolacaoViraIssue.
+function regraCensoConfrontado(output) {
+  const fontes = output?.fontes ?? [];
+  // Fonte do agente (não declarada pelo humano) precisa de uma resolução real; 'a_decidir' = confronto aberto.
+  const soltas = fontes.filter(
+    (f) => f?.proveniencia && f.proveniencia !== "declarada-pelo-humano" && f?.resolucao === "a_decidir"
+  );
+  if (soltas.length) {
+    return { ok: false, faltando: soltas.map(
+      (f) => `${f?.nome ?? "(fonte)"}: encontrada pela busca (${f?.proveniencia}) mas resolução="a_decidir" — confronte antes do veredito (no_escopo ou descartada com motivo)`
+    ) };
+  }
+  // Uma fonte descartada exige motivo substantivo (não-oco) — senão "descartar" vira a nova fuga.
+  const descarteOco = fontes.filter(
+    (f) => f?.resolucao === "descartada" && evidenciaVazia(f?.motivo_resolucao)
+  );
+  if (descarteOco.length) {
+    return { ok: false, faltando: descarteOco.map(
+      (f) => `${f?.nome ?? "(fonte)"}: resolução="descartada" sem motivo_resolucao substantivo (descarte sem motivo = fuga)`
+    ) };
+  }
+  return { ok: true, faltando: [] };
+}
+
 export const PIPELINE = [
   {
     id: "dag",
@@ -1434,6 +1466,95 @@ export const PIPELINE = [
   },
 ];
 
+// --- ETAPA 0 — Censo de Fontes / Gate de Intenção (A020) ---------------------------------------------
+// Resolve a "cegueira de fonte" (achado-ouro do E2E piloto): o DAG mapeia a fundo a fonte que recebe mas nunca
+// pergunta "é a única?". A Etapa 0 vem ANTES do DAG e estabelece o TERRITÓRIO que ele vai mapear.
+//
+// Gênero: HÍBRIDA HITL (espelha a etapa 10, mas no início e invertida — interrogação, não aprovação). Fluxo de
+// 4 movimentos: (1) HUMANO declara a intenção e as fontes que conhece; (2) AGENTE confronta com busca
+// independente DUPLA — estática (read-only por construção, como o Explore) e viva (sonda o ambiente read-only,
+// como o fiscal) — cada fonte marcada com `proveniencia`; (3) o DIFF declarado-vs-encontrado fica explícito;
+// (4) HUMANO julga a completude (veredito fail-closed: só "censo_completo" avança).
+//
+// Porteiro (decisão: confronto provado + veredito humano fail-closed): reusa os mecanismos já provados —
+//   • regraEvidenciaObrigatoria: TODA fonte sondada ao vivo exige `evidencia` colada (anti-fuga, classe A017;
+//     mesmo mecanismo da etapa 2/6/9). O motor checa que a evidência é substantiva, não que é AUTÊNTICA
+//     (limite epistêmico declarado — classe A018: o motor não re-sonda; a autenticidade última é do humano).
+//   • regraCensoConfrontado: nenhuma fonte encontrada pela busca fica "solta" (resolução a_decidir bloqueia);
+//     descarte exige motivo. Fecha o diff antes do veredito.
+//   • regraCampoIgual("veredito_humano","censo_completo"): FAIL-CLOSED. "faltam_fontes" BLOQUEIA (a feature
+//     fica parada na Etapa 0 até o território ser fechado). O motor não PROVA que um humano julgou — garantia
+//     PROCESSUAL, como a etapa 10 (limite declarado, classe A019).
+//
+// `tipo` da fonte é CAMPO ABERTO (não enum fechado): MVP ancora em origens de dados, mas o contrato cresce
+// para consumidores/sistemas-afetados sem reescrever a etapa (M1 — dinâmico > fixo).
+//
+// ISOLADA por ora (decisão do operador): definida e testada, mas NÃO inserida em PIPELINE[0]. A inserção no
+// fluxo (e a adaptação dos ~3 testes que assumem 'dag' como 1ª etapa) é um passo seguinte deliberado.
+export const ETAPA_CENSO_FONTES = {
+  id: "censo_fontes",
+  nome: "Censo de Fontes / Gate de Intenção",
+  agente: "humano+Explore", // híbrida: humano declara/julga; agente faz a busca independente
+  // Briefing de INTERROGAÇÃO (não meta-prompt de busca cega): instrui o agente a primeiro PERGUNTAR ao humano,
+  // depois confrontar, depois esperar o veredito humano. Garantia processual declarada (A019/A018).
+  core: [
+    "Esta é a ETAPA 0 — CENSO DE FONTES (HITL híbrida). Objetivo: antes de o DAG mapear o território, garantir",
+    "que estamos olhando para TODAS as fontes que a intenção pede — não só a primeira que o código legado usa.",
+    "",
+    "Faça nesta ordem, sem pular:",
+    "1. PERGUNTE ao humano: qual é a intenção desta feature? Que fontes (origens de dados/sistemas) ela DEVE",
+    "   agregar? Registre cada uma com proveniencia=\"declarada-pelo-humano\".",
+    "2. CONFRONTE com busca independente, DUPLA e marcada:",
+    "   • estática (read-only por construção): repositório, SDK, specs/OpenAPI, configs, env → \"lida-no-codigo\";",
+    "   • viva (read-only, sonda o ambiente): bancos/tabelas, endpoints de descoberta, serviços no ar →",
+    "     \"sondada-ao-vivo\". Toda fonte sondada ao vivo EXIGE `evidencia` colada (o que você varreu e viu).",
+    "3. Monte o DIFF: para cada fonte que a busca achou e o humano NÃO declarou, RESOLVA — incorpore ao escopo",
+    "   (resolucao=\"no_escopo\") ou descarte com motivo (resolucao=\"descartada\", motivo_resolucao substantivo).",
+    "   Nenhuma fonte pode ficar \"a_decidir\" no fim (o motor bloqueia — confronto aberto = cegueira).",
+    "4. APRESENTE o diff ao humano e ESPERE o veredito explícito. Só registre veredito_humano=\"censo_completo\"",
+    "   se houve uma fala humana real de que o território está fechado. Se faltam fontes, registre",
+    "   \"faltam_fontes\" com o que falta — a feature fica parada aqui (fail-closed).",
+    "",
+    "> LIMITE (classe A018/A019): o motor verifica que você COLOU evidência e que o diff fechou — NÃO que a",
+    "> evidência é autêntica nem que o território é REALMENTE completo. Isso é juízo humano. Não invente o OK",
+    "> humano nem fabrique evidência de sondagem; a autenticidade última é do humano que vê o ambiente.",
+    "",
+    "{schema_prosa}",
+  ].join("\n"),
+  precondicoes: ["entry_point"], // a intenção bruta vem do init (entry_point/description)
+  estadoCurado: ["entry_point", "description", "project_root", "next_stage"],
+  schema: ["intencao", "fontes", "veredito_humano"],
+  schemaEstrutural: {
+    // A intenção declarada pelo humano (o "para quê" do censo) — texto, não objeto.
+    intencao: { obrigatorio: true, tipo: "string" },
+    // A lista ÚNICA de fontes (declaradas + encontradas), cada uma com proveniência e resolução. `tipo` é
+    // CAMPO ABERTO (sem enum) — MVP usa origens de dados, mas cresce sem reescrever (M1).
+    fontes: { tipo: "lista-de-objetos", minItens: 1, itemCampos: {
+      nome: { obrigatorio: true },
+      tipo: { obrigatorio: true }, // aberto: "tabela", "api", "fila", "arquivo", "sistema"... o contexto preenche
+      proveniencia: { obrigatorio: true, enum: ["declarada-pelo-humano", "lida-no-codigo", "sondada-ao-vivo"] },
+      // resolução do confronto: incorporada / descartada / ainda em aberto (esta última BLOQUEIA).
+      resolucao: { obrigatorio: true, enum: ["no_escopo", "descartada", "a_decidir"] },
+      motivo_resolucao: { opcionalNoTopo: true, tipo: "string" }, // exigido quando descartada (regraCensoConfrontado)
+      // evidência da busca: exigida quando sondada-ao-vivo (regraEvidenciaObrigatoria) — o que o agente varreu.
+      evidencia: { opcionalNoTopo: true, tipo: "string" },
+    } },
+    // O veredito do humano sobre a COMPLETUDE do território. Fail-closed: só "censo_completo" avança.
+    veredito_humano: { obrigatorio: true, enum: ["censo_completo", "faltam_fontes"] },
+    // O que falta (quando faltam_fontes) — registro honesto do território aberto. Presente, pode ser vazio.
+    fontes_faltantes: { presente: true, tipo: "lista-de-strings" },
+  },
+  regrasExtras: [
+    // (a) toda fonte SONDADA AO VIVO exige evidência colada (anti-fuga / autenticidade declarada).
+    regraEvidenciaObrigatoria("fontes", "nome", "proveniencia", "sondada-ao-vivo", "evidencia"),
+    // (b) o diff fechou: nenhuma fonte encontrada fica "solta"; descarte tem motivo (anti-fuga A017).
+    regraCensoConfrontado,
+    // (c) FAIL-CLOSED: só "censo_completo" avança; "faltam_fontes" bloqueia (garantia processual, A019).
+    regraCampoIgual("veredito_humano", "censo_completo",
+      'Censo fail-closed: só "censo_completo" avança — "faltam_fontes" BLOQUEIA (o território fica aberto; fechá-lo é decisão humana)'),
+  ],
+};
+
 export const PRIMEIRA_ETAPA = PIPELINE[0].id;
 
 export function etapaPorId(id) {
@@ -1456,3 +1577,4 @@ export function nomeEtapa(id) {
 // Exporta o gerador de prosa do schema (motor injeta {schema_prosa} no briefing) e o validador
 // estrutural (para testes diretos).
 export { gerarSchemaProsa, gerarDossieAprovacao, validarEstrutura, avaliarEtapa, CATALOGO_LENTES, CATALOGO_WCAG };
+// Etapa 0 (Censo de Fontes) — exportada ISOLADA (ainda não inserida em PIPELINE). Ver ETAPA_CENSO_FONTES acima.
