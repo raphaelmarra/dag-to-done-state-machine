@@ -28,6 +28,19 @@
 
 ---
 
+## Skill `criar-state-machine` v2 — revisada para o padrão Anthropic (2026-06-30)
+
+- **Revisão pós-avaliação do operador.** A v1 era "manual metodológico", não geradora: apontava para o repo-fonte
+  (43 menções), não era autocontida, e o `description` quebrava (`null`). Pesquisa web (`research/0017`, fontes
+  primárias Anthropic: platform/code.claude.com, repo anthropics/skills) definiu o padrão. **Mudanças v2:** (1) motor
+  GENÉRICO reescrito limpo e EMBUTIDO em `scripts/state-machine.mjs` (init/next/advance/status, zero domínio, zero
+  deps) — padrão docx (operação determinística → código embutido); (2) 4 fábricas de regras genéricas em
+  `scripts/gate-rules.mjs`; (3) smoke test executável `scripts/smoke.test.mjs` (5/5 verde) + E2E provado (init→next→
+  advance cria e roda uma SM, gate bloqueia "rejeitado"); (4) templates em `assets/` (cartucho + CORE); (5) conteúdo
+  pesado em `references/` (meta-método, menu, checklist); (6) `description` 1-linha 3ª pessoa "Use when..." pushy;
+  (7) ZERO menção a projeto-fonte (técnica reutilizável, não narrativa). Estrutura agora segue o padrão oficial
+  scripts/references/assets. A skill agora CRIA de fato uma state machine (antes só ensinava a pensar nela).
+
 ## Skill replicável `criar-state-machine` — escrita, NÃO validada — proposed (2026-06-30)
 
 - **ADR 0033** — Entrega a frente A022 (empacotar o método de criar state machines numa skill replicável p/ qualquer
