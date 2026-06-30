@@ -515,3 +515,12 @@ de um 2º domínio para validar. Empacotar cedo demais cristaliza premissas não
 **Relacionado:** `PLANO-DE-ETAPA.md`, `METODOLOGIA-CORE.md`, `ANATOMIA-DE-ETAPA.md`, `_RETRO-metodologia-core.md`,
 `manter-governanca`, spec da migração ravi-console (skill `/dag`). Frente IRMÃ mas INDEPENDENTE de A021 (decisão do
 operador: paralelas, sem acoplar).
+
+**PLANO APROVADO (2026-06-30):** o caminho desta frente está detalhado em
+`docs/superpowers/plans/2026-06-30-skill-replicavel-state-machines.md` — 9 fases (0–8), cada uma com agente dedicado,
+artefato versionado e portão de evidência. Plano de DESCOBERTA/destilação (não TDD): reprocessar git + extrair o método
+tácito (Fase 0) → invariante vs domínio (1) ∥ estado-da-arte de destilação (2) → "CORE do CORE" / meta-método (3) →
+arquitetura da skill (4) → pré-mortem ANTES de escrever (5) → escrever a skill (6) → validar por replicação num 2º
+domínio (7) → cristalizar (8). **Achado-âncora da Fase 0:** o movimento "destilar racional → nomear → pesquisar o nome
+→ expandir o cenário" (o que dobrou o CORE-DAG v3→v4) é TÁCITO no `METODOLOGIA-CORE.md` — o plano o formaliza. Status:
+APROVADO, NÃO INICIADO (nenhuma fase executada).

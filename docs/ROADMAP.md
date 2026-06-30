@@ -95,7 +95,7 @@ isso na Seção 1 (trocar executor = editar o objeto `executor` na config).
 | Frente | O que é | Status | Onde |
 |--------|---------|--------|------|
 | **Meta-aprendizado no DAG** | Memória que evita repetir erros passados (consulta a lições — "estilo Hermes Agent"). Captura já tem dono no design (etapa 13 / ADR 0014); falta o lado da CONSULTA. | ⬜ frente futura — pré-requisito: pesquisar estado-da-arte (Reflexion, Generative Agents, ExpeL, MemGPT...) | A021 |
-| **Skill replicável de state machines** | Empacotar TODO o método (montar a SM → destilar o CORE de cada etapa) numa skill, p/ gerar SMs de qualquer domínio (vídeo, apps...). É EMPACOTAMENTO do que já existe (`PLANO-DE-ETAPA`, `METODOLOGIA-CORE`, `ANATOMIA-DE-ETAPA`). | ⬜ frente futura — depende do método amadurecer (METODOLOGIA-CORE é n=1) + 2º domínio p/ validar | A022 |
+| **Skill replicável de state machines** | Empacotar TODO o método (montar a SM → destilar o CORE de cada etapa) numa skill, p/ gerar SMs de qualquer domínio (vídeo, apps...). É EMPACOTAMENTO do que já existe (`PLANO-DE-ETAPA`, `METODOLOGIA-CORE`, `ANATOMIA-DE-ETAPA`). **Plano de 9 fases APROVADO:** `docs/superpowers/plans/2026-06-30-skill-replicavel-state-machines.md`. | 🟡 plano aprovado, NÃO iniciado — depende do método amadurecer (METODOLOGIA-CORE é n=1) + 2º domínio p/ validar | A022 |
 
 ---
 
