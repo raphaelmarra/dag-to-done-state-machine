@@ -18,9 +18,11 @@ estado/DoD por etapa: `docs/ROADMAP.md`.
 
 Há DUAS frentes, em estados diferentes — não confunda:
 
-### Frente A — CONSTRUÇÃO do pipeline (motor + COREs): **10 de 13 etapas cristalizadas**
-- **Etapas 1–10 prontas** no `v1/`, cada uma plugada no motor com testes cegos. Suíte **227/227 verde**
+### Frente A — CONSTRUÇÃO do pipeline (motor + COREs): **10 de 13 etapas cristalizadas + Etapa 0 isolada**
+- **Etapas 1–10 prontas** no `v1/`, cada uma plugada no motor com testes cegos. Suíte **235/235 verde**
   (`cd v1 && node --test`). ADRs 0020–0031. Etapa 10 (Aprovação humana / HITL) é a 1ª de gênero não-CORE.
+- **Etapa 0 (Censo de Fontes / A020):** construída e testada, mas ISOLADA — `ETAPA_CENSO_FONTES` está FORA do array
+  `PIPELINE` (ADR 0032, `proposed`). Resolve a cegueira de fonte; falta inserir em `PIPELINE[0]` + validar 2º caso.
 - **Faltam cristalizar as etapas 11–13** (Done, Smoke, Retrospectiva). Hoje são **placeholders** no
   `v1/pipeline.config.mjs` (validam só presença de campo: `verify_ok`, `status`, `licoes`). São de gênero
   sistema/devops/documentador — não precisam de CORE-meta-prompt como as etapas 1–9; provavelmente viram
@@ -46,6 +48,21 @@ Há DUAS frentes, em estados diferentes — não confunda:
    verbo de motor, ou mistura. Seguir o workflow do projeto (`docs/PLANO-DE-ETAPA.md` + skill `manter-governanca`).
 3. **(Opcional) E2E #3** com a intenção corrigida ("agregar TODOS os CLIs do ambiente, não só de uma fonte") —
    seria o teste que valida a Etapa 0 nova. O usuário tem interesse nisto (ver A018).
+
+### Frentes FUTURAS registradas (visão do operador 2026-06-30 — NÃO iniciadas, exigem pesquisa antes de decidir)
+
+Duas direções de longo prazo, **paralelas e independentes** (detalhe profundo + roteiro de pesquisa em `docs/ABERTO.md`;
+visão macro em `docs/ROADMAP.md` § "Frentes FUTURAS"):
+- **A021 — Meta-aprendizado dentro do DAG:** memória que evita repetir erros do passado ("estilo Hermes Agent"). A
+  captura já tem dono (etapa 13 / ADR 0014); falta a CONSULTA. Pré-requisito: estudar o estado-da-arte (Reflexion,
+  Generative Agents, ExpeL, MemGPT...) antes de fixar arquitetura. A cegueira de fonte (A020) mordeu 3× justamente
+  por falta disto.
+- **A022 — Skill replicável de state machines:** empacotar TODO o método (montar a SM → destilar cada CORE) numa skill,
+  p/ replicar a qualquer domínio (vídeo, apps...). É empacotamento de `PLANO-DE-ETAPA`/`METODOLOGIA-CORE`/`ANATOMIA-DE-
+  ETAPA`. Depende do método amadurecer (é n=1) e de um 2º domínio p/ validar.
+
+> **NOTA (Etapa 0):** construída e testada (235/235) mas ISOLADA (`ETAPA_CENSO_FONTES` fora de `PIPELINE`, ADR 0032
+> `proposed`). Resolve a A020. Falta inserir em `PIPELINE[0]` + validar contra 2º caso. Suíte agora é **235/235** (não 227).
 
 ## Como retomar em 60 segundos
 

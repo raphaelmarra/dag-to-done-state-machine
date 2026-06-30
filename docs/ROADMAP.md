@@ -81,6 +81,22 @@ Uma etapa é considerada "CORE pronto" quando:
 por construção (sem rede/escrita); a alternativa só entra se passar nesse critério. O CORE-DAG isola
 isso na Seção 1 (trocar executor = editar o objeto `executor` na config).
 
+> **Etapa 0 — Censo de Fontes (A020):** construída e testada (235/235), mas ISOLADA (fora do array `PIPELINE`,
+> `proposed` no ADR 0032). Resolve a cegueira de fonte. Pendente: inserir em `PIPELINE[0]` + validar contra 2º caso.
+
+---
+
+## Frentes FUTURAS (visão registrada — NÃO iniciadas, exigem pesquisa antes de decidir)
+
+> Direções de longo prazo do projeto, levantadas pelo operador em 2026-06-30. Registradas em profundidade em
+> `ABERTO.md` (com roteiro de pesquisa e o que falta decidir). São **paralelas e independentes** entre si (decisão
+> do operador — evita acoplamento prematuro). Não desenvolver sem o estudo do estado-da-arte (M2/M4).
+
+| Frente | O que é | Status | Onde |
+|--------|---------|--------|------|
+| **Meta-aprendizado no DAG** | Memória que evita repetir erros passados (consulta a lições — "estilo Hermes Agent"). Captura já tem dono no design (etapa 13 / ADR 0014); falta o lado da CONSULTA. | ⬜ frente futura — pré-requisito: pesquisar estado-da-arte (Reflexion, Generative Agents, ExpeL, MemGPT...) | A021 |
+| **Skill replicável de state machines** | Empacotar TODO o método (montar a SM → destilar o CORE de cada etapa) numa skill, p/ gerar SMs de qualquer domínio (vídeo, apps...). É EMPACOTAMENTO do que já existe (`PLANO-DE-ETAPA`, `METODOLOGIA-CORE`, `ANATOMIA-DE-ETAPA`). | ⬜ frente futura — depende do método amadurecer (METODOLOGIA-CORE é n=1) + 2º domínio p/ validar | A022 |
+
 ---
 
 ## Sequência recomendada (decisão pendente do operador)

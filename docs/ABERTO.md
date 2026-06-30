@@ -422,3 +422,96 @@ de não tocar os 227 testes agora). Teste `v1/test/censo-fontes.test.mjs` (8 cas
 (placeholder, encadeamento, e2e — trocar contagens hardcoded por `PIPELINE.length`); (b) validar contra um 2º caso
 real (M4) — idealmente o E2E #3 com a intenção corrigida; (c) o secundário (CORE-DISCOVERY ler contrato tipado antes
 de sondar) segue pendente. Até (a)+(b), a etapa vive isolada e a dívida A020 permanece ABERTA.
+
+---
+
+## A021 — Meta-aprendizado dentro do DAG: memória que evita repetir erros do passado (FRENTE FUTURA)
+
+**Status:** FRENTE FUTURA registrada (2026-06-30) — visão do operador, NÃO decidida, NÃO desenvolvida. Pré-requisito:
+estudo do estado-da-arte (ninguém vai cristalizar arquitetura sem pesquisa — M2/M4). Referência mental do operador:
+**"estilo Hermes Agent"** (agente com memória episódica reflexiva).
+**A visão:** hoje a state machine garante a qualidade do que circula DENTRO de uma execução, mas cada execução começa
+do zero — não aprende com as anteriores. O E2E piloto provou o custo disso: a **cegueira de fonte** (A020) mordeu
+**3×** (2 no piloto + a do design original) porque nada no pipeline "lembrava" que esse erro já tinha acontecido. A
+proposta é dar ao DAG uma **estrutura de consulta a lições passadas**: antes (ou durante) uma execução, o sistema
+recupera o que já deu errado em situações análogas e injeta isso onde possa prevenir a repetição. É o loop
+*experiência → reflexão → recuperação → ação* aplicado ao próprio pipeline.
+**O que JÁ existe no design (o gancho de captura):** a **etapa 13 (Retrospectiva)** — hoje placeholder, mas o
+**ADR 0014** já decidiu que ela "**propõe melhorias, não só registra**", e o **ADR 0012** a tornou etapa formal. O
+**relatório E2E** (`docs/RELATORIO-E2E-PILOTO.md`) já é uma retrospectiva manual rica (4 lições destiladas). Ou seja:
+o lado da CAPTURA de lição tem dono no design. **O que FALTA é o lado da CONSULTA** — recuperar a lição certa, na
+etapa certa, numa execução futura. Hoje a lição morre no relatório; ninguém a lê no momento em que ela preveniria o erro.
+**A pergunta central, AINDA EM ABERTO (operador: "não sei, vamos estudar como as pessoas fazem"):** QUANDO e COMO a
+memória é consultada. Três hipóteses levantadas (a escolher após pesquisa, provavelmente combinadas em camadas):
+- **(H1) Por etapa, no briefing:** o motor injeta no meta-prompt as lições relevantes ÀQUELA etapa ("no DAG, já erramos
+  cegueira de fonte 3×"). Casa com o padrão Meta-Prompt + Structured Handoff do projeto (a memória vira mais uma camada
+  do briefing). Mais cirúrgico.
+- **(H2) No início (gate de intenção):** consulta global no começo da feature ("features parecidas já falharam em X"),
+  alimentando a Etapa 0 (A020) / o planejamento. Visão macro.
+- **(H3) No porteiro (prevenção ativa):** quando um erro recorrente tem assinatura DETECTÁVEL, a lição "endurece" o
+  gate — o porteiro passa a bloquear ativamente aquele padrão. Mais forte e mais arriscado (memória vira enforcement;
+  risco de falso-positivo). Nota: a A020 já é um exemplo DESTE caminho feito à mão (uma lição do E2E virou a regra
+  `regraCensoConfrontado` da Etapa 0). H3 seria automatizar o que ali foi manual.
+**Roteiro de pesquisa (FAZER ANTES de qualquer decisão — é o próximo passo real desta frente):**
+1. Estudar o **Hermes Agent** concreto (o que o operador citou) — arquitetura de memória, gatilho de recuperação,
+   formato do traço episódico. Registrar em `REFERENCIAS.md` + `research/`.
+2. Levantar o estado-da-arte de **memória de agentes / aprendizado contínuo 2026**: Reflexion (auto-reflexão verbal),
+   Generative Agents (memory stream + retrieval por relevância/recência/importância), Voyager (skill library que
+   cresce), ExpeL (extração de regras de experiências passadas), MemGPT/Letta (memória hierárquica), RAG sobre
+   post-mortems. Para cada: como capturam, como indexam, COMO RECUPERAM, e como evitam poluir o contexto.
+3. Confrontar com a **filosofia do projeto** (ADR 0001 "Node puro, zero deps"): uma memória que exige vector DB/
+   embeddings tensiona isso — avaliar alternativas leves (índice por tags/etapa, recuperação por palavra-chave, o
+   próprio formato de ADR/ABERTO como "memória estruturada já existente"). M1: a memória deve ser dinâmica (cresce
+   com o uso), não uma lista fixa.
+4. Decidir QUANDO consultar (H1/H2/H3 ou combinação) contra um caso real — idealmente provar que teria evitado a A020.
+**Impacto:** Alto — é a diferença entre uma state machine que executa bem e uma que MELHORA sozinha a cada uso.
+**Por que não decidir agora:** arquitetura de memória é decisão de fundação; sem pesquisa, qualquer escolha viola M2/M4.
+**Relacionado:** etapa 13 (captura), ADR 0014/0012, A020 (`regraCensoConfrontado` é um H3 manual), `RELATORIO-E2E-PILOTO.md`.
+Frente IRMÃ mas INDEPENDENTE: A022 (skill replicável). Decisão do operador: tratá-las como duas frentes paralelas, sem
+acoplar (evita over-engineering — coerente com X001–X004). Conexão FUTURA possível (a skill consumir a memória
+cross-projeto) fica registrada como hipótese, não como requisito.
+
+---
+
+## A022 — Skill replicável: empacotar TODO o método de criar state machines (FRENTE FUTURA)
+
+**Status:** FRENTE FUTURA registrada (2026-06-30) — visão do operador, NÃO decidida, NÃO desenvolvida.
+**A visão:** transformar TODO o processo que este projeto desenvolveu — de "como montar uma state machine do zero" a
+"como destilar o CORE de cada etapa" — numa **skill replicável**, para gerar uma nova state machine para QUALQUER
+cenário de forma clara e rápida: uma SM de **criação de vídeo**, uma de **desenvolvimento de apps**, ou qualquer
+domínio. Hoje o método existe, mas espalhado em documentos de processo e na cabeça de quem conduziu; replicá-lo para
+um novo domínio exige reler tudo e reinterpretar. A skill seria o **empacotamento executável** desse know-how.
+**O que JÁ existe (a matéria-prima — a skill é EMPACOTAMENTO, não invenção):**
+- **`PLANO-DE-ETAPA.md`** — "o sistema para completar uma etapa inteira, peça por peça" (o CORE é só 1 das ~18 peças).
+  Molde + tracker + portão de evidência/anti-viés + triagem de esforço.
+- **`METODOLOGIA-CORE.md`** — "o pipeline reutilizável para destilar o CORE de qualquer etapa" (5 fases, da pesquisa
+  ao refinamento). É o "motor" de uma peça do PLANO-DE-ETAPA. **Ressalva honesta:** exercitada 1× com sucesso, NÃO
+  validada — ver `_RETRO-metodologia-core.md` (4 furos conhecidos: n=1, cego não-independente, etc.). A skill herda
+  essa imaturidade; empacotar não conserta os furos.
+- **`ANATOMIA-DE-ETAPA.md`** — o catálogo de capacidades de uma etapa (o que se pode definir: executor, briefing,
+  critério, gaps, lentes, pre-mortem...). É o "vocabulário" que a skill ofereceria.
+- **`CLAUDE.md`** (M1–M4), a skill global **`manter-governanca`**, o padrão **Meta-Prompt + Structured Handoff**
+  (`PADRAO-BRIEFING.md`), e o próprio **motor `v1/`** (genérico, agnóstico a domínio — já foi projetado para isto).
+**O que está EM ABERTO (a decidir — provavelmente após um 2º domínio existir):**
+1. **Forma da skill:** uma skill única que conduz o fluxo inteiro (SM → etapas → COREs)? Ou um conjunto (uma p/
+   "criar a SM", uma p/ "destilar um CORE", uma p/ "completar uma etapa")? A modularidade espelha a separação
+   MOTOR↔CONTEÚDO que o projeto já faz.
+2. **O que é INVARIANTE vs. específico de domínio (M3):** o motor (`dag.mjs`) é agnóstico — replica direto. O PADRÃO
+   de destilar CORE é invariante. Mas o CONTEÚDO dos COREs é 100% do domínio (um CORE-DAG de vídeo ≠ de apps). A skill
+   precisa separar com clareza "o que você copia" de "o que você destila do zero para o seu domínio".
+3. **Validação por replicação (M4 aplicado à própria skill):** a skill só estará provada quando gerar uma SM de um
+   domínio DIFERENTE de desenvolvimento de software (o operador citou criação de vídeo). Esse seria o "2º caso" que
+   tira a skill de proposta. Risco: o método foi destilado SÓ de um domínio (dev de features web) — pode haver
+   premissas escondidas que não generalizam (ex.: "toda etapa tem um diff", "existe um ambiente vivo p/ sondar").
+4. **Relação com o ravi-console:** o spec de migração (`docs/superpowers/specs/2026-06-30-migrar-motor-para-ravi-
+   console-design.md`) já prevê uma skill `/dag` fina sobre os verbos do motor. A skill desta frente é MAIOR (cria SMs
+   novas, não só dirige uma existente) — avaliar se a `/dag` é um subconjunto dela ou coisa distinta.
+**Roteiro:** (a) estudar como skills/scaffolders de processo são empacotados (a própria infra de skills do ambiente;
+generators tipo Yeoman/`create-*`; o padrão "golden path / paved road" de plataformas internas); (b) decidir forma
+(1 skill vs. conjunto); (c) PROVAR gerando uma SM de domínio não-software (vídeo) — o teste de generalidade real.
+**Impacto:** Alto — é o que transforma um projeto pontual numa CAPACIDADE reaproveitável (o "produto" do produto).
+**Por que não desenvolver agora:** depende de o método estar mais maduro (METODOLOGIA-CORE ainda é n=1) e idealmente
+de um 2º domínio para validar. Empacotar cedo demais cristaliza premissas não-provadas.
+**Relacionado:** `PLANO-DE-ETAPA.md`, `METODOLOGIA-CORE.md`, `ANATOMIA-DE-ETAPA.md`, `_RETRO-metodologia-core.md`,
+`manter-governanca`, spec da migração ravi-console (skill `/dag`). Frente IRMÃ mas INDEPENDENTE de A021 (decisão do
+operador: paralelas, sem acoplar).
