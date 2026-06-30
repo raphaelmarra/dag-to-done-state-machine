@@ -71,6 +71,25 @@ oficial correto.** Apontar para um repo externo (como a skill faz hoje) é o ant
 6. **Validador como SCRIPT EXECUTÁVEL** (plan-validate-execute), não só prosa — casa com o "porteiro fail-closed".
 7. **`compatibility`** declarando Node; listar deps; não assumir instalação.
 
+## Apêndice — Padrão de REPOSITÓRIO de skills (pesquisa 2026-06-30)
+
+Pesquisa adicional (search-specialist) sobre como publicar uma skill num repo GitHub instalável, confirmada
+contra o repo oficial `anthropics/skills`:
+- **Layout:** o repo É o marketplace. `.claude-plugin/marketplace.json` na raiz + `skills/<nome>/SKILL.md`.
+- **marketplace.json:** para 1 skill, `{name, owner:{name}, plugins:[{name, source:"./", strict:false,
+  skills:["./skills/<nome>"]}]}`. Com `strict:false`, dispensa `plugin.json`.
+- **Instalação:** `/plugin marketplace add <owner>/<repo>` + `/plugin install <skill>@<repo>`. Invocação
+  namespaced: `/<plugin>:<skill>`. Nome do comando vem do DIRETÓRIO da skill, não do frontmatter.
+- **Licença:** Apache-2.0 (o que a Anthropic usa em `anthropics/skills`).
+- **Esse padrão virou a skill `publicar-skill-claude-code`** (`~/.claude/skills/`): templates de
+  marketplace.json/README/.gitignore/LICENSE + um validador executável `validate-repo.mjs` (testado: detecta
+  repo inválido, aprova válido). Skill geradora autocontida, padrão scripts/assets.
+- **PUBLICADO (dogfooding):** a skill `publicar-skill-claude-code` foi usada para montar e publicar a skill
+  `criar-state-machine` no repo público **https://github.com/raphaelmarra/state-machine-for-agents** — layout
+  oficial (`.claude-plugin/marketplace.json` + `skills/criar-state-machine/`), Apache-2.0, validado e com smoke
+  test 5/5. Instalável via `/plugin marketplace add raphaelmarra/state-machine-for-agents`. O dogfooding PROVOU a
+  skill `publicar-skill-claude-code` (montou um repo real, válido, do zero).
+
 ## Fontes
 - platform.claude.com/docs/en/agents-and-tools/agent-skills/overview — estrutura, frontmatter, 3 níveis, segurança, constraints da API.
 - platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices — description 3ª pessoa, degrees of freedom, utility scripts, template/plan-validate-execute.
