@@ -374,3 +374,30 @@ lá, não do output que o agente escreve. Modelo: "approvals before side effects
 agente. Relacionado: A018 (mesma raiz — o motor não autentica o que o agente declara, num fluxo agêntico).
 **Próximo passo:** reavaliar ao levar o pipeline para execução não-supervisionada (CI). Até lá, o limite vive
 DECLARADO no core da etapa 10 e a autenticidade última é o operador humano acompanhando a conversa.
+
+---
+
+## A020 — Cegueira de fonte: o DAG ancora numa fonte sem perguntar "é a única?" (achado-ouro do E2E piloto)
+
+**Status:** dívida registrada (a PRINCIPAL entrada de melhoria do pipeline) — descoberta pela 1ª condução E2E
+completa de uma feature real (2026-06-30). Documentada no relatório `docs/RELATORIO-E2E-PILOTO.md`.
+**Questão:** o DAG (etapa 1) mapeia A FUNDO a fonte de dados que recebe, mas NUNCA pergunta "esta é a única
+fonte que satisfaz a intenção?". Toda a verificação a jusante (Descoberta → Gate B ao vivo) opera sobre a
+premissa que o DAG fixou e a confirma com rigor — se a premissa nasce PARCIAL, o rigor só prova que "a parte
+funciona". No E2E o MESMO erro de classe ocorreu 2×: (1ª) a tela listou 1 item porque o DAG ancorou na fonte
+que o código legado já usava; (2ª) corrigida a fonte, listou centenas — mas faltava um universo inteiro de
+itens vindo de um sistema paralelo que a fonte escolhida nem conhecia. O pipeline garante "a feature faz CERTO
+o que faz", mas não "a feature olha para a coisa COMPLETA".
+**Por que o pipeline não pega hoje:** nenhuma das 13 etapas tem a lente "esta tela está olhando para TODAS as
+fontes certas para seu propósito?". O Three Amigos (etapa 4) pergunta "por que isso existe?" mas DEPOIS de o DAG
+já ter fixado o território. O GAP confronta "descoberto vs necessário", mas o "necessário" também é derivado da
+fonte que o DAG escolheu. A pergunta de COMPLETUDE DE FONTE não tem dono.
+**Direção (proposta de melhoria):** adicionar uma **Etapa 0 — Censo de Fontes / Gate de Intenção**, ANTES do DAG.
+Dada a intenção declarada, ela varre o ambiente atrás de TODAS as fontes que a satisfazem (não só a que o código
+legado usa) e confronta "o que a tela DEVERIA agregar" vs "o que ela está ligada a agregar". Secundário (mesma
+raiz): o CORE-DISCOVERY deve exigir leitura do contrato tipado (SDK/OpenAPI/spec) ANTES de sondar ao vivo — numa
+execução, sondar por tentativa-e-erro a partir de um único exemplo fez a descoberta perder parâmetros e métodos
+que o contrato documentava (e gerou um no-go falso no design).
+**Próximo passo:** brainstorm da Etapa 0 (é decisão de fundação — muda o início do pipeline). É o trabalho de
+maior valor pendente. Relacionado: é a 3ª vez que uma cegueira de escopo/fonte morde (ver também os 2 achados
+crus em `e2e-run-2-tools/contexto-vivo/`, locais).
