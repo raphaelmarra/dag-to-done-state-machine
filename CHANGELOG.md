@@ -5,6 +5,24 @@ Manter via skill `manter-governanca`. Escopo de commit: `docs(etapa-N):`, `docs(
 
 ## [Não lançado]
 
+## [0.1.0] — 2026-07-01
+
+Primeiro lançamento formal: o motor da state machine com as etapas 1–10 cristalizadas e o **AUTO-NEXT**.
+
+### ⚡ AUTO-NEXT — o `advance` encadeia o `next` sozinho (ADR 0034, 2026-07-01)
+- **O ciclo por etapa caiu de 2 comandos para 1.** Ao APROVAR e havendo próxima etapa, o `advance` já emite o
+  briefing dela — o agente não precisa mais rodar `next` manualmente entre etapas. Usa a MESMA geração do `next`
+  (`emitirBriefing`, extraída de `cmdNext`), então o handoff por arquivo é idêntico.
+- **Não muda o modelo de execução** (agente DIRIGE, motor JULGA) nem a folga de generalidade (A009 intacta) — é
+  orquestração, não contrato. O verbo `next` foi preservado (retrocompatível, idempotente).
+- **Fronteiras seguras:** reprovação bloqueia na mesma etapa (não auto-emite); etapa terminal não tenta emitir;
+  pré-condição ausente na próxima etapa cai em fallback (avisa + pede `next`, sem falhar o advance — a aprovação
+  já é fato consumado no estado salvo).
+- **Testado (suíte v1 239/239, +4):** 12 transições sem `next` manual; fallback de unidade; fallback INTEGRADO
+  no advance (retorna 0 e avança mesmo sem emitir); idempotência do `next` redundante. Validado também fora do
+  harness com subagente Explore LLM real (demanda simulada "adicionar verbo `verify` ao CLI"): 2 transições de
+  auto-next em cadeia + reprovação não-emitindo + handoff de dados íntegro.
+
 ### 🏁 ETAPA 10 (Aprovação humana) COMPLETA — a 1ª etapa HITL, gênero não-CORE (2026-06-29)
 - **Cristalizada (ADR 0031):** a etapa 10 quebra o molde das etapas 1-9 — o executor é o HUMANO, não um agente
   LLM, então NÃO há CORE meta-prompt. É o último checkpoint humano antes do deploy.
