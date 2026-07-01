@@ -39,6 +39,13 @@ recado** ao adaptá-lo ao projeto. O subagente é o **executor**.
 6. **A máquina age como JUIZ** (`cmdAdvance`): o arquivo existe? é JSON? os campos do schema
    estão presentes? (nos gates, `veredito === "APROVA"`?). Se passa, avança; senão, bloqueia.
 
+7. **AUTO-NEXT (ADR 0034):** ao aprovar, o `advance` **já emite o briefing da próxima etapa** — o
+   agente NÃO precisa rodar `next` de novo. É o passo 2 do próximo ciclo, fundido no `advance`. O
+   agente volta ao passo 3 (lê o novo briefing) direto. O `next` explícito só é preciso se a próxima
+   etapa tiver pré-condição ausente (fallback: o `advance` avisa e pede `next`). Assim o ciclo por
+   etapa custa **um** comando (`advance`), não dois. Reprovação bloqueia na mesma etapa (não avança,
+   não emite novo briefing — o agente refaz o output).
+
 ---
 
 ## ⚠️ A ressalva crítica: o briefing NÃO é repassado palavra por palavra

@@ -28,6 +28,16 @@
 
 ---
 
+## AUTO-NEXT — `advance` ao aprovar já emite o briefing da próxima etapa (2026-07-01)
+
+- **ADR 0034** — Elimina o `next` manual do ciclo por etapa (2 comandos → 1). Ao APROVAR e havendo próxima
+  etapa, o `advance` gera o briefing dela via a MESMA função do `next` (`emitirBriefing`, extraída de `cmdNext`).
+  Reprovação/terminal não auto-emitem; pré-condição ausente na próxima etapa cai em fallback seguro (avisa +
+  pede `next`, sem falhar o advance). `next` preservado (retrocompatível, idempotente). NÃO muda o modelo de
+  execução (agente DIRIGE, motor JULGA) nem a folga de generalidade (A009 intacta) — é orquestração, não
+  contrato. Prova: 4 testes E2E "AUTO-NEXT" (12 transições sem `next`; fallback unidade + integrado; `next`
+  redundante idempotente) + simulação com subagente LLM real. Suíte v1 **239/239**.
+
 ## Skill `criar-state-machine` v2 — revisada para o padrão Anthropic (2026-06-30)
 
 - **Revisão pós-avaliação do operador.** A v1 era "manual metodológico", não geradora: apontava para o repo-fonte

@@ -4,9 +4,10 @@
 
 import { describe, it, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
-import { rmSync, writeFileSync } from "node:fs";
-import { main, carregarEstado, outputPath, featureDir, statePath, estaCompleto } from "../dag.mjs";
-import { PIPELINE, PRIMEIRA_ETAPA, CATALOGO_LENTES, CATALOGO_WCAG } from "../pipeline.config.mjs";
+import { rmSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { main, carregarEstado, salvarEstado, outputPath, briefingPath, featureDir, statePath, estaCompleto, emitirBriefing } from "../dag.mjs";
+import { PIPELINE, PRIMEIRA_ETAPA, CATALOGO_LENTES, CATALOGO_WCAG, etapaPorId } from "../pipeline.config.mjs";
 
 const FEATURE = "e2e-test";
 
@@ -228,6 +229,102 @@ describe("e2e: motor da state machine DAG-to-Done", () => {
     assert.ok(estaCompleto(estado), "estado final deve ser terminal");
     assert.equal(estado.concluidas.length, 13, "13 etapas concluídas");
     assert.deepEqual(estado.concluidas, PIPELINE.map((e) => e.id), "ordem das concluídas");
+  });
+
+  // ADR 0034 (AUTO-NEXT): ao APROVAR, o advance já emite o briefing da PRÓXIMA etapa — o agente não precisa
+  // rodar `next` manualmente entre etapas. Prova: sem NENHUM `next`, os briefings surgem só com `advance`.
+  it("AUTO-NEXT: advance ao aprovar já gera o briefing da próxima etapa (sem next manual)", () => {
+    // init COM as pré-condições da 1ª etapa (entry_point, project_root) satisfeitas — senão o auto-next da
+    // 2ª etapa cairia no fallback de pré-condição ausente (project_root vazio). Este é o caminho de uso real.
+    assert.equal(main(["init", FEATURE, "--root", ".", "--entry", "x"]), 0);
+
+    for (let i = 0; i < PIPELINE.length - 1; i++) {
+      const etapa = PIPELINE[i];
+      const proxima = PIPELINE[i + 1];
+
+      // Antes de aprovar a etapa i, o briefing da etapa i+1 NÃO deve existir (nenhum next foi rodado).
+      assert.ok(
+        !existsSync(briefingPath(FEATURE, proxima.id)),
+        `briefing de ${proxima.id} não deve existir antes de aprovar ${etapa.id}`
+      );
+
+      escreverOutput(FEATURE, etapa, outputValido(etapa));
+      assert.equal(main(["advance", FEATURE]), 0, `advance de ${etapa.id} deve aprovar`);
+
+      // Depois de aprovar a etapa i, o AUTO-NEXT deve ter emitido o briefing da etapa i+1 — SEM next manual.
+      assert.ok(
+        existsSync(briefingPath(FEATURE, proxima.id)),
+        `AUTO-NEXT: advance de ${etapa.id} deveria ter gerado o briefing de ${proxima.id}`
+      );
+    }
+  });
+
+  // ADR 0034 — fallback do auto-next: se a PRÓXIMA etapa tem pré-condição ausente, emitirBriefing RECUSA
+  // (não gera briefing meio-pronto). Testa o mecanismo diretamente (unidade), com um estado sem project_root.
+  it("AUTO-NEXT fallback: emitirBriefing recusa quando a próxima etapa tem pré-condição ausente", () => {
+    const descoberta = etapaPorId("descoberta"); // precondicoes: entry_point, project_root, dag_output
+    // Estado que satisfaz entry_point e dag_output, mas NÃO project_root (vazio) — simula init sem --root.
+    const estado = {
+      feature: FEATURE,
+      entry_point: "x",
+      project_root: "", // ← ausente
+      dag_output: { nos: [] },
+    };
+    const r = emitirBriefing(FEATURE, estado, descoberta);
+    assert.equal(r.ok, false, "deve recusar quando falta pré-condição");
+    assert.deepEqual(r.precondicao, ["project_root"], "deve apontar exatamente a pré-condição ausente");
+    assert.ok(!existsSync(briefingPath(FEATURE, "descoberta")), "não deve ter escrito briefing meio-pronto");
+  });
+
+  // ADR 0034 — ramo INTEGRADO do fallback (dentro de cmdAdvance, não só emitirBriefing isolado): quando a
+  // aprovação avança para uma etapa cuja pré-condição está ausente, o advance NÃO deve falhar — a aprovação
+  // já é fato consumado (estado salvo, etapa avançada); só o auto-next é adiado (avisa + pede next manual).
+  // Regressão-guard: impede que alguém troque o ramo `else` do fallback por um `return erro()` sem perceber.
+  it("AUTO-NEXT fallback integrado: advance ainda retorna 0 e avança mesmo sem poder emitir o próximo briefing", () => {
+    assert.equal(main(["init", FEATURE, "--root", ".", "--entry", "x"]), 0);
+
+    const primeira = PIPELINE[0];   // dag (exige entry_point, project_root)
+    const segunda = PIPELINE[1];    // descoberta (exige entry_point, project_root, dag_output)
+    escreverOutput(FEATURE, primeira, outputValido(primeira));
+
+    // Sabota a pré-condição da PRÓXIMA etapa DEPOIS que a 1ª já é válida: remove project_root do estado.
+    // A etapa 1 já passou (foi validada no init/next); mas o auto-next da etapa 2 vai recusar por falta dele.
+    const estado = carregarEstado(FEATURE);
+    delete estado.project_root;
+    salvarEstado(estado);
+
+    // advance da etapa 1: APROVA (retorna 0) apesar de o auto-next da etapa 2 não poder emitir o briefing.
+    assert.equal(main(["advance", FEATURE]), 0, "advance deve APROVAR mesmo caindo no fallback do auto-next");
+
+    const depois = carregarEstado(FEATURE);
+    assert.equal(depois.etapaAtual, segunda.id, "a aprovação avançou o estado para a próxima etapa (fato consumado)");
+    assert.ok(depois.concluidas.includes(primeira.id), "a 1ª etapa consta como concluída");
+    assert.ok(
+      !existsSync(briefingPath(FEATURE, segunda.id)),
+      "o briefing da próxima etapa NÃO foi gerado (pré-condição ausente) — fallback, não briefing meio-pronto"
+    );
+  });
+
+  // ADR 0034 — coexistência auto-next + next: um agente pode, por hábito, rodar `next` DEPOIS do auto-next.
+  // Como ambos chamam a mesma emitirBriefing (writeFileSync determinístico), o `next` redundante deve ser um
+  // no-op idempotente: mesmo briefing, sem mutar estado (não duplica concluidas, não re-avança).
+  it("AUTO-NEXT + next redundante: next após auto-next é idempotente (mesmo briefing, estado intacto)", () => {
+    assert.equal(main(["init", FEATURE, "--root", ".", "--entry", "x"]), 0);
+
+    const primeira = PIPELINE[0];
+    const segunda = PIPELINE[1];
+    escreverOutput(FEATURE, primeira, outputValido(primeira));
+    assert.equal(main(["advance", FEATURE]), 0);
+
+    // Estado + briefing logo após o auto-next.
+    const estadoAposAutoNext = JSON.stringify(carregarEstado(FEATURE));
+    const briefingAposAutoNext = readFileSync(briefingPath(FEATURE, segunda.id), "utf8");
+
+    // Agente roda `next` por hábito — deve ser inócuo.
+    assert.equal(main(["next", FEATURE]), 0, "next após auto-next retorna 0");
+
+    assert.equal(JSON.stringify(carregarEstado(FEATURE)), estadoAposAutoNext, "next redundante NÃO mutou o estado");
+    assert.equal(readFileSync(briefingPath(FEATURE, segunda.id), "utf8"), briefingAposAutoNext, "briefing reescrito é idêntico");
   });
 
   it("PORTEIRO BLOQUEIA: advance sem output não avança e sinaliza falha", () => {
