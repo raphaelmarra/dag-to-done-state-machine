@@ -268,6 +268,28 @@ function montarBriefing(estado, etapa) {
   ].join("\n");
 }
 
+// Gera o briefing da etapa atual em disco. Núcleo compartilhado por `next` e pelo auto-next do `advance`
+// (ADR 0034): a MESMA geração serve os dois caminhos, sem duplicar a checagem de pré-condições. Não imprime
+// nada (o chamador decide a mensagem) e não muta estado. Retorna:
+//   { ok: true,  bPath, oPath }                  — briefing gerado
+//   { ok: false, precondicao: [campos] }         — pré-condição ausente (briefing NÃO gerado)
+// Pressupõe estado não-terminal e etapa válida (o chamador já garantiu).
+function emitirBriefing(feature, estado, etapa) {
+  // PRÉ-CONDIÇÕES (peça 6): a etapa declara os campos do estado que precisa; o motor verifica ANTES de
+  // gerar o briefing. Se algum falta, não gera (lacuna visível, nunca briefing meio-pronto).
+  const faltando = (etapa.precondicoes ?? []).filter((campo) => {
+    const v = estado[campo];
+    return v === undefined || v === null || v === "";
+  });
+  if (faltando.length) return { ok: false, precondicao: faltando };
+
+  garantirDir(featureDir(feature));
+  const bPath = briefingPath(feature, etapa.id);
+  const oPath = outputPath(feature, etapa.id);
+  writeFileSync(bPath, montarBriefing(estado, etapa), "utf8");
+  return { ok: true, bPath, oPath };
+}
+
 function cmdNext(feature) {
   if (!feature) return erro("uso: dag next <feature>");
   const estado = carregarEstado(feature);
@@ -284,29 +306,18 @@ function cmdNext(feature) {
     return erro(`estado inconsistente: etapa "${estado.etapaAtual}" não existe no cartucho.`);
   }
 
-  // PRÉ-CONDIÇÕES (peça 6): early-exit ANTES de gerar o briefing. A etapa declara os campos do estado
-  // que precisa; o motor verifica. Bloqueia (não gera briefing) se algum faltar — implementa no motor
-  // o que o CORE só descrevia.
-  const faltando = (etapa.precondicoes ?? []).filter((campo) => {
-    const v = estado[campo];
-    return v === undefined || v === null || v === "";
-  });
-  if (faltando.length) {
+  const r = emitirBriefing(feature, estado, etapa);
+  if (!r.ok) {
     return erro(
-      `BLOQUEADO na etapa "${etapa.id}" — pré-condição ausente: ${faltando.join(", ")}.\n` +
+      `BLOQUEADO na etapa "${etapa.id}" — pré-condição ausente: ${r.precondicao.join(", ")}.\n` +
       `   forneça no init (ex.: --root, --entry) e rode 'next' de novo. Briefing não gerado.`
     );
   }
 
-  garantirDir(featureDir(feature));
-  const bPath = briefingPath(feature, etapa.id);
-  const oPath = outputPath(feature, etapa.id);
-  writeFileSync(bPath, montarBriefing(estado, etapa), "utf8");
-
   // stdout curto — só aponta (adaptação ao limite de 30KB do Bash do Claude Code).
   console.log(`etapa: ${etapa.id} — ${etapa.nome}`);
-  console.log(`briefing: ${bPath}`);
-  console.log(`escreva o resultado em: ${oPath}`);
+  console.log(`briefing: ${r.bPath}`);
+  console.log(`escreva o resultado em: ${r.oPath}`);
   console.log(`depois rode: node dag.mjs advance ${feature}`);
   return 0;
 }
@@ -385,7 +396,23 @@ function cmdAdvance(feature) {
     registrarHistorico(estado, { evento: "avancou", etapa: prox });
     salvarEstado(estado);
     console.log(`✅ etapa "${etapa.id}" APROVADA. Avançou para: ${prox}`);
-    console.log(`   próximo: node dag.mjs next ${feature}`);
+
+    // AUTO-NEXT (ADR 0034): ao aprovar, o motor já emite o briefing da nova etapa — o agente não precisa
+    // rodar `next` manualmente entre etapas. É o `advance` fundindo o passo `next` seguinte. A geração é a
+    // MESMA de cmdNext (via emitirBriefing), então o handoff por arquivo é idêntico. Se a nova etapa tem
+    // pré-condição ausente (não deveria, pois o motor promove os <etapa>_output ao aprovar), cai no fallback
+    // manual: avisa e pede `next`, sem falhar o advance (a aprovação já é fato consumado no estado salvo).
+    const etapaProx = etapaPorId(prox);
+    const b = emitirBriefing(feature, estado, etapaProx);
+    if (b.ok) {
+      console.log(`etapa: ${etapaProx.id} — ${etapaProx.nome}`);
+      console.log(`briefing: ${b.bPath}`);
+      console.log(`escreva o resultado em: ${b.oPath}`);
+      console.log(`depois rode: node dag.mjs advance ${feature}`);
+    } else {
+      console.log(`   ⚠️ briefing da próxima etapa não gerado — pré-condição ausente: ${b.precondicao.join(", ")}.`);
+      console.log(`   próximo: node dag.mjs next ${feature}`);
+    }
   } else {
     // Terminal: sentinela fora do espaço de nomes do cartucho (P0-1).
     estado.etapaAtual = null;
@@ -442,7 +469,7 @@ function main(argv) {
 }
 
 // Exporta para testes; roda se invocado direto.
-export { main, carregarEstado, salvarEstado, statePath, outputPath, briefingPath, featureDir, estaCompleto, ESTADO_CORROMPIDO, contextoDeSubstituicao, substituirPlaceholders, montarBriefing };
+export { main, carregarEstado, salvarEstado, statePath, outputPath, briefingPath, featureDir, estaCompleto, ESTADO_CORROMPIDO, contextoDeSubstituicao, substituirPlaceholders, montarBriefing, emitirBriefing };
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("dag.mjs")) {
   process.exit(main(process.argv.slice(2)));

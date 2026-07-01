@@ -30,7 +30,7 @@
   - `0012-analise-de-impacto.md` — change impact analysis, blast radius, slicing. Confronta a fronteira "1 hop" (A4).
   - `0013-modelagem-dependencia-arquitetura.md` — C4, ADP, DDD bounded contexts. Confronta granularidade de nó e fronteira.
   - `0014-ferramentas-reais-dag.md` — Airflow/Nx/Bazel/madge: como tratam ciclo e impacto. O que imitar no CORE-DAG.
-- [`adr/`](adr/) — 31 ADRs (decisões de design, formato MADR, imutáveis). Índice em DECISOES.md.
+- [`adr/`](adr/) — 34 ADRs (decisões de design, formato MADR, imutáveis). Índice em DECISOES.md. (Último: 0034 — AUTO-NEXT.)
 
 ## Decision log (cronológico — o que foi decidido/aberto/descartado)
 - [`DECISOES.md`](DECISOES.md) — índice dos ADRs (decisões aceitas).

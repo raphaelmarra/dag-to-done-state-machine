@@ -11,6 +11,12 @@
 > humana: a garantia é PROCESSUAL (o agente mostra o dossiê e espera a fala humana, não a fabrica) — gate
 > cripto seria over-engineering. ZERO mecanismo de validação novo. MVP congelado. Próximo: etapa 11 (Done —
 > gênero sistema). Dívidas: A010, A011, A016, A017, A018, A019.
+>
+> **Atualização (2026-07-01) — AUTO-NEXT (ADR 0034):** o `advance` agora, ao aprovar, **já emite o briefing da
+> próxima etapa** — o agente não precisa mais rodar `next` manualmente entre etapas (ciclo por etapa: 2 comandos
+> → 1). Mesma geração do `next` (`emitirBriefing`), fallback seguro se a próxima etapa tiver pré-condição
+> ausente, `next` preservado. Não muda o modelo de execução nem a folga de generalidade (A009 intacta). Suíte v1
+> **239/239** (+4 testes de auto-next: caminho feliz, fallback unidade + integrado, `next` redundante).
 
 ---
 
@@ -44,7 +50,7 @@ Uma etapa é considerada "CORE pronto" quando:
 | M-1 Esqueleto state machine | `MVP/dag.mjs` + `package.json`: lê estado, gera briefing em arquivo | ✅ MVP |
 | M-2 Validação de schema | `aceita(output)` por etapa, validação mecânica (ADR 0018) | 🟡 MVP (só presença; endurecer pós-MVP, GAP-04) |
 | M-3 Porteiro de fases | `advance` bloqueia output inválido e não deixa pular/regredir | ✅ MVP (validado + auditado) |
-| M-4 Verbos do CLI | `init` / `next` / `advance` / `status` | ✅ MVP (`verify`/`check` pós-MVP) |
+| M-4 Verbos do CLI | `init` / `next` / `advance` / `status` — `advance` faz **AUTO-NEXT** (ADR 0034): ao aprovar, já emite o briefing da próxima etapa (ciclo 2 cmds → 1) | ✅ MVP + auto-next (`verify`/`check` pós-MVP) |
 
 > MVP (Walking Skeleton) construído e validado em `MVP/` (congelado como marco + evidência do E2E
 > da aba CLIs). e2e 5/5 verde lá.
